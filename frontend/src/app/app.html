@@ -1,0 +1,36 @@
+<div class="app-container">
+  <!-- Header / Navigation -->
+  <header class="app-header">
+    <div class="header-logo">
+      <span class="logo-emoji">🎮</span>
+      <h1>Arcade Lounge</h1>
+    </div>
+    
+    @if (username()) {
+      <div class="header-user">
+        <span class="user-badge">👤 {{ username() }}</span>
+        <button class="logout-btn" (click)="resetUsername()" title="Changer de pseudonyme">✕</button>
+      </div>
+    }
+  </header>
+
+  <!-- Main View Area -->
+  <main class="app-main">
+    @if (!currentRoom()) {
+      <app-lobby></app-lobby>
+    } @else if (getGameType() === 'connect4') {
+      <app-connect4></app-connect4>
+    } @else if (getGameType() === 'battleship') {
+      <app-battleship></app-battleship>
+    } @else if (getGameType() === 'tictactoe') {
+      <app-tictactoe></app-tictactoe>
+    } @else if (getGameType() === 'checkers') {
+      <app-checkers></app-checkers>
+    } @else if (getGameType() === 'chess') {
+      <app-chess></app-chess>
+    }
+  </main>
+
+  <!-- Persistent Chat Sidebar -->
+  <app-chat-sidebar></app-chat-sidebar>
+</div>
