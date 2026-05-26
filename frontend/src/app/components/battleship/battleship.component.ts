@@ -9,7 +9,10 @@ import { GameService } from '../../services/game.service';
       @if (room()) {
         <!-- Header -->
         <div class="bs-header">
-          <button class="back-btn" (click)="leaveRoom()">← Quitter</button>
+          <button class="back-btn" (click)="leaveRoom()">
+            <span class="material-symbols">arrow_back</span>
+            <span>Quitter</span>
+          </button>
           <div class="room-badge">Code salon : <strong>{{ room()?.id }}</strong></div>
         </div>
 
@@ -46,7 +49,8 @@ import { GameService } from '../../services/game.service';
                 <div class="setup-instructions">
                   Placez votre flotte de 5 navires. Cliquez sur une case pour poser, utilisez le bouton d'orientation.
                   <button class="orient-btn" (click)="toggleOrientation()">
-                    Orientation : {{ isHorizontal() ? 'Horizontal ↔' : 'Vertical ↕' }}
+                    <span class="material-symbols">sync_alt</span>
+                    <span>Orientation : {{ isHorizontal() ? 'Horizontal' : 'Vertical' }}</span>
                   </button>
                 </div>
               }
@@ -68,7 +72,10 @@ import { GameService } from '../../services/game.service';
                 @if (hasVotedRematch()) {
                   <div class="rematch-status">Demande de revanche envoyée... En attente de l'adversaire.</div>
                 } @else {
-                  <button class="primary-btn rematch-btn" (click)="requestRematch()">🔄 Rejouer / Demander Revanche</button>
+                  <button class="primary-btn rematch-btn" (click)="requestRematch()">
+                    <span class="material-symbols">replay</span>
+                    <span>Rejouer / Demander Revanche</span>
+                  </button>
                 }
               </div>
             }
@@ -193,36 +200,44 @@ import { GameService } from '../../services/game.service';
     }
 
     .back-btn {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: white;
-      border-radius: 8px;
+      background: var(--m3-surface);
+      border: var(--m3-border);
+      color: #cbd5e1;
+      border-radius: var(--m3-radius-medium);
       padding: 8px 16px;
       cursor: pointer;
       font-size: 14px;
-      transition: background 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
     }
 
     .back-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
+      background: var(--m3-surface-hover);
+      color: white;
+    }
+
+    .back-btn .material-symbols {
+      font-size: 18px;
     }
 
     .room-badge {
-      background: rgba(99, 102, 241, 0.2);
-      border: 1px solid rgba(99, 102, 241, 0.3);
-      color: #a5b4fc;
+      background: var(--m3-primary-container);
+      border: 1px solid rgba(129, 140, 248, 0.2);
+      color: #cbd5e1;
       padding: 8px 16px;
-      border-radius: 8px;
+      border-radius: var(--m3-radius-medium);
       font-size: 14px;
     }
 
     .glass-card {
-      background: rgba(30, 30, 50, 0.45);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--m3-surface);
+      border: var(--m3-border);
       backdrop-filter: blur(12px);
-      border-radius: 16px;
+      border-radius: var(--m3-radius-large);
       padding: 25px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      box-shadow: var(--m3-shadow);
       color: white;
       margin-bottom: 30px;
     }
@@ -230,10 +245,11 @@ import { GameService } from '../../services/game.service';
     .status-panel h2 {
       margin-top: 0;
       text-align: center;
-      font-size: 24px;
-      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      font-size: 26px;
+      background: linear-gradient(135deg, #3b82f6, #a5b4fc);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      font-weight: 700;
     }
 
     .phase-indicator {

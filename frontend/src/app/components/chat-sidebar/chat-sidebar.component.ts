@@ -11,7 +11,7 @@ import { GameService } from '../../services/game.service';
     <div class="chat-container" [class.open]="isOpen">
       <!-- Toggle Button -->
       <button class="chat-toggle" (click)="toggleChat()" [class.has-unread]="hasUnread && !isOpen">
-        <span class="chat-icon">💬</span>
+        <span class="material-symbols">chat_bubble</span>
         @if (hasUnread && !isOpen) {
           <span class="unread-dot"></span>
         }
@@ -21,14 +21,20 @@ import { GameService } from '../../services/game.service';
       <div class="chat-panel">
         <div class="chat-header">
           <h3>Discussion</h3>
-          <button class="close-btn" (click)="toggleChat()">×</button>
+          <button class="close-btn" (click)="toggleChat()">
+            <span class="material-symbols">close</span>
+          </button>
         </div>
 
         <!-- Chat Tabs (if in a room) -->
         @if (currentRoom()) {
           <div class="chat-tabs">
-            <button [class.active]="activeTab === 'global'" (click)="activeTab = 'global'">Global</button>
-            <button [class.active]="activeTab === 'room'" (click)="activeTab = 'room'">Partie</button>
+            <button [class.active]="activeTab === 'global'" (click)="activeTab = 'global'">
+              Global
+            </button>
+            <button [class.active]="activeTab === 'room'" (click)="activeTab = 'room'">
+              Partie
+            </button>
           </div>
         }
 
@@ -45,7 +51,10 @@ import { GameService } from '../../services/game.service';
               </div>
             </div>
           } @empty {
-            <div class="empty-chat">Aucun message pour l'instant.</div>
+            <div class="empty-chat">
+              <span class="material-symbols empty-icon">forum</span>
+              <p>Aucun message pour l'instant.</p>
+            </div>
           }
         </div>
 
@@ -59,7 +68,9 @@ import { GameService } from '../../services/game.service';
             autocomplete="off"
             required
           />
-          <button type="submit">Envoyer</button>
+          <button type="submit" title="Envoyer">
+            <span class="material-symbols">send</span>
+          </button>
         </form>
       </div>
     </div>
@@ -70,11 +81,11 @@ import { GameService } from '../../services/game.service';
       right: 0;
       top: 0;
       bottom: 0;
-      width: 320px;
-      background: rgba(20, 20, 30, 0.95);
-      border-left: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: -5px 0 25px rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(10px);
+      width: 340px;
+      background: rgba(15, 23, 42, 0.85);
+      border-left: var(--m3-border);
+      box-shadow: var(--m3-shadow);
+      backdrop-filter: blur(20px);
       z-index: 1000;
       transform: translateX(100%);
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -88,97 +99,112 @@ import { GameService } from '../../services/game.service';
 
     .chat-toggle {
       position: absolute;
-      left: -60px;
+      left: -64px;
       top: 20px;
-      width: 50px;
-      height: 50px;
+      width: 52px;
+      height: 52px;
       border-radius: 50% 0 0 50%;
-      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      background: linear-gradient(135deg, var(--m3-primary), var(--m3-secondary));
       border: none;
       color: white;
-      font-size: 20px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: -3px 3px 10px rgba(0, 0, 0, 0.3);
-      transition: all 0.2s ease;
+      box-shadow: var(--m3-shadow);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .chat-toggle:hover {
-      left: -65px;
-      background: linear-gradient(135deg, #4f46e5, #4338ca);
+      left: -68px;
+      transform: scale(1.05);
     }
 
     .unread-dot {
       position: absolute;
-      top: 10px;
-      right: 10px;
-      width: 10px;
-      height: 10px;
-      background: #f43f5e;
+      top: 8px;
+      right: 8px;
+      width: 12px;
+      height: 12px;
+      background: var(--m3-error);
       border-radius: 50%;
-      border: 2px solid white;
+      border: 2px solid #0f172a;
     }
 
     .chat-panel {
       display: flex;
       flex-direction: column;
       height: 100%;
-      color: white;
+      color: #f8fafc;
     }
 
     .chat-header {
-      padding: 15px 20px;
+      padding: 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: var(--m3-border);
     }
 
     .chat-header h3 {
       margin: 0;
       font-weight: 600;
-      color: #a5b4fc;
+      font-size: 18px;
+      background: linear-gradient(135deg, var(--m3-primary), var(--m3-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
     .close-btn {
-      background: none;
+      background: var(--m3-primary-container);
       border: none;
-      color: #9ca3af;
-      font-size: 24px;
+      color: #94a3b8;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
-      line-height: 1;
-      padding: 0;
+      transition: all 0.2s;
+    }
+
+    .close-btn .material-symbols {
+      font-size: 18px;
     }
 
     .close-btn:hover {
-      color: white;
+      background: rgba(255, 255, 255, 0.1);
+      color: #f8fafc;
+      transform: scale(1.1);
     }
 
     .chat-tabs {
       display: flex;
       background: rgba(0, 0, 0, 0.2);
-      padding: 5px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 6px;
+      margin: 10px 20px 0 20px;
+      border-radius: var(--m3-radius-medium);
+      border: var(--m3-border);
     }
 
     .chat-tabs button {
       flex: 1;
       background: none;
       border: none;
-      color: #9ca3af;
+      color: #94a3b8;
       padding: 8px;
-      font-size: 14px;
+      font-size: 13px;
+      font-weight: 500;
       cursor: pointer;
-      border-radius: 4px;
+      border-radius: var(--m3-radius-small);
       transition: all 0.2s;
     }
 
     .chat-tabs button.active {
-      background: rgba(255, 255, 255, 0.1);
-      color: white;
-      font-weight: 500;
+      background: rgba(255, 255, 255, 0.08);
+      color: #f8fafc;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
 
     .chat-messages {
@@ -187,7 +213,7 @@ import { GameService } from '../../services/game.service';
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 16px;
     }
 
     .message-wrapper {
@@ -204,37 +230,54 @@ import { GameService } from '../../services/game.service';
 
     .message-meta {
       font-size: 11px;
-      color: #9ca3af;
-      margin-bottom: 3px;
+      color: #64748b;
+      margin-bottom: 4px;
       display: flex;
       gap: 6px;
     }
 
     .message-bubble {
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--m3-surface);
+      border: var(--m3-border);
       padding: 10px 14px;
       border-radius: 4px 16px 16px 16px;
       font-size: 13px;
       line-height: 1.4;
       word-break: break-word;
+      color: #e2e8f0;
     }
 
     .message-wrapper.self .message-bubble {
-      background: #4f46e5;
+      background: linear-gradient(135deg, var(--m3-primary), var(--m3-secondary));
+      border: none;
       color: white;
       border-radius: 16px 4px 16px 16px;
+      box-shadow: 0 4px 12px rgba(129, 140, 248, 0.25);
     }
 
     .empty-chat {
       text-align: center;
-      color: #6b7280;
-      margin-top: 50px;
+      color: #64748b;
+      margin-top: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .empty-icon {
+      font-size: 40px;
+      color: #475569;
+    }
+
+    .empty-chat p {
+      margin: 0;
       font-size: 13px;
     }
 
     .chat-input-form {
-      padding: 15px;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      border-top: var(--m3-border);
       display: flex;
       gap: 8px;
     }
@@ -242,33 +285,41 @@ import { GameService } from '../../services/game.service';
     .chat-input-form input {
       flex: 1;
       background: rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 8px;
+      border: var(--m3-border);
+      border-radius: var(--m3-radius-medium);
       color: white;
-      padding: 10px 14px;
+      padding: 10px 16px;
       font-size: 13px;
       outline: none;
-      transition: border-color 0.2s;
+      transition: all 0.2s;
     }
 
     .chat-input-form input:focus {
-      border-color: #6366f1;
+      border-color: var(--m3-primary);
+      box-shadow: 0 0 0 2px var(--m3-primary-container);
     }
 
     .chat-input-form button {
-      background: #4f46e5;
+      background: var(--m3-primary);
       color: white;
       border: none;
-      border-radius: 8px;
-      padding: 10px 16px;
-      font-weight: 500;
-      font-size: 13px;
+      border-radius: var(--m3-radius-medium);
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: all 0.2s;
+    }
+
+    .chat-input-form button .material-symbols {
+      font-size: 18px;
     }
 
     .chat-input-form button:hover {
-      background: #4338ca;
+      background: var(--m3-secondary);
+      transform: scale(1.05);
     }
 
     @media (max-width: 480px) {

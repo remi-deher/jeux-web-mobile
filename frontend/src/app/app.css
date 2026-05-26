@@ -1,12 +1,48 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
+
+:root {
+  --m3-surface: rgba(30, 41, 59, 0.45);
+  --m3-surface-hover: rgba(51, 65, 85, 0.65);
+  --m3-surface-active: rgba(71, 85, 105, 0.85);
+  --m3-primary: #818cf8;
+  --m3-primary-container: rgba(129, 140, 248, 0.15);
+  --m3-secondary: #c084fc;
+  --m3-secondary-container: rgba(192, 132, 252, 0.15);
+  --m3-error: #f87171;
+  --m3-on-primary: #ffffff;
+  --m3-radius-small: 8px;
+  --m3-radius-medium: 16px;
+  --m3-radius-large: 24px;
+  --m3-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --m3-border: 1px solid rgba(255, 255, 255, 0.08);
+}
 
 :host {
   display: block;
   font-family: 'Outfit', sans-serif;
   min-height: 100vh;
-  background: radial-gradient(circle at 50% 50%, #111827 0%, #030712 100%);
-  color: #f3f4f6;
+  background: radial-gradient(circle at 50% 50%, #0f172a 0%, #020617 100%);
+  color: #f8fafc;
   overflow-x: hidden;
+}
+
+.material-symbols {
+  font-family: 'Material Symbols Rounded';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -moz-osx-font-smoothing: grayscale;
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
 .app-container {
@@ -31,8 +67,11 @@
   gap: 12px;
 }
 
-.logo-emoji {
+.logo-icon {
   font-size: 32px;
+  background: linear-gradient(135deg, var(--m3-primary), var(--m3-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   animation: float 3s ease-in-out infinite;
 }
 
@@ -40,41 +79,56 @@
   margin: 0;
   font-size: 24px;
   font-weight: 700;
-  background: linear-gradient(135deg, #818cf8, #c084fc);
+  background: linear-gradient(135deg, var(--m3-primary), var(--m3-secondary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  letter-spacing: -0.5px;
 }
 
 .header-user {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .user-badge {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 6px 14px;
-  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--m3-surface);
+  border: var(--m3-border);
+  padding: 6px 16px;
+  border-radius: var(--m3-radius-large);
   font-size: 14px;
   font-weight: 500;
+  backdrop-filter: blur(10px);
+}
+
+.badge-icon {
+  font-size: 18px;
+  color: var(--m3-primary);
 }
 
 .logout-btn {
-  background: none;
+  background: var(--m3-primary-container);
   border: none;
-  color: #ef4444;
-  font-size: 16px;
+  color: var(--m3-error);
   cursor: pointer;
-  padding: 4px;
+  padding: 8px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.logout-btn .material-symbols {
+  font-size: 18px;
 }
 
 .logout-btn:hover {
-  transform: scale(1.2);
+  background: rgba(248, 113, 113, 0.2);
+  transform: scale(1.1);
 }
 
 .app-main {
@@ -116,4 +170,64 @@
   .header-logo h1 {
     font-size: 20px;
   }
+}
+
+/* Global buttons */
+.primary-btn {
+  background: linear-gradient(135deg, var(--m3-primary), var(--m3-secondary));
+  color: white;
+  border: none;
+  border-radius: var(--m3-radius-medium);
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(129, 140, 248, 0.25);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(129, 140, 248, 0.4);
+}
+
+.primary-btn:active {
+  transform: translateY(0);
+}
+
+.primary-btn .material-symbols {
+  font-size: 20px;
+}
+
+.secondary-btn {
+  background: var(--m3-surface);
+  border: var(--m3-border);
+  color: #cbd5e1;
+  border-radius: var(--m3-radius-medium);
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.secondary-btn:hover {
+  background: var(--m3-surface-hover);
+  color: white;
+}
+
+.secondary-btn:active {
+  background: var(--m3-surface-active);
+}
+
+.secondary-btn .material-symbols {
+  font-size: 20px;
 }

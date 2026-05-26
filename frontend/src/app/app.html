@@ -2,14 +2,19 @@
   <!-- Header / Navigation -->
   <header class="app-header">
     <div class="header-logo">
-      <span class="logo-emoji">🎮</span>
+      <span class="material-symbols logo-icon">sports_esports</span>
       <h1>Arcade Lounge</h1>
     </div>
     
     @if (username()) {
       <div class="header-user">
-        <span class="user-badge">👤 {{ username() }}</span>
-        <button class="logout-btn" (click)="resetUsername()" title="Changer de pseudonyme">✕</button>
+        <span class="user-badge">
+          <span class="material-symbols badge-icon">account_circle</span>
+          {{ username() }}
+        </span>
+        <button class="logout-btn" (click)="resetUsername()" title="Changer de pseudonyme">
+          <span class="material-symbols">logout</span>
+        </button>
       </div>
     }
   </header>

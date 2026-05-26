@@ -23,7 +23,10 @@ interface ChessMove {
       @if (room()) {
         <!-- Header -->
         <div class="game-header">
-          <button class="back-btn" (click)="leaveRoom()">← Quitter</button>
+          <button class="back-btn" (click)="leaveRoom()">
+            <span class="material-symbols">arrow_back</span>
+            <span>Quitter</span>
+          </button>
           <div class="room-badge">Code salon : <strong>{{ room()?.id }}</strong></div>
         </div>
 
@@ -73,7 +76,10 @@ interface ChessMove {
                 @if (hasVotedRematch()) {
                   <div class="rematch-status">Demande de revanche envoyée...</div>
                 } @else {
-                  <button class="primary-btn rematch-btn" (click)="requestRematch()">🔄 Rejouer</button>
+                  <button class="primary-btn rematch-btn" (click)="requestRematch()">
+                    <span class="material-symbols">replay</span>
+                    <span>Rejouer</span>
+                  </button>
                 }
               </div>
             }
@@ -157,29 +163,44 @@ interface ChessMove {
     }
 
     .back-btn {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: white;
-      border-radius: 8px;
+      background: var(--m3-surface);
+      border: var(--m3-border);
+      color: #cbd5e1;
+      border-radius: var(--m3-radius-medium);
       padding: 8px 16px;
       cursor: pointer;
       font-size: 14px;
-      transition: background 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
     }
 
     .back-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
+      background: var(--m3-surface-hover);
+      color: white;
+    }
+
+    .back-btn .material-symbols {
+      font-size: 18px;
     }
 
     .room-badge {
-      background: rgba(99, 102, 241, 0.2);
-      border: 1px solid rgba(99, 102, 241, 0.3);
-      padding: 6px 14px;
-      border-radius: 20px;
+      background: var(--m3-primary-container);
+      border: 1px solid rgba(129, 140, 248, 0.2);
+      color: #cbd5e1;
+      padding: 8px 16px;
+      border-radius: var(--m3-radius-medium);
       font-size: 14px;
     }
 
     .status-panel {
+      background: var(--m3-surface);
+      border: var(--m3-border);
+      backdrop-filter: blur(12px);
+      border-radius: var(--m3-radius-large);
+      box-shadow: var(--m3-shadow);
+      color: white;
       text-align: center;
       padding: 20px;
       margin-bottom: 15px;
@@ -187,10 +208,10 @@ interface ChessMove {
 
     .status-panel h2 {
       margin: 0 0 15px 0;
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 700;
       letter-spacing: 0.5px;
-      background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+      background: linear-gradient(135deg, #fbbf24 0%, #cbd5e1 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
