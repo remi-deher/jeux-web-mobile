@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { GameService } from './services/game.service';
 import { LobbyComponent } from './components/lobby/lobby.component';
@@ -33,14 +33,28 @@ export class App {
 
   showProfileModal = signal<boolean>(false);
   newUsername = '';
+  theme = signal<'dark' | 'light'>('dark');
 
   constructor(private gameService: GameService) {
     this.username = this.gameService.username;
     this.currentRoom = this.gameService.currentRoom;
+
+    effect(() => {
+      const t = this.theme();
+      if (t === 'light') {
+        document.body.classList.add('light-theme');
+      } else {
+        document.body.classList.remove('light-theme');
+      }
+    });
   }
 
   getGameType(): string {
     return this.currentRoom()?.gameType || '';
+  }
+
+  toggleTheme() {
+    this.theme.set(this.theme() === 'dark' ? 'light' : 'dark');
   }
 
   resetUsername() {

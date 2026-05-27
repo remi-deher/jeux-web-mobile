@@ -12,6 +12,11 @@
           <span class="material-symbols badge-icon">account_circle</span>
           <span>{{ username() }}</span>
         </span>
+        <button class="icon-btn theme-toggle-btn" (click)="toggleTheme()" title="Changer de thème">
+          <span class="material-symbols">
+            {{ theme() === 'dark' ? 'light_mode' : 'dark_mode' }}
+          </span>
+        </button>
       </div>
     }
   </header>

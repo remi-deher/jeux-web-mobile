@@ -461,14 +461,15 @@ import { GameService } from '../../services/game.service';
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      transition: background 0.15s, border-color 0.15s, transform 0.15s;
+      transition: var(--md-transition-spring);
       text-align: left;
     }
 
     .game-card:hover {
       background: var(--md-surface-container-high);
       border-color: var(--md-primary);
-      transform: translateY(-2px);
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: var(--md-elevation-2);
     }
 
     .game-card-image {
