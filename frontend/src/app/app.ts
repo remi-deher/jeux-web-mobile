@@ -26,7 +26,7 @@ import { ChessComponent } from './components/chess/chess.component';
   styleUrl: './app.css'
 })
 export class App {
-  title = 'Retro Games Club';
+  title = 'Playbox';
 
   username;
   currentRoom;
