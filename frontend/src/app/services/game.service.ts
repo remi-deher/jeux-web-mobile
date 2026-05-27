@@ -1,45 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 
-export interface ChatMessage {
-  id: string;
-  username: string;
-  text: string;
-  timestamp: number;
-  roomId?: string;
-}
-
-export interface PrivateMessage {
-  id: string;
-  sender: string;
-  recipient: string;
-  text: string;
-  timestamp: number;
-}
-
-export interface Player {
-  id: string;
-  username: string;
-  disconnected?: boolean;
-}
-
-export interface Room {
-  id: string;
-  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess';
-  players: Player[];
-  status: 'waiting' | 'playing' | 'finished';
-  gameState: any;
-  chatMessages: ChatMessage[];
-  rematchVotes?: string[];
-  isLocal?: boolean;
-}
-
-export interface RoomListEntry {
-  id: string;
-  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess';
-  playersCount: number;
-  status: 'waiting' | 'playing' | 'finished';
-}
+import { ChatMessage, PrivateMessage, Player, Room, RoomListEntry } from '../models/game.models';
 
 @Injectable({
   providedIn: 'root'

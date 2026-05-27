@@ -1,0 +1,147 @@
+<app-game-layout
+  gameTitle="Bataille Navale"
+  [rules]="[
+    'La Bataille Navale se joue sur deux grilles de 10x10.',
+    'Sélectionnez un navire, puis cliquez sur la grille pour placer sa prévisualisation.',
+    'Cliquez à nouveau sur la case de départ pour poser le navire. Cliquez sur le navire fantôme ou utilisez Espace/R pour pivoter.',
+    'Une fois les flottes validées, tirez à tour de rôle sur la grille adverse.',
+    '💥 indique un tir réussi, 💧 indique un tir manqué.',
+    'Le premier joueur à couler tous les navires adverses gagne !'
+  ]"
+  [room]="room()"
+  [isPlaying]="isPlaying()"
+  [isMyTurn]="isMyTurn()"
+  [turnAlertText]="localOrOnlineTurnText()"
+  [opponentTurnText]="localOrOnlineOpponentTurnText()"
+  [turnAlertClass]="room()?.isLocal ? (currentPlayerNum() === 1 ? 'local-turn-red' : 'local-turn-yellow') : ''"
+  [winnerLabel]="winnerLabel()"
+  [isWinner]="isWinner()"
+  [isLoser]="isLoser()"
+  [hasVotedRematch]="hasVotedRematch()"
+  [disconnectedPlayerName]="disconnectedPlayerName()"
+  [player1Name]="player1Name()"
+  [player2Name]="player2Name()"
+  [player1Active]="currentPlayerNum() === 1 && isPlaying()"
+  [player2Active]="currentPlayerNum() === 2 && isPlaying()"
+  player1IndicatorSymbol="⚓"
+  player2IndicatorSymbol="🎯"
+  (leaveRoom)="leaveRoom()"
+  (requestRematch)="requestRematch()"
+  (sendEmoji)="sendEmoji($event)"
+  (forceEnd)="forceEnd()"
+  (shareInvitation)="shareInvitationLink()"
+>
+  <!-- Setup UI for ship placement -->
+  @if (phase() === 'setup' && !myState()?.ready && room()?.status === 'playing') {
+    <div game-setup class="glass-card ships-to-place">
+      <div class="setup-header">
+        <h3>Flotte Tactique</h3>
+        <p class="setup-subtitle">Sélectionnez et déployez vos unités</p>
+      </div>
+      <div class="ships-list">
+        @for (ship of myState()?.ships; track ship.id) {
+          <button 
+            class="ship-place-btn" 
+            [class.selected]="selectedShipId() === ship.id"
+            [class.placed]="ship.placed"
+            (click)="selectShip(ship.id)"
+          >
+            <div class="ship-btn-info">
+              <span class="ship-name">{{ getShipFrenchName(ship.id) }}</span>
+              <div class="ship-svg-wrapper" [innerHTML]="getShipSvg(ship.id)"></div>
+            </div>
+            @if (ship.placed) {
+              <span class="placed-badge">✓ DÉPLOYÉ</span>
+            } @else if (selectedShipId() === ship.id) {
+              <span class="active-badge">ACTIF</span>
+            }
+          </button>
+        }
+      </div>
+
+      <div class="setup-controls">
+        <button class="orient-btn" (click)="toggleOrientation()">
+          <span class="material-symbols">rotate_right</span>
+          <span>Pivoter (Espace / R)</span>
+        </button>
+        @if (allShipsPlaced()) {
+          <button class="ready-btn pulse-glow" (click)="setReady()">LANCER LE COMBAT</button>
+        }
+      </div>
+    </div>
+  }
+
+  <div game-board class="boards-wrapper-rel">
+    <div class="floating-emojis-container">
+      @for (item of floatingEmojis(); track item.id) {
+        <span class="floating-emoji">{{ item.emoji }}</span>
+      }
+    </div>
+    
+    <div class="boards-container">
+      <!-- My Fleet Board (Left / Owner) -->
+      <div class="board-column player-fleet">
+        <h3>⚓ Mon plateau</h3>
+        <div class="board-mesh cyber-grid">
+          <div class="sonar-sweep"></div>
+          @for (row of [0,1,2,3,4,5,6,7,8,9]; track row) {
+            @for (col of [0,1,2,3,4,5,6,7,8,9]; track col) {
+              <div 
+                class="cell" 
+                [class.ship]="myBoard()[row][col] === 'ship'"
+                [class.hit]="myBoard()[row][col] === 'hit'"
+                [class.miss]="myBoard()[row][col] === 'miss'"
+                [class.preview-active]="isInPreview(row, col)"
+                [class.preview-invalid]="isInPreview(row, col) && !isPreviewValid()"
+                [ngClass]="getShipSegmentClass(row, col)"
+                (mouseenter)="cellMouseEnter(row, col)"
+                (click)="cellClickMyBoard(row, col)"
+              >
+                @if (myBoard()[row][col] === 'hit') { <span class="hit-indicator">💥</span> }
+                @if (myBoard()[row][col] === 'miss') { <span class="miss-indicator">💧</span> }
+              </div>
+            }
+          }
+        </div>
+      </div>
+
+      <!-- Opponent Firing Board (Right) -->
+      @if (phase() === 'playing' || phase() === 'finished') {
+        <div class="board-column enemy-radar">
+          <h3>🎯 Plateau de {{ opponentName() }}</h3>
+          <div class="board-mesh firing-mesh cyber-grid red-radar" [class.disabled]="!isMyTurn()">
+            <div class="sonar-sweep"></div>
+            @for (row of [0,1,2,3,4,5,6,7,8,9]; track row) {
+              @for (col of [0,1,2,3,4,5,6,7,8,9]; track col) {
+                <div 
+                  class="cell target-cell"
+                  [class.hit]="opponentBoard()[row][col] === 'hit'"
+                  [class.miss]="opponentBoard()[row][col] === 'miss'"
+                  (click)="fireShot(row, col)"
+                >
+                  @if (opponentBoard()[row][col] === 'hit') { <span class="hit-indicator target-hit">💥</span> }
+                  @if (opponentBoard()[row][col] === 'miss') { <span class="miss-indicator target-miss">💧</span> }
+                </div>
+              }
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</app-game-layout>
+
+<!-- Pass Device Overlay -->
+@if (showPassDeviceOverlay()) {
+  <div class="pass-device-overlay">
+    <div class="pass-card surface-card">
+      <span class="material-symbols device-icon">swap_horiz</span>
+      <h2>Passez l'appareil</h2>
+      <p>C'est au tour de <strong>{{ passToPlayerName() }}</strong>.</p>
+      <button class="primary-btn confirm-btn" (click)="passToPlayerNameConfirm()">
+        <span>Transférer le commandement</span>
+        <span class="material-symbols">arrow_forward</span>
+      </button>
+    </div>
+  </div>
+}
