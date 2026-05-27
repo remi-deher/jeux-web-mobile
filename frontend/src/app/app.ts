@@ -76,6 +76,14 @@ export class App {
         document.body.classList.remove('light-theme');
       }
     });
+
+    effect(() => {
+      const active = this.activeGame() || this.currentRoom()?.gameType;
+      document.body.classList.remove('theme-connect4', 'theme-battleship', 'theme-chess', 'theme-checkers', 'theme-tictactoe');
+      if (active) {
+        document.body.classList.add(`theme-${active}`);
+      }
+    });
   }
 
   navigate(destination: string) {

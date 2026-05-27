@@ -98,8 +98,7 @@ body.light-theme {
 
 html, body {
   margin: 0;
-  padding: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Outfit', sans-serif;
   min-height: 100vh;
   background: var(--md-background);
   color: var(--md-on-surface);
@@ -550,3 +549,70 @@ select:focus,
 .stat-chip.win  { background: rgba(105, 240, 174, 0.15); color: #69F0AE; }
 .stat-chip.loss { background: rgba(242, 184, 181, 0.15); color: #F2B8B5; }
 .stat-chip.draw { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
+
+/* =========================================================
+   Dynamic Color Themes (Material You Android 17 style)
+   ========================================================= */
+.theme-connect4 {
+  --md-primary: #FF8B8B;
+  --md-primary-container: #8C1D1D;
+  --md-on-primary-container: #FFDADA;
+}
+
+.theme-battleship {
+  --md-primary: #00F0FF;
+  --md-primary-container: #004F54;
+  --md-on-primary-container: #B2F5FF;
+}
+
+.theme-chess {
+  --md-primary: #E0C097;
+  --md-primary-container: #5C3D2E;
+  --md-on-primary-container: #FFF1BD;
+}
+
+.theme-checkers {
+  --md-primary: #D4A373;
+  --md-primary-container: #582F0E;
+  --md-on-primary-container: #FEFAE0;
+}
+
+.theme-tictactoe {
+  --md-primary: #FF79C6;
+  --md-primary-container: #624485;
+  --md-on-primary-container: #FFD8F0;
+}
+
+/* =========================================================
+   Micro-interactions Spring Physics & Safe Areas
+   ========================================================= */
+.layout-container {
+  padding-top: calc(10px + env(safe-area-inset-top));
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  padding-left: calc(15px + env(safe-area-inset-left));
+  padding-right: calc(15px + env(safe-area-inset-right));
+}
+
+/* Spring scaling effect for interactive elements */
+button, .ship-place-btn, .cell, .target-cell, .rules-modal-card {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s, border-color 0.2s;
+}
+
+button:active, .ship-place-btn:active {
+  transform: scale(0.95);
+}
+
+.ship-place-btn.selected {
+  transform: scale(1.02);
+}
+
+/* Modal scale-up animation */
+.rules-modal-overlay .rules-modal-card {
+  transform: scale(0.9);
+  animation: modalSpring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes modalSpring {
+  to { transform: scale(1); }
+}
+

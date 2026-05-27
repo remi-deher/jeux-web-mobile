@@ -64,6 +64,7 @@ export class BattleshipComponent {
       if (status === 'finished') {
         const r = this.room();
         if (r) {
+          this.gameHelpersService.triggerHaptic('success');
           this.gameHelpersService.saveStatsLocally(
             'battleship',
             r.id,
@@ -249,10 +250,12 @@ export class BattleshipComponent {
   });
 
   toggleOrientation() {
+    this.gameHelpersService.triggerHaptic('click');
     this.isHorizontal.update(v => !v);
   }
 
   selectShip(shipId: string) {
+    this.gameHelpersService.triggerHaptic('click');
     this.selectedShipId.set(shipId);
     this.previewStart.set(null);
   }
@@ -416,6 +419,7 @@ export class BattleshipComponent {
     // Case 1: Tapping the start cell confirms (places) the ship
     if (start && start.r === row && start.c === col && isInPrev) {
       if (this.isPreviewValid()) {
+        this.gameHelpersService.triggerHaptic('success');
         this.gameService.placeBsShip(
           this.selectedShipId()!,
           row,
@@ -425,14 +429,18 @@ export class BattleshipComponent {
         );
         this.selectedShipId.set(null);
         this.previewStart.set(null);
+      } else {
+        this.gameHelpersService.triggerHaptic('error');
       }
     }
     // Case 2: Tapping any OTHER cell inside the preview rotates it
     else if (isInPrev) {
+      this.gameHelpersService.triggerHaptic('click');
       this.toggleOrientation();
     }
     // Case 3: Tapping outside the preview moves it there
     else {
+      this.gameHelpersService.triggerHaptic('click');
       this.previewStart.set({ r: row, c: col });
     }
   }
@@ -466,6 +474,7 @@ export class BattleshipComponent {
     const targetCell = this.opponentBoard()[row][col];
     if (targetCell === 'hit' || targetCell === 'miss') return;
 
+    this.gameHelpersService.triggerHaptic('click');
     this.gameService.fireBsShot(row, col, this.room()?.isLocal ? this.localActivePlayerId() : undefined);
   }
 

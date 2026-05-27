@@ -12,6 +12,26 @@ export class GameHelpersService {
     localStorage.setItem(key, (current + 1).toString());
   }
 
+  // Trigger browser Vibration API (haptic feedback on mobile)
+  triggerHaptic(type: 'click' | 'success' | 'warning' | 'error') {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      switch (type) {
+        case 'click':
+          navigator.vibrate(15);
+          break;
+        case 'success':
+          navigator.vibrate([40, 50, 40]);
+          break;
+        case 'warning':
+          navigator.vibrate(30);
+          break;
+        case 'error':
+          navigator.vibrate([60, 40, 60]);
+          break;
+      }
+    }
+  }
+
   // Centralized local statistics saver
   saveStatsLocally(gameKey: string, roomId: string, winnerId: string | null, isLocal: boolean, socketId: string | undefined) {
     if (!winnerId || !socketId || isLocal) return;
