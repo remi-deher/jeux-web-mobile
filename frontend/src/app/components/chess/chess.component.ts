@@ -163,13 +163,14 @@ interface ChessMove {
     }
 
     .back-btn {
-      background: var(--m3-surface);
-      border: var(--m3-border);
-      color: #cbd5e1;
-      border-radius: var(--m3-radius-medium);
+      background: var(--md-secondary-container);
+      border: 1px solid var(--md-outline-variant);
+      color: var(--md-on-secondary-container);
+      border-radius: var(--md-radius-full);
       padding: 8px 16px;
       cursor: pointer;
       font-size: 14px;
+      font-family: 'Inter', sans-serif;
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -177,8 +178,7 @@ interface ChessMove {
     }
 
     .back-btn:hover {
-      background: var(--m3-surface-hover);
-      color: white;
+      opacity: 0.85;
     }
 
     .back-btn .material-symbols {
@@ -186,21 +186,19 @@ interface ChessMove {
     }
 
     .room-badge {
-      background: var(--m3-primary-container);
-      border: 1px solid rgba(129, 140, 248, 0.2);
-      color: #cbd5e1;
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant);
+      color: var(--md-on-surface-variant);
       padding: 8px 16px;
-      border-radius: var(--m3-radius-medium);
+      border-radius: var(--md-radius-full);
       font-size: 14px;
     }
 
     .status-panel {
-      background: var(--m3-surface);
-      border: var(--m3-border);
-      backdrop-filter: blur(12px);
-      border-radius: var(--m3-radius-large);
-      box-shadow: var(--m3-shadow);
-      color: white;
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-radius-xl);
+      color: var(--md-on-surface);
       text-align: center;
       padding: 20px;
       margin-bottom: 15px;
@@ -211,9 +209,8 @@ interface ChessMove {
       font-size: 26px;
       font-weight: 700;
       letter-spacing: 0.5px;
-      background: linear-gradient(135deg, #fbbf24 0%, #cbd5e1 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: var(--md-on-surface);
+      font-family: 'Inter', sans-serif;
     }
 
     .turn-indicator {
@@ -226,23 +223,24 @@ interface ChessMove {
 
     .player-badge {
       padding: 6px 12px;
-      border-radius: 12px;
+      border-radius: var(--md-radius-full);
       font-size: 14px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid transparent;
+      background: var(--md-surface-container-high);
+      border: 1px solid var(--md-outline-variant);
+      color: var(--md-on-surface-variant);
       transition: all 0.3s ease;
     }
 
     .player-badge.active {
-      background: rgba(99, 102, 241, 0.2);
-      border-color: rgba(99, 102, 241, 0.5);
-      box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+      background: var(--md-surface-container);
+      border-color: var(--md-primary);
+      color: var(--md-on-surface);
       transform: scale(1.05);
     }
 
     .vs {
       font-size: 12px;
-      color: rgba(255, 255, 255, 0.4);
+      color: var(--md-on-surface-variant);
       font-weight: bold;
     }
 
@@ -285,11 +283,25 @@ interface ChessMove {
     .rematch-btn {
       padding: 10px 24px;
       font-size: 16px;
+      background: var(--md-primary);
+      color: var(--md-on-primary);
+      border: none;
+      border-radius: var(--md-radius-full);
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: opacity 0.2s;
+    }
+    .rematch-btn:hover {
+      opacity: 0.88;
     }
 
     .rematch-status {
       font-style: italic;
-      color: rgba(255, 255, 255, 0.7);
+      color: var(--md-on-surface-variant);
     }
 
     /* Emoji Reactions */
@@ -300,11 +312,14 @@ interface ChessMove {
       gap: 10px;
       padding: 10px;
       margin-bottom: 15px;
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-radius-xl);
     }
 
     .bar-title {
       font-size: 14px;
-      color: rgba(255, 255, 255, 0.6);
+      color: var(--md-on-surface-variant);
       margin-right: 5px;
     }
 

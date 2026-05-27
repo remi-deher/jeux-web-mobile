@@ -168,13 +168,14 @@ import { GameService } from '../../services/game.service';
     }
 
     .back-btn {
-      background: var(--m3-surface);
-      border: var(--m3-border);
-      color: #cbd5e1;
-      border-radius: var(--m3-radius-medium);
+      background: var(--md-secondary-container);
+      border: 1px solid var(--md-outline-variant);
+      color: var(--md-on-secondary-container);
+      border-radius: var(--md-radius-full);
       padding: 8px 16px;
       cursor: pointer;
       font-size: 14px;
+      font-family: 'Inter', sans-serif;
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -182,8 +183,7 @@ import { GameService } from '../../services/game.service';
     }
 
     .back-btn:hover {
-      background: var(--m3-surface-hover);
-      color: white;
+      opacity: 0.85;
     }
 
     .back-btn .material-symbols {
@@ -191,22 +191,20 @@ import { GameService } from '../../services/game.service';
     }
 
     .room-badge {
-      background: var(--m3-primary-container);
-      border: 1px solid rgba(129, 140, 248, 0.2);
-      color: #cbd5e1;
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant);
+      color: var(--md-on-surface-variant);
       padding: 8px 16px;
-      border-radius: var(--m3-radius-medium);
+      border-radius: var(--md-radius-full);
       font-size: 14px;
     }
 
     .glass-card {
-      background: var(--m3-surface);
-      border: var(--m3-border);
-      backdrop-filter: blur(12px);
-      border-radius: var(--m3-radius-large);
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-radius-xl);
       padding: 25px;
-      box-shadow: var(--m3-shadow);
-      color: white;
+      color: var(--md-on-surface);
       margin-bottom: 30px;
     }
 
@@ -214,10 +212,9 @@ import { GameService } from '../../services/game.service';
       margin-top: 0;
       text-align: center;
       font-size: 26px;
-      background: linear-gradient(135deg, #ff4b5c, #ffd13b);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: var(--md-on-surface);
       font-weight: 700;
+      font-family: 'Inter', sans-serif;
     }
 
     .players-display {
@@ -225,9 +222,10 @@ import { GameService } from '../../services/game.service';
       justify-content: space-around;
       align-items: center;
       margin: 20px 0;
-      background: rgba(0, 0, 0, 0.2);
+      background: var(--md-surface-container-high);
       padding: 15px;
-      border-radius: 12px;
+      border-radius: var(--md-radius-lg);
+      border: 1px solid var(--md-outline-variant);
     }
 
     .player-slot {
@@ -235,21 +233,20 @@ import { GameService } from '../../services/game.service';
       align-items: center;
       gap: 12px;
       padding: 8px 16px;
-      border-radius: 8px;
+      border-radius: var(--md-radius-lg);
       border: 1px solid transparent;
       transition: all 0.2s;
     }
 
     .player-slot.active {
-      background: rgba(255, 255, 255, 0.05);
-      border-color: rgba(99, 102, 241, 0.4);
-      box-shadow: 0 0 15px rgba(99, 102, 241, 0.15);
+      background: var(--md-surface-container);
+      border-color: var(--md-outline-variant);
     }
 
     .vs-divider {
       font-size: 14px;
       font-weight: 700;
-      color: #6b7280;
+      color: var(--md-on-surface-variant);
     }
 
     .player-info {
@@ -259,11 +256,12 @@ import { GameService } from '../../services/game.service';
 
     .player-name {
       font-weight: 600;
+      color: var(--md-on-surface);
     }
 
     .player-label {
       font-size: 11px;
-      color: #9ca3af;
+      color: var(--md-on-surface-variant);
     }
 
     .token {
@@ -349,20 +347,21 @@ import { GameService } from '../../services/game.service';
 
     .win-banner {
       padding: 12px 24px;
-      border-radius: 8px;
+      border-radius: var(--md-radius-lg);
       font-weight: 700;
       font-size: 18px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
 
     .win-banner.victory {
-      background: linear-gradient(135deg, #10b981, #059669);
-      color: white;
+      background: var(--md-surface-container-high);
+      color: #10b981;
+      border: 1px solid var(--md-outline-variant);
     }
 
     .win-banner.defeat {
-      background: linear-gradient(135deg, #f43f5e, #e11d48);
-      color: white;
+      background: var(--md-surface-container-high);
+      color: #f43f5e;
+      border: 1px solid var(--md-outline-variant);
     }
 
     /* Board Area */
@@ -539,13 +538,26 @@ import { GameService } from '../../services/game.service';
     }
     .rematch-btn {
       width: auto;
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
       padding: 8px 18px;
       font-size: 14px;
+      background: var(--md-primary);
+      color: var(--md-on-primary);
+      border: none;
+      border-radius: var(--md-radius-full);
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+    .rematch-btn:hover {
+      opacity: 0.88;
     }
     .rematch-status {
       font-size: 14px;
-      color: #a5b4fc;
+      color: var(--md-on-surface-variant);
       font-style: italic;
     }
 

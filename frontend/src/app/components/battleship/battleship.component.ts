@@ -200,13 +200,14 @@ import { GameService } from '../../services/game.service';
     }
 
     .back-btn {
-      background: var(--m3-surface);
-      border: var(--m3-border);
-      color: #cbd5e1;
-      border-radius: var(--m3-radius-medium);
+      background: var(--md-secondary-container);
+      border: 1px solid var(--md-outline-variant);
+      color: var(--md-on-secondary-container);
+      border-radius: var(--md-radius-full);
       padding: 8px 16px;
       cursor: pointer;
       font-size: 14px;
+      font-family: 'Inter', sans-serif;
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -214,8 +215,7 @@ import { GameService } from '../../services/game.service';
     }
 
     .back-btn:hover {
-      background: var(--m3-surface-hover);
-      color: white;
+      opacity: 0.85;
     }
 
     .back-btn .material-symbols {
@@ -223,22 +223,20 @@ import { GameService } from '../../services/game.service';
     }
 
     .room-badge {
-      background: var(--m3-primary-container);
-      border: 1px solid rgba(129, 140, 248, 0.2);
-      color: #cbd5e1;
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant);
+      color: var(--md-on-surface-variant);
       padding: 8px 16px;
-      border-radius: var(--m3-radius-medium);
+      border-radius: var(--md-radius-full);
       font-size: 14px;
     }
 
     .glass-card {
-      background: var(--m3-surface);
-      border: var(--m3-border);
-      backdrop-filter: blur(12px);
-      border-radius: var(--m3-radius-large);
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-radius-xl);
       padding: 25px;
-      box-shadow: var(--m3-shadow);
-      color: white;
+      color: var(--md-on-surface);
       margin-bottom: 30px;
     }
 
@@ -246,10 +244,9 @@ import { GameService } from '../../services/game.service';
       margin-top: 0;
       text-align: center;
       font-size: 26px;
-      background: linear-gradient(135deg, #3b82f6, #a5b4fc);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: var(--md-on-surface);
       font-weight: 700;
+      font-family: 'Inter', sans-serif;
     }
 
     .phase-indicator {
@@ -298,18 +295,22 @@ import { GameService } from '../../services/game.service';
     }
 
     .orient-btn {
-      background: #4f46e5;
-      color: white;
-      border: none;
-      border-radius: 6px;
+      background: var(--md-secondary-container);
+      color: var(--md-on-secondary-container);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-radius-full);
       padding: 8px 16px;
       font-weight: 500;
+      font-family: 'Inter', sans-serif;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: opacity 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .orient-btn:hover {
-      background: #4338ca;
+      opacity: 0.85;
     }
 
     .turn-alert {
@@ -331,19 +332,21 @@ import { GameService } from '../../services/game.service';
 
     .win-banner {
       padding: 12px 24px;
-      border-radius: 8px;
+      border-radius: var(--md-radius-lg);
       font-weight: 700;
       font-size: 18px;
     }
 
     .win-banner.victory {
-      background: linear-gradient(135deg, #10b981, #059669);
-      color: white;
+      background: var(--md-surface-container-high);
+      color: #10b981;
+      border: 1px solid var(--md-outline-variant);
     }
 
     .win-banner.defeat {
-      background: linear-gradient(135deg, #ef4444, #dc2626);
-      color: white;
+      background: var(--md-surface-container-high);
+      color: #ef4444;
+      border: 1px solid var(--md-outline-variant);
     }
 
     /* Ship Placement Area */
@@ -367,11 +370,11 @@ import { GameService } from '../../services/game.service';
     .ship-place-btn {
       flex: 1;
       min-width: 140px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
+      background: var(--md-surface-container-high);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-radius-lg);
       padding: 12px;
-      color: white;
+      color: var(--md-on-surface);
       cursor: pointer;
       display: flex;
       flex-direction: column;
@@ -381,14 +384,12 @@ import { GameService } from '../../services/game.service';
     }
 
     .ship-place-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: #4f46e5;
+      opacity: 0.85;
     }
 
     .ship-place-btn.selected {
-      background: rgba(99, 102, 241, 0.15);
-      border-color: #6366f1;
-      box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+      background: var(--md-surface-container);
+      border-color: var(--md-primary);
     }
 
     .ship-place-btn.placed {
@@ -423,22 +424,21 @@ import { GameService } from '../../services/game.service';
     }
 
     .ready-btn {
-      background: #10b981;
-      color: white;
+      background: var(--md-primary);
+      color: var(--md-on-primary);
       border: none;
-      border-radius: 8px;
+      border-radius: var(--md-radius-full);
       padding: 12px 24px;
       font-weight: 600;
       font-size: 16px;
+      font-family: 'Inter', sans-serif;
       cursor: pointer;
       width: 100%;
-      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
-      transition: all 0.2s;
+      transition: opacity 0.2s;
     }
 
     .ready-btn:hover {
-      background: #059669;
-      transform: translateY(-1px);
+      opacity: 0.88;
     }
 
     /* Grid layout */
@@ -574,23 +574,26 @@ import { GameService } from '../../services/game.service';
     }
     .rematch-btn {
       width: auto;
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
       padding: 8px 18px;
       font-size: 14px;
-      background: #10b981;
-      color: white;
+      background: var(--md-primary);
+      color: var(--md-on-primary);
       border: none;
-      border-radius: 6px;
+      border-radius: var(--md-radius-full);
       cursor: pointer;
+      font-family: 'Inter', sans-serif;
       font-weight: 600;
-      transition: background 0.2s;
+      transition: opacity 0.2s;
     }
     .rematch-btn:hover {
-      background: #059669;
+      opacity: 0.88;
     }
     .rematch-status {
       font-size: 14px;
-      color: #a5b4fc;
+      color: var(--md-on-surface-variant);
       font-style: italic;
     }
 

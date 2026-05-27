@@ -21,7 +21,7 @@ import { GameService } from '../../services/game.service';
       <div class="chat-panel">
         <div class="chat-header">
           <h3>Discussion</h3>
-          <button class="close-btn" (click)="toggleChat()">
+          <button class="icon-btn" (click)="toggleChat()">
             <span class="material-symbols">close</span>
           </button>
         </div>
@@ -43,8 +43,8 @@ import { GameService } from '../../services/game.service';
           @for (msg of currentMessages(); track msg.id) {
             <div class="message-wrapper" [class.self]="msg.username === username()">
               <div class="message-meta">
-                <span class="username">{{ msg.username }}</span>
-                <span class="time">{{ msg.timestamp | date:'HH:mm' }}</span>
+                <span class="msg-author">{{ msg.username }}</span>
+                <span class="msg-time">{{ msg.timestamp | date:'HH:mm' }}</span>
               </div>
               <div class="message-bubble">
                 {{ msg.text }}
@@ -52,7 +52,7 @@ import { GameService } from '../../services/game.service';
             </div>
           } @empty {
             <div class="empty-chat">
-              <span class="material-symbols empty-icon">forum</span>
+              <span class="material-symbols">forum</span>
               <p>Aucun message pour l'instant.</p>
             </div>
           }
@@ -60,15 +60,15 @@ import { GameService } from '../../services/game.service';
 
         <!-- Message Input -->
         <form class="chat-input-form" (submit)="sendMessage(); $event.preventDefault()">
-          <input 
-            type="text" 
-            [(ngModel)]="newMessage" 
-            name="message" 
-            placeholder="Écrire un message..." 
+          <input
+            type="text"
+            [(ngModel)]="newMessage"
+            name="message"
+            placeholder="Écrire un message..."
             autocomplete="off"
             required
           />
-          <button type="submit" title="Envoyer">
+          <button type="submit" title="Envoyer" class="send-btn">
             <span class="material-symbols">send</span>
           </button>
         </form>
@@ -81,11 +81,10 @@ import { GameService } from '../../services/game.service';
       right: 0;
       top: 0;
       bottom: 0;
-      width: 340px;
-      background: rgba(15, 23, 42, 0.85);
-      border-left: var(--m3-border);
-      box-shadow: var(--m3-shadow);
-      backdrop-filter: blur(20px);
+      width: 320px;
+      background: var(--md-surface-container-low);
+      border-left: 1px solid var(--md-outline-variant);
+      box-shadow: -4px 0 20px rgba(0,0,0,0.25);
       z-index: 1000;
       transform: translateX(100%);
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -97,130 +96,128 @@ import { GameService } from '../../services/game.service';
       transform: translateX(0);
     }
 
+    /* ---- Toggle Button ---- */
     .chat-toggle {
       position: absolute;
-      left: -64px;
+      left: -52px;
       top: 20px;
-      width: 52px;
-      height: 52px;
+      width: 44px;
+      height: 44px;
       border-radius: 50% 0 0 50%;
-      background: linear-gradient(135deg, var(--m3-primary), var(--m3-secondary));
+      background: var(--md-primary-container);
       border: none;
-      color: white;
+      color: var(--md-on-primary-container);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: var(--m3-shadow);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: background 0.15s;
+      position: absolute;
     }
 
     .chat-toggle:hover {
-      left: -68px;
-      transform: scale(1.05);
+      background: var(--md-secondary-container);
     }
 
     .unread-dot {
       position: absolute;
-      top: 8px;
-      right: 8px;
-      width: 12px;
-      height: 12px;
-      background: var(--m3-error);
+      top: 6px;
+      right: 6px;
+      width: 10px;
+      height: 10px;
+      background: var(--md-error);
       border-radius: 50%;
-      border: 2px solid #0f172a;
+      border: 2px solid var(--md-surface-container-low);
     }
 
+    /* ---- Panel Layout ---- */
     .chat-panel {
       display: flex;
       flex-direction: column;
       height: 100%;
-      color: #f8fafc;
+      color: var(--md-on-surface);
     }
 
     .chat-header {
-      padding: 20px;
+      padding: 18px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: var(--m3-border);
+      border-bottom: 1px solid var(--md-outline-variant);
     }
 
     .chat-header h3 {
       margin: 0;
+      font-size: 16px;
       font-weight: 600;
-      font-size: 18px;
-      background: linear-gradient(135deg, var(--m3-primary), var(--m3-secondary));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: var(--md-on-surface);
     }
 
-    .close-btn {
-      background: var(--m3-primary-container);
+    .icon-btn {
+      background: transparent;
       border: none;
-      color: #94a3b8;
-      width: 32px;
-      height: 32px;
+      color: var(--md-on-surface-variant);
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: background 0.15s, color 0.15s;
     }
 
-    .close-btn .material-symbols {
-      font-size: 18px;
+    .icon-btn:hover {
+      background: var(--md-surface-container-high);
+      color: var(--md-on-surface);
     }
 
-    .close-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #f8fafc;
-      transform: scale(1.1);
+    .icon-btn .material-symbols {
+      font-size: 20px;
     }
 
+    /* ---- Tabs ---- */
     .chat-tabs {
       display: flex;
-      background: rgba(0, 0, 0, 0.2);
-      padding: 6px;
-      margin: 10px 20px 0 20px;
-      border-radius: var(--m3-radius-medium);
-      border: var(--m3-border);
+      padding: 8px 12px;
+      gap: 4px;
+      border-bottom: 1px solid var(--md-outline-variant);
     }
 
     .chat-tabs button {
       flex: 1;
       background: none;
       border: none;
-      color: #94a3b8;
-      padding: 8px;
+      color: var(--md-on-surface-variant);
+      padding: 8px 12px;
       font-size: 13px;
       font-weight: 500;
+      font-family: 'Inter', sans-serif;
       cursor: pointer;
-      border-radius: var(--m3-radius-small);
-      transition: all 0.2s;
+      border-radius: var(--md-radius-md);
+      transition: background 0.15s, color 0.15s;
     }
 
     .chat-tabs button.active {
-      background: rgba(255, 255, 255, 0.08);
-      color: #f8fafc;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      background: var(--md-secondary-container);
+      color: var(--md-on-secondary-container);
     }
 
+    /* ---- Messages ---- */
     .chat-messages {
       flex: 1;
-      padding: 20px;
+      padding: 16px 12px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 12px;
     }
 
     .message-wrapper {
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      max-width: 85%;
+      max-width: 88%;
     }
 
     .message-wrapper.self {
@@ -230,98 +227,107 @@ import { GameService } from '../../services/game.service';
 
     .message-meta {
       font-size: 11px;
-      color: #64748b;
-      margin-bottom: 4px;
+      color: var(--md-outline);
+      margin-bottom: 3px;
       display: flex;
-      gap: 6px;
+      gap: 5px;
+    }
+
+    .msg-author {
+      font-weight: 500;
+      color: var(--md-on-surface-variant);
     }
 
     .message-bubble {
-      background: var(--m3-surface);
-      border: var(--m3-border);
-      padding: 10px 14px;
-      border-radius: 4px 16px 16px 16px;
+      background: var(--md-surface-container-high);
+      padding: 9px 13px;
+      border-radius: 4px 14px 14px 14px;
       font-size: 13px;
-      line-height: 1.4;
+      line-height: 1.45;
       word-break: break-word;
-      color: #e2e8f0;
+      color: var(--md-on-surface);
     }
 
     .message-wrapper.self .message-bubble {
-      background: linear-gradient(135deg, var(--m3-primary), var(--m3-secondary));
-      border: none;
-      color: white;
-      border-radius: 16px 4px 16px 16px;
-      box-shadow: 0 4px 12px rgba(129, 140, 248, 0.25);
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+      border-radius: 14px 4px 14px 14px;
     }
 
     .empty-chat {
-      text-align: center;
-      color: #64748b;
-      margin-top: 60px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+      margin-top: 60px;
+      color: var(--md-outline);
     }
 
-    .empty-icon {
+    .empty-chat .material-symbols {
       font-size: 40px;
-      color: #475569;
+      color: var(--md-outline-variant);
     }
 
     .empty-chat p {
       margin: 0;
       font-size: 13px;
+      color: var(--md-on-surface-variant);
     }
 
+    /* ---- Input ---- */
     .chat-input-form {
-      padding: 20px;
-      border-top: var(--m3-border);
+      padding: 12px;
+      border-top: 1px solid var(--md-outline-variant);
       display: flex;
       gap: 8px;
+      align-items: center;
     }
 
     .chat-input-form input {
       flex: 1;
-      background: rgba(0, 0, 0, 0.3);
-      border: var(--m3-border);
-      border-radius: var(--m3-radius-medium);
-      color: white;
-      padding: 10px 16px;
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-radius-md);
+      color: var(--md-on-surface);
+      padding: 10px 14px;
       font-size: 13px;
+      font-family: 'Inter', sans-serif;
       outline: none;
-      transition: all 0.2s;
+      transition: border-color 0.15s;
     }
 
     .chat-input-form input:focus {
-      border-color: var(--m3-primary);
-      box-shadow: 0 0 0 2px var(--m3-primary-container);
+      border-color: var(--md-primary);
     }
 
-    .chat-input-form button {
-      background: var(--m3-primary);
-      color: white;
+    .chat-input-form input::placeholder {
+      color: var(--md-outline);
+    }
+
+    .send-btn {
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
       border: none;
-      border-radius: var(--m3-radius-medium);
-      width: 38px;
-      height: 38px;
+      border-radius: var(--md-radius-md);
+      width: 40px;
+      height: 40px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: background 0.15s;
+      flex-shrink: 0;
     }
 
-    .chat-input-form button .material-symbols {
+    .send-btn .material-symbols {
       font-size: 18px;
     }
 
-    .chat-input-form button:hover {
-      background: var(--m3-secondary);
-      transform: scale(1.05);
+    .send-btn:hover {
+      background: var(--md-secondary-container);
     }
 
+    /* ---- Mobile ---- */
     @media (max-width: 480px) {
       .chat-container {
         width: 100%;
@@ -366,15 +372,12 @@ export class ChatSidebarComponent {
   constructor(private gameService: GameService) {
     this.username = this.gameService.username;
     this.currentRoom = this.gameService.currentRoom;
-    // Monitor incoming messages to mark as unread if chat is closed
     effect(() => {
       const messages = this.currentMessages();
       if (messages.length > 0 && !this.isOpen) {
         this.hasUnread = true;
       }
     });
-
-    // Auto-scroll on message updates
     effect(() => {
       this.currentMessages();
       setTimeout(() => this.scrollToBottom(), 50);
@@ -391,13 +394,11 @@ export class ChatSidebarComponent {
 
   sendMessage() {
     if (!this.newMessage.trim()) return;
-
     if (this.activeTab === 'room' && this.currentRoom()) {
       this.gameService.sendRoomMessage(this.newMessage);
     } else {
       this.gameService.sendGlobalMessage(this.newMessage);
     }
-
     this.newMessage = '';
   }
 

@@ -10,19 +10,22 @@ import { GameService } from '../../services/game.service';
     <div class="lobby-container">
       @if (!username()) {
         <!-- Username Selection -->
-        <div class="glass-card username-card">
-          <span class="material-symbols user-hero-icon">account_circle</span>
-          <h2>Prêt à jouer ?</h2>
-          <p>Choisissez un pseudonyme pour rejoindre le salon général et défier d'autres joueurs.</p>
-          
+        <div class="surface-card username-card">
+          <div class="user-hero">
+            <span class="material-symbols hero-icon">account_circle</span>
+          </div>
+          <div class="card-text">
+            <h2>Prêt à jouer ?</h2>
+            <p>Choisissez un pseudonyme pour rejoindre le salon général et défier d'autres joueurs.</p>
+          </div>
           <form (submit)="saveUsername(); $event.preventDefault()">
-            <input 
-              type="text" 
-              [(ngModel)]="tempUsername" 
-              name="tempUsername" 
-              placeholder="Pseudonyme..." 
+            <input
+              type="text"
+              [(ngModel)]="tempUsername"
+              name="tempUsername"
+              placeholder="Pseudonyme..."
               maxlength="15"
-              required 
+              required
             />
             <button type="submit" class="primary-btn">
               <span>Entrer</span>
@@ -32,144 +35,173 @@ import { GameService } from '../../services/game.service';
         </div>
       } @else if (selectedGame() === null) {
         <!-- Step 1: Select Game -->
-        <div class="glass-card game-select-card">
-          <h2>Bonjour, <strong>{{ username() }}</strong> 👋 !</h2>
-          <p>Sélectionnez un jeu pour voir les salons disponibles ou en créer un nouveau.</p>
-          
-          <div class="game-selector-grid">
-            <div class="game-card c4-card" (click)="selectGame('connect4')">
-              <div class="game-icon-container">
-                <span class="material-symbols game-icon">grid_view</span>
-              </div>
-              <h3>Puissance 4</h3>
-              <span class="game-badge">1v1</span>
-            </div>
-            
-            <div class="game-card bs-card" (click)="selectGame('battleship')">
-              <div class="game-icon-container">
-                <span class="material-symbols game-icon">sailing</span>
-              </div>
-              <h3>Bataille Navale</h3>
-              <span class="game-badge">Tactique</span>
-            </div>
-
-            <div class="game-card ttt-card" (click)="selectGame('tictactoe')">
-              <div class="game-icon-container">
-                <span class="material-symbols game-icon">grid_3x3</span>
-              </div>
-              <h3>Morpion</h3>
-              <span class="game-badge">Rapide</span>
-            </div>
-
-            <div class="game-card checkers-card" (click)="selectGame('checkers')">
-              <div class="game-icon-container">
-                <span class="material-symbols game-icon">circle</span>
-              </div>
-              <h3>Jeu de Dames</h3>
-              <span class="game-badge">Stratégie</span>
-            </div>
-
-            <div class="game-card chess-card" (click)="selectGame('chess')">
-              <div class="game-icon-container">
-                <span class="material-symbols game-icon">workspace_premium</span>
-              </div>
-              <h3>Échecs</h3>
-              <span class="game-badge">Mental</span>
-            </div>
+        <div class="game-select-view">
+          <div class="welcome-header">
+            <h2>Bonjour, <strong>{{ username() }}</strong> !</h2>
+            <p>Sélectionnez un jeu pour voir les salons disponibles ou en créer un nouveau.</p>
           </div>
 
-          <!-- Local Stats Section -->
-          <div class="stats-card">
-            <h3>
-              <span class="material-symbols section-icon">analytics</span>
-              Vos Statistiques (Locales)
+          <div class="game-selector-grid">
+            <button class="game-card" (click)="selectGame('connect4')">
+              <div class="game-card-image">
+                <img src="assets/games/connect4.png" alt="Puissance 4" />
+              </div>
+              <div class="game-card-info">
+                <span class="game-name">Puissance 4</span>
+                <span class="game-tag">1v1</span>
+              </div>
+            </button>
+
+            <button class="game-card" (click)="selectGame('battleship')">
+              <div class="game-card-image">
+                <img src="assets/games/battleship.png" alt="Bataille Navale" />
+              </div>
+              <div class="game-card-info">
+                <span class="game-name">Bataille Navale</span>
+                <span class="game-tag">Tactique</span>
+              </div>
+            </button>
+
+            <button class="game-card" (click)="selectGame('tictactoe')">
+              <div class="game-card-image">
+                <img src="assets/games/tictactoe.png" alt="Morpion" />
+              </div>
+              <div class="game-card-info">
+                <span class="game-name">Morpion</span>
+                <span class="game-tag">Rapide</span>
+              </div>
+            </button>
+
+            <button class="game-card" (click)="selectGame('checkers')">
+              <div class="game-card-image">
+                <img src="assets/games/checkers.png" alt="Jeu de Dames" />
+              </div>
+              <div class="game-card-info">
+                <span class="game-name">Jeu de Dames</span>
+                <span class="game-tag">Stratégie</span>
+              </div>
+            </button>
+
+            <button class="game-card" (click)="selectGame('chess')">
+              <div class="game-card-image">
+                <img src="assets/games/chess.png" alt="Échecs" />
+              </div>
+              <div class="game-card-info">
+                <span class="game-name">Échecs</span>
+                <span class="game-tag">Mental</span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Stats Section -->
+          <div class="stats-section">
+            <h3 class="section-title">
+              <span class="material-symbols">bar_chart</span>
+              Vos statistiques
             </h3>
-            <div class="stats-grid-container">
-              <div class="stat-row c4-row">
-                <span class="stat-game">
-                  <span class="material-symbols inline-icon">grid_view</span>
-                  Puissance 4
-                </span>
-                <span class="stat-val">🏆 {{ c4Wins() }} V &nbsp;/&nbsp; ☠️ {{ c4Losses() }} D &nbsp;/&nbsp; 🤝 {{ c4Draws() }} N</span>
+            <div class="stats-list">
+              <div class="stat-item">
+                <div class="stat-label">
+                  <span class="stat-dot c4-dot"></span>
+                  <span>Puissance 4</span>
+                </div>
+                <div class="stat-values">
+                  <span class="stat-chip win">{{ c4Wins() }}V</span>
+                  <span class="stat-chip loss">{{ c4Losses() }}D</span>
+                  <span class="stat-chip draw">{{ c4Draws() }}N</span>
+                </div>
               </div>
-              <div class="stat-row bs-row">
-                <span class="stat-game">
-                  <span class="material-symbols inline-icon">sailing</span>
-                  Bataille Navale
-                </span>
-                <span class="stat-val">🏆 {{ bsWins() }} V &nbsp;/&nbsp; ☠️ {{ bsLosses() }} D &nbsp;/&nbsp; 🤝 {{ bsDraws() }} N</span>
+              <div class="stat-item">
+                <div class="stat-label">
+                  <span class="stat-dot bs-dot"></span>
+                  <span>Bataille Navale</span>
+                </div>
+                <div class="stat-values">
+                  <span class="stat-chip win">{{ bsWins() }}V</span>
+                  <span class="stat-chip loss">{{ bsLosses() }}D</span>
+                  <span class="stat-chip draw">{{ bsDraws() }}N</span>
+                </div>
               </div>
-              <div class="stat-row ttt-row">
-                <span class="stat-game">
-                  <span class="material-symbols inline-icon">grid_3x3</span>
-                  Morpion
-                </span>
-                <span class="stat-val">🏆 {{ tttWins() }} V &nbsp;/&nbsp; ☠️ {{ tttLosses() }} D &nbsp;/&nbsp; 🤝 {{ tttDraws() }} N</span>
+              <div class="stat-item">
+                <div class="stat-label">
+                  <span class="stat-dot ttt-dot"></span>
+                  <span>Morpion</span>
+                </div>
+                <div class="stat-values">
+                  <span class="stat-chip win">{{ tttWins() }}V</span>
+                  <span class="stat-chip loss">{{ tttLosses() }}D</span>
+                  <span class="stat-chip draw">{{ tttDraws() }}N</span>
+                </div>
               </div>
-              <div class="stat-row checkers-row">
-                <span class="stat-game">
-                  <span class="material-symbols inline-icon">circle</span>
-                  Jeu de Dames
-                </span>
-                <span class="stat-val">🏆 {{ checkersWins() }} V &nbsp;/&nbsp; ☠️ {{ checkersLosses() }} D &nbsp;/&nbsp; 🤝 {{ checkersDraws() }} N</span>
+              <div class="stat-item">
+                <div class="stat-label">
+                  <span class="stat-dot checkers-dot"></span>
+                  <span>Jeu de Dames</span>
+                </div>
+                <div class="stat-values">
+                  <span class="stat-chip win">{{ checkersWins() }}V</span>
+                  <span class="stat-chip loss">{{ checkersLosses() }}D</span>
+                  <span class="stat-chip draw">{{ checkersDraws() }}N</span>
+                </div>
               </div>
-              <div class="stat-row chess-row">
-                <span class="stat-game">
-                  <span class="material-symbols inline-icon">workspace_premium</span>
-                  Échecs
-                </span>
-                <span class="stat-val">🏆 {{ chessWins() }} V &nbsp;/&nbsp; ☠️ {{ chessLosses() }} D &nbsp;/&nbsp; 🤝 {{ chessDraws() }} N</span>
+              <div class="stat-item">
+                <div class="stat-label">
+                  <span class="stat-dot chess-dot"></span>
+                  <span>Échecs</span>
+                </div>
+                <div class="stat-values">
+                  <span class="stat-chip win">{{ chessWins() }}V</span>
+                  <span class="stat-chip loss">{{ chessLosses() }}D</span>
+                  <span class="stat-chip draw">{{ chessDraws() }}N</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       } @else {
-        <!-- Step 2: Game Options (Rooms List, Join Private, Create Game) -->
+        <!-- Step 2: Game Lobby View -->
         <div class="game-lobby-view">
-          <div class="lobby-header">
-            <button class="back-btn" (click)="selectGame(null)">
+          <div class="lobby-topbar">
+            <button class="icon-btn" (click)="selectGame(null)">
               <span class="material-symbols">arrow_back</span>
-              <span>Retour</span>
             </button>
-            <h2>
-              @if (selectedGame() === 'connect4') {
-                <span class="material-symbols title-icon c4-color">grid_view</span> Puissance 4
-              } @else if (selectedGame() === 'battleship') {
-                <span class="material-symbols title-icon bs-color">sailing</span> Bataille Navale
-              } @else if (selectedGame() === 'tictactoe') {
-                <span class="material-symbols title-icon ttt-color">grid_3x3</span> Morpion
-              } @else if (selectedGame() === 'checkers') {
-                <span class="material-symbols title-icon checkers-color">circle</span> Jeu de Dames
-              } @else if (selectedGame() === 'chess') {
-                <span class="material-symbols title-icon chess-color">workspace_premium</span> Échecs
-              }
+            <h2 class="lobby-title">
+              @if (selectedGame() === 'connect4') { Puissance 4 }
+              @else if (selectedGame() === 'battleship') { Bataille Navale }
+              @else if (selectedGame() === 'tictactoe') { Morpion }
+              @else if (selectedGame() === 'checkers') { Jeu de Dames }
+              @else if (selectedGame() === 'chess') { Échecs }
             </h2>
           </div>
 
-          <div class="lobby-grid">
-            <!-- Actions Card (Create & Private) -->
-            <div class="glass-card actions-card">
-              <h3>Créer ou Rejoindre</h3>
-              <p>Créez un nouveau salon ou rejoignez une partie privée existante.</p>
+          <div class="lobby-content-grid">
+            <!-- Actions Card -->
+            <div class="surface-card actions-card">
+              <h3 class="card-title">Créer ou rejoindre</h3>
+              <p class="card-subtitle">Démarrez une nouvelle partie ou rejoignez une partie privée existante.</p>
 
               <button class="primary-btn create-btn" (click)="openCreateModal()">
                 <span class="material-symbols">add</span>
                 <span>Créer une partie</span>
               </button>
 
-              <div class="join-private-section">
-                <h4>
+              <div class="divider">
+                <span>ou</span>
+              </div>
+
+              <div class="join-private">
+                <label class="input-label">
                   <span class="material-symbols">vpn_key</span>
-                  Rejoindre un salon privé
-                </h4>
+                  Code de salon privé
+                </label>
                 <form (submit)="joinByCode(); $event.preventDefault()">
-                  <div class="input-group">
-                    <input 
-                      type="text" 
-                      [(ngModel)]="joinCode" 
-                      name="joinCode" 
-                      placeholder="Code..." 
-                      required 
+                  <div class="input-row">
+                    <input
+                      type="text"
+                      [(ngModel)]="joinCode"
+                      name="joinCode"
+                      placeholder="Ex: ABC12"
+                      required
                     />
                     <button type="submit" class="secondary-btn">Rejoindre</button>
                   </div>
@@ -177,50 +209,35 @@ import { GameService } from '../../services/game.service';
               </div>
             </div>
 
-            <!-- Public Rooms Table -->
-            <div class="glass-card list-card">
-              <h3>
+            <!-- Public Rooms Card -->
+            <div class="surface-card rooms-card">
+              <h3 class="card-title">
                 <span class="material-symbols">public</span>
-                Salons publics en attente
+                Salons publics
               </h3>
-              <p>Rejoignez une partie publique en attente de joueur.</p>
-              
-              <div class="rooms-list-container">
-                <table class="rooms-table">
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Joueurs</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (room of filteredRooms(); track room.id) {
-                      <tr>
-                        <td><span class="code-pill">{{ room.id }}</span></td>
-                        <td>
-                          <span class="status-indicator" [class.waiting]="room.status === 'waiting'">
-                            {{ room.playersCount }}/2 Joueurs
-                          </span>
-                        </td>
-                        <td>
-                          @if (room.status === 'waiting' && room.playersCount < 2) {
-                            <button (click)="joinRoom(room.id)" class="join-btn">Rejoindre</button>
-                          } @else {
-                            <span class="full-badge">En cours</span>
-                          }
-                        </td>
-                      </tr>
-                    } @empty {
-                      <tr>
-                        <td colspan="3" class="empty-row">
-                          <span class="material-symbols empty-icon">sports_esports</span>
-                          <p>Aucun salon public disponible pour ce jeu.</p>
-                        </td>
-                      </tr>
+              <p class="card-subtitle">Rejoignez une partie publique en attente d'un joueur.</p>
+
+              <div class="rooms-list">
+                @for (room of filteredRooms(); track room.id) {
+                  <div class="room-item">
+                    <div class="room-code">{{ room.id }}</div>
+                    <div class="room-players">
+                      <span class="material-symbols players-icon">group</span>
+                      {{ room.playersCount }}/2
+                    </div>
+                    @if (room.status === 'waiting' && room.playersCount < 2) {
+                      <button (click)="joinRoom(room.id)" class="join-chip">Rejoindre</button>
+                    } @else {
+                      <span class="ongoing-chip">En cours</span>
                     }
-                  </tbody>
-                </table>
+                  </div>
+                } @empty {
+                  <div class="empty-rooms">
+                    <span class="material-symbols">sports_esports</span>
+                    <p>Aucun salon public disponible.</p>
+                    <span>Créez le premier !</span>
+                  </div>
+                }
               </div>
             </div>
           </div>
@@ -229,50 +246,39 @@ import { GameService } from '../../services/game.service';
 
       <!-- Create Room Modal -->
       @if (showCreateModal()) {
-        <div class="modal-overlay">
-          <div class="modal-card">
-            <h3>Configuration de la partie</h3>
-            <p>Choisissez la visibilité de votre salon de jeu.</p>
-            
+        <div class="modal-overlay" (click)="closeCreateModal()">
+          <div class="modal-card" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+              <h3>Nouvelle partie</h3>
+              <button class="icon-btn" (click)="closeCreateModal()">
+                <span class="material-symbols">close</span>
+              </button>
+            </div>
+            <p class="modal-desc">Choisissez la visibilité de votre salon.</p>
+
             <div class="vis-choices">
-              <label class="choice-label" [class.active]="!isPrivateChoice()">
-                <input 
-                  type="radio" 
-                  [value]="false" 
-                  [checked]="!isPrivateChoice()"
-                  (change)="setPrivateChoice(false)"
-                />
+              <label class="choice-item" [class.selected]="!isPrivateChoice()">
+                <input type="radio" [value]="false" [checked]="!isPrivateChoice()" (change)="setPrivateChoice(false)" />
+                <span class="material-symbols choice-icon">public</span>
                 <div class="choice-text">
-                  <span class="choice-title">
-                    <span class="material-symbols">public</span>
-                    Public (par défaut)
-                  </span>
-                  <span class="choice-desc">Le salon s'affichera dans la liste publique et n'importe qui pourra le rejoindre.</span>
+                  <span class="choice-title">Public</span>
+                  <span class="choice-desc">Visible dans la liste — n'importe qui peut rejoindre.</span>
                 </div>
               </label>
 
-              <label class="choice-label" [class.active]="isPrivateChoice()">
-                <input 
-                  type="radio" 
-                  [value]="true" 
-                  [checked]="isPrivateChoice()"
-                  (change)="setPrivateChoice(true)"
-                />
+              <label class="choice-item" [class.selected]="isPrivateChoice()">
+                <input type="radio" [value]="true" [checked]="isPrivateChoice()" (change)="setPrivateChoice(true)" />
+                <span class="material-symbols choice-icon">lock</span>
                 <div class="choice-text">
-                  <span class="choice-title">
-                    <span class="material-symbols">lock</span>
-                    Privé
-                  </span>
-                  <span class="choice-desc">Le salon n'apparaîtra pas dans la liste. Les joueurs devront saisir le code pour y accéder.</span>
+                  <span class="choice-title">Privé</span>
+                  <span class="choice-desc">Accessible uniquement via le code de salon.</span>
                 </div>
               </label>
             </div>
 
             <div class="modal-actions">
-              <button class="cancel-btn" (click)="closeCreateModal()">Annuler</button>
-              <button class="primary-btn create-confirm-btn" (click)="confirmCreateRoom()">
-                Créer la partie
-              </button>
+              <button class="outlined-btn" (click)="closeCreateModal()">Annuler</button>
+              <button class="primary-btn" (click)="confirmCreateRoom()">Créer</button>
             </div>
           </div>
         </div>
@@ -281,56 +287,62 @@ import { GameService } from '../../services/game.service';
   `,
   styles: [`
     .lobby-container {
-      max-width: 1000px;
-      margin: 40px auto;
-      padding: 0 24px;
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      align-items: center;
       width: 100%;
       box-sizing: border-box;
     }
 
-    .glass-card {
-      background: var(--m3-surface);
-      border: var(--m3-border);
-      backdrop-filter: blur(16px);
-      border-radius: var(--m3-radius-large);
-      padding: 32px;
-      box-shadow: var(--m3-shadow);
-      color: #f8fafc;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* -------- Shared Surface Card -------- */
+    .surface-card {
+      background: var(--md-surface-container);
+      border-radius: var(--md-radius-xl);
+      padding: 28px;
+      width: 100%;
+      box-sizing: border-box;
     }
 
+    /* -------- Username Card -------- */
     .username-card {
-      width: 100%;
-      max-width: 450px;
-      text-align: center;
+      max-width: 420px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 16px;
+      gap: 20px;
+      text-align: center;
+      margin-top: 40px;
     }
 
-    .user-hero-icon {
-      font-size: 80px;
-      background: linear-gradient(135deg, var(--m3-primary), var(--m3-secondary));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+    .user-hero {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: var(--md-primary-container);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .username-card h2, .game-select-card h2 {
+    .hero-icon {
+      font-size: 44px;
+      color: var(--md-on-primary-container);
+    }
+
+    .card-text h2 {
+      margin: 0 0 6px;
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--md-on-surface);
+    }
+
+    .card-text p {
       margin: 0;
-      font-size: 26px;
-      font-weight: 700;
-      background: linear-gradient(135deg, var(--m3-primary), var(--m3-secondary));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .username-card p, .game-select-card p {
-      color: #94a3b8;
-      margin: 0;
-      font-size: 15px;
+      font-size: 14px;
+      color: var(--md-on-surface-variant);
       line-height: 1.6;
     }
 
@@ -339,147 +351,197 @@ import { GameService } from '../../services/game.service';
       display: flex;
       flex-direction: column;
       gap: 12px;
-      margin-top: 8px;
     }
 
-    .username-card input, .join-private-section input {
+    /* -------- Inputs -------- */
+    input[type="text"] {
       width: 100%;
       box-sizing: border-box;
-      background: rgba(0, 0, 0, 0.3);
-      border: var(--m3-border);
-      color: white;
-      padding: 14px 18px;
-      border-radius: var(--m3-radius-medium);
-      font-size: 15px;
+      background: var(--md-surface-container-high);
+      border: 1px solid var(--md-outline-variant);
+      color: var(--md-on-surface);
+      padding: 14px 16px;
+      border-radius: var(--md-radius-md);
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
       outline: none;
-      transition: all 0.2s;
+      transition: border-color 0.15s;
     }
 
-    .username-card input:focus, .join-private-section input:focus {
-      border-color: var(--m3-primary);
-      box-shadow: 0 0 0 2px var(--m3-primary-container);
+    input[type="text"]:focus {
+      border-color: var(--md-primary);
     }
 
-    .primary-btn {
-      width: 100%;
-      background: linear-gradient(135deg, var(--m3-primary), var(--m3-secondary));
-      color: white;
-      border: none;
-      border-radius: var(--m3-radius-medium);
-      padding: 14px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      box-shadow: 0 4px 14px rgba(129, 140, 248, 0.25);
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    input[type="text"]::placeholder {
+      color: var(--md-outline);
     }
 
-    .primary-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(129, 140, 248, 0.4);
-    }
-
-    .primary-btn .material-symbols {
-      font-size: 20px;
-    }
-
-    .game-select-card {
+    /* -------- Game Select View -------- */
+    .game-select-view {
       width: 100%;
       display: flex;
       flex-direction: column;
       gap: 24px;
     }
 
+    .welcome-header h2 {
+      margin: 0 0 6px;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--md-on-surface);
+    }
+
+    .welcome-header p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--md-on-surface-variant);
+    }
+
+    /* -------- Game Cards Grid -------- */
     .game-selector-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) !important;
-      gap: 16px;
-      width: 100%;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
     }
 
     .game-card {
-      background: rgba(255, 255, 255, 0.02);
-      border: var(--m3-border);
-      border-radius: var(--m3-radius-medium);
-      padding: 24px 16px;
-      text-align: center;
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-radius-xl);
+      padding: 0;
       cursor: pointer;
-      position: relative;
-      overflow: hidden;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+      transition: background 0.15s, border-color 0.15s, transform 0.15s;
+      text-align: left;
     }
-
-    .game-icon-container {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      background: var(--m3-primary-container);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s;
-    }
-
-    .game-icon {
-      font-size: 30px;
-      color: var(--m3-primary);
-    }
-
-    .c4-card .game-icon-container { background: rgba(99, 102, 241, 0.15); }
-    .c4-card .game-icon { color: #818cf8; }
-
-    .bs-card .game-icon-container { background: rgba(192, 132, 252, 0.15); }
-    .bs-card .game-icon { color: #c084fc; }
-
-    .ttt-card .game-icon-container { background: rgba(248, 113, 113, 0.15); }
-    .ttt-card .game-icon { color: #f87171; }
-
-    .checkers-card .game-icon-container { background: rgba(16, 185, 129, 0.15); }
-    .checkers-card .game-icon { color: #10b981; }
-
-    .chess-card .game-icon-container { background: rgba(251, 191, 36, 0.15); }
-    .chess-card .game-icon { color: #fbbf24; }
 
     .game-card:hover {
-      background: var(--m3-surface-hover);
-      transform: translateY(-4px);
+      background: var(--md-surface-container-high);
+      border-color: var(--md-primary);
+      transform: translateY(-2px);
     }
-    
-    .c4-card:hover { border-color: #818cf8; box-shadow: 0 8px 24px rgba(99, 102, 241, 0.15); }
-    .bs-card:hover { border-color: #c084fc; box-shadow: 0 8px 24px rgba(192, 132, 252, 0.15); }
-    .ttt-card:hover { border-color: #f87171; box-shadow: 0 8px 24px rgba(248, 113, 113, 0.15); }
-    .checkers-card:hover { border-color: #10b981; box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15); }
-    .chess-card:hover { border-color: #fbbf24; box-shadow: 0 8px 24px rgba(251, 191, 36, 0.15); }
 
-    .game-card h3 {
-      margin: 0;
-      font-size: 16px;
+    .game-card-image {
+      width: 100%;
+      aspect-ratio: 1;
+      overflow: hidden;
+      border-radius: var(--md-radius-xl) var(--md-radius-xl) 0 0;
+      background: var(--md-surface-container-high);
+    }
+
+    .game-card-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .game-card-info {
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .game-name {
+      font-size: 14px;
       font-weight: 600;
-      color: #f1f5f9;
+      color: var(--md-on-surface);
     }
 
-    .game-badge {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      font-size: 10px;
-      background: rgba(255, 255, 255, 0.05);
-      border: var(--m3-border);
-      color: #94a3b8;
-      padding: 2px 8px;
-      border-radius: var(--m3-radius-small);
+    .game-tag {
+      font-size: 11px;
+      font-weight: 500;
+      background: var(--md-secondary-container);
+      color: var(--md-on-secondary-container);
+      padding: 3px 10px;
+      border-radius: var(--md-radius-full);
+      white-space: nowrap;
+    }
+
+    /* -------- Stats Section -------- */
+    .stats-section {
+      background: var(--md-surface-container-low);
+      border-radius: var(--md-radius-xl);
+      padding: 24px;
+    }
+
+    .section-title {
+      margin: 0 0 16px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--md-on-surface-variant);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title .material-symbols {
+      font-size: 20px;
+      color: var(--md-primary);
+    }
+
+    .stats-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: var(--md-radius-md);
+      transition: background 0.12s;
+    }
+
+    .stat-item:hover {
+      background: var(--md-surface-container);
+    }
+
+    .stat-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--md-on-surface-variant);
       font-weight: 500;
     }
 
-    /* Game Lobby View */
+    .stat-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .c4-dot       { background: #9D8EFF; }
+    .bs-dot       { background: #C08DFC; }
+    .ttt-dot      { background: #FF8A80; }
+    .checkers-dot { background: #69F0AE; }
+    .chess-dot    { background: #FFD54F; }
+
+    .stat-values {
+      display: flex;
+      gap: 6px;
+    }
+
+    .stat-chip {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: var(--md-radius-full);
+    }
+
+    .stat-chip.win  { background: rgba(105, 240, 174, 0.15); color: #69F0AE; }
+    .stat-chip.loss { background: rgba(242, 184, 181, 0.15); color: #F2B8B5; }
+    .stat-chip.draw { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
+
+    /* -------- Game Lobby View -------- */
     .game-lobby-view {
       width: 100%;
       display: flex;
@@ -487,438 +549,353 @@ import { GameService } from '../../services/game.service';
       gap: 20px;
     }
 
-    .lobby-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-
-    .back-btn {
-      background: var(--m3-surface);
-      border: var(--m3-border);
-      color: #cbd5e1;
-      border-radius: var(--m3-radius-medium);
-      padding: 10px 18px;
-      cursor: pointer;
-      font-size: 14px;
+    .lobby-topbar {
       display: flex;
       align-items: center;
-      gap: 8px;
-      transition: all 0.2s;
-    }
-
-    .back-btn:hover {
-      background: var(--m3-surface-hover);
-      color: white;
-    }
-
-    .back-btn .material-symbols {
-      font-size: 18px;
-    }
-
-    .lobby-header h2 {
-      margin: 0;
-      font-size: 24px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .title-icon {
-      font-size: 28px;
-    }
-
-    .c4-color { color: #818cf8; }
-    .bs-color { color: #c084fc; }
-    .ttt-color { color: #f87171; }
-    .checkers-color { color: #10b981; }
-    .chess-color { color: #fbbf24; }
-
-    .lobby-grid {
-      display: grid;
-      grid-template-columns: 1fr 1.2fr;
-      gap: 24px;
-      width: 100%;
-    }
-
-    .actions-card, .list-card {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .actions-card h3, .list-card h3 {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .actions-card h3 .material-symbols, .list-card h3 .material-symbols {
-      color: var(--m3-primary);
-    }
-
-    .actions-card p, .list-card p {
-      color: #94a3b8;
-      margin: 0 0 12px 0;
-      font-size: 14px;
-    }
-
-    .create-btn {
-      margin-bottom: 20px;
-    }
-
-    .join-private-section {
-      border-top: var(--m3-border);
-      padding-top: 20px;
-      display: flex;
-      flex-direction: column;
       gap: 12px;
     }
 
-    .join-private-section h4 {
-      margin: 0;
-      font-size: 15px;
-      color: #cbd5e1;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .join-private-section h4 .material-symbols {
-      font-size: 18px;
-      color: var(--m3-secondary);
-    }
-
-    .input-group {
-      display: flex;
-      gap: 10px;
-    }
-
-    .input-group input {
-      margin-bottom: 0;
-      flex: 1;
-    }
-
-    .secondary-btn {
-      background: var(--m3-primary-container);
-      color: var(--m3-primary);
-      border: 1px solid rgba(129, 140, 248, 0.2);
-      border-radius: var(--m3-radius-medium);
-      padding: 10px 20px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .secondary-btn:hover {
-      background: rgba(129, 140, 248, 0.25);
-      transform: translateY(-1px);
-    }
-
-    /* Table styles */
-    .rooms-list-container {
-      overflow-x: auto;
-      border-radius: var(--m3-radius-medium);
-      border: var(--m3-border);
-      background: rgba(0, 0, 0, 0.15);
-    }
-
-    .rooms-table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-    }
-
-    .rooms-table th {
-      padding: 14px 18px;
-      border-bottom: var(--m3-border);
-      color: #64748b;
-      font-weight: 600;
-      font-size: 13px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .rooms-table td {
-      padding: 16px 18px;
-      border-bottom: var(--m3-border);
-      font-size: 14px;
-      color: #cbd5e1;
-    }
-
-    .code-pill {
-      background: var(--m3-primary-container);
-      border: 1px solid rgba(129, 140, 248, 0.2);
-      color: #cbd5e1;
-      padding: 4px 10px;
-      border-radius: var(--m3-radius-small);
-      font-family: monospace;
-      font-weight: 600;
-      font-size: 13px;
-    }
-
-    .status-indicator {
-      color: #94a3b8;
-      font-weight: 500;
-    }
-
-    .status-indicator.waiting {
-      color: #10b981;
-    }
-
-    .join-btn {
-      background: #10b981;
+    .icon-btn {
+      background: var(--md-surface-container-high);
       border: none;
-      color: white;
-      border-radius: var(--m3-radius-small);
-      padding: 6px 14px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .join-btn:hover {
-      background: #059669;
-      transform: translateY(-1px);
-    }
-
-    .full-badge {
-      font-size: 12px;
-      background: rgba(255, 255, 255, 0.05);
-      color: #64748b;
-      padding: 4px 10px;
-      border-radius: var(--m3-radius-small);
-    }
-
-    .empty-row {
-      text-align: center;
-      padding: 50px 20px !important;
-      color: #64748b;
-    }
-
-    .empty-row .empty-icon {
-      font-size: 44px;
-      display: block;
-      margin-bottom: 12px;
-      color: #475569;
-    }
-
-    /* Modal styles */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(2, 6, 23, 0.8);
-      backdrop-filter: blur(8px);
-      z-index: 1100;
+      color: var(--md-on-surface-variant);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s, color 0.15s;
     }
 
-    .modal-card {
-      background: #0f172a;
-      border: var(--m3-border);
-      border-radius: var(--m3-radius-large);
-      padding: 32px;
-      width: 90%;
-      max-width: 480px;
-      color: white;
-      box-shadow: var(--m3-shadow);
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
+    .icon-btn:hover {
+      background: var(--md-surface-container-highest);
+      color: var(--md-on-surface);
     }
 
-    .modal-card h3 {
+    .icon-btn .material-symbols {
+      font-size: 22px;
+    }
+
+    .lobby-title {
       margin: 0;
       font-size: 22px;
       font-weight: 700;
-      background: linear-gradient(135deg, var(--m3-primary), var(--m3-secondary));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: var(--md-on-surface);
     }
 
-    .modal-card p {
-      color: #94a3b8;
-      margin: 0;
-      font-size: 14px;
+    .lobby-content-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    /* -------- Card shared -------- */
+    .card-title {
+      margin: 0 0 4px;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--md-on-surface);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title .material-symbols {
+      font-size: 20px;
+      color: var(--md-primary);
+    }
+
+    .card-subtitle {
+      margin: 0 0 20px;
+      font-size: 13px;
+      color: var(--md-on-surface-variant);
       line-height: 1.5;
     }
 
-    .vis-choices {
+    /* -------- Actions Card -------- */
+    .actions-card {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      margin: 8px 0;
     }
 
-    .choice-label {
+    .create-btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .divider {
       display: flex;
-      align-items: flex-start;
-      gap: 14px;
-      background: rgba(255, 255, 255, 0.02);
-      border: var(--m3-border);
-      border-radius: var(--m3-radius-medium);
-      padding: 16px;
-      cursor: pointer;
-      transition: all 0.2s;
+      align-items: center;
+      gap: 12px;
+      margin: 16px 0;
+      color: var(--md-outline);
+      font-size: 12px;
     }
 
-    .choice-label:hover {
-      background: rgba(255, 255, 255, 0.05);
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--md-outline-variant);
     }
 
-    .choice-label.active {
-      background: var(--m3-primary-container);
-      border-color: var(--m3-primary);
+    .join-private {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
-    .choice-label input {
-      margin-top: 4px;
-      accent-color: var(--m3-primary);
+    .input-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--md-on-surface-variant);
     }
 
-    .choice-text {
+    .input-label .material-symbols {
+      font-size: 16px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .input-row input {
+      flex: 1;
+      padding: 10px 14px;
+    }
+
+    /* -------- Rooms Card -------- */
+    .rooms-card {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .rooms-list {
       display: flex;
       flex-direction: column;
       gap: 4px;
     }
 
-    .choice-title {
-      font-weight: 600;
-      font-size: 15px;
+    .room-item {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: var(--md-radius-lg);
+      background: var(--md-surface-container-high);
+      transition: background 0.12s;
     }
 
-    .choice-title .material-symbols {
-      font-size: 18px;
+    .room-item:hover {
+      background: var(--md-surface-container-highest);
+    }
+
+    .room-code {
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--md-primary);
+      background: var(--md-primary-container);
+      padding: 4px 10px;
+      border-radius: var(--md-radius-sm);
+      flex-shrink: 0;
+    }
+
+    .room-players {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      color: var(--md-on-surface-variant);
+      flex: 1;
+    }
+
+    .players-icon {
+      font-size: 16px;
+    }
+
+    .join-chip {
+      background: var(--md-primary);
+      color: var(--md-on-primary);
+      border: none;
+      border-radius: var(--md-radius-full);
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: filter 0.15s;
+    }
+
+    .join-chip:hover {
+      filter: brightness(1.1);
+    }
+
+    .ongoing-chip {
+      font-size: 12px;
+      color: var(--md-outline);
+      background: var(--md-surface-container-highest);
+      padding: 5px 12px;
+      border-radius: var(--md-radius-full);
+    }
+
+    .empty-rooms {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 40px 20px;
+      color: var(--md-outline);
+      text-align: center;
+    }
+
+    .empty-rooms .material-symbols {
+      font-size: 40px;
+      color: var(--md-outline-variant);
+    }
+
+    .empty-rooms p {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--md-on-surface-variant);
+    }
+
+    .empty-rooms span {
+      font-size: 12px;
+    }
+
+    /* -------- Modal -------- */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 1100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-card {
+      background: var(--md-surface-container-high);
+      border-radius: var(--md-radius-xl);
+      padding: 28px;
+      width: 100%;
+      max-width: 460px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--md-on-surface);
+    }
+
+    .modal-desc {
+      margin: 0;
+      font-size: 14px;
+      color: var(--md-on-surface-variant);
+    }
+
+    .vis-choices {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .choice-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-radius-lg);
+      padding: 16px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .choice-item:hover {
+      background: var(--md-surface-container-highest);
+    }
+
+    .choice-item.selected {
+      border-color: var(--md-primary);
+      background: rgba(208, 188, 255, 0.08);
+    }
+
+    .choice-item input {
+      display: none;
+    }
+
+    .choice-icon {
+      font-size: 22px;
+      color: var(--md-primary);
+      margin-top: 1px;
+      flex-shrink: 0;
+    }
+
+    .choice-text {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .choice-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--md-on-surface);
     }
 
     .choice-desc {
       font-size: 12px;
-      color: #64748b;
+      color: var(--md-on-surface-variant);
       line-height: 1.4;
     }
 
     .modal-actions {
       display: flex;
-      gap: 12px;
-      justify-content: flex-end;
-      margin-top: 8px;
-    }
-
-    .cancel-btn {
-      background: none;
-      border: var(--m3-border);
-      color: #cbd5e1;
-      border-radius: var(--m3-radius-medium);
-      padding: 12px 24px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .cancel-btn:hover {
-      background: rgba(255, 255, 255, 0.05);
-      color: white;
-    }
-
-    .create-confirm-btn {
-      width: auto;
-      padding: 12px 24px;
-    }
-
-    /* Stats Section */
-    .stats-card {
-      background: rgba(0, 0, 0, 0.25);
-      border: var(--m3-border);
-      border-radius: var(--m3-radius-medium);
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    
-    .stats-card h3 {
-      margin: 0;
-      font-size: 16px;
-      color: #cbd5e1;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .section-icon {
-      font-size: 20px;
-      color: var(--m3-primary);
-    }
-
-    .stats-grid-container {
-      display: flex;
-      flex-direction: column;
       gap: 10px;
+      justify-content: flex-end;
     }
 
-    .stat-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 16px;
-      background: rgba(255, 255, 255, 0.01);
-      border-radius: var(--m3-radius-medium);
-      font-size: 14px;
-      border-left: 4px solid #64748b;
-      transition: all 0.2s;
-    }
-
-    .stat-row:hover {
-      background: rgba(255, 255, 255, 0.03);
-    }
-
-    .c4-row { border-left-color: #818cf8; }
-    .bs-row { border-left-color: #c084fc; }
-    .ttt-row { border-left-color: #f87171; }
-    .checkers-row { border-left-color: #10b981; }
-    .chess-row { border-left-color: #fbbf24; }
-
-    .stat-game {
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .inline-icon {
-      font-size: 16px;
-    }
-
-    .c4-row .inline-icon { color: #818cf8; }
-    .bs-row .inline-icon { color: #c084fc; }
-    .ttt-row .inline-icon { color: #f87171; }
-    .checkers-row .inline-icon { color: #10b981; }
-    .chess-row .inline-icon { color: #fbbf24; }
-
-    .stat-val {
-      color: #94a3b8;
-      font-weight: 500;
-    }
-
+    /* -------- Responsive -------- */
     @media (max-width: 768px) {
-      .lobby-grid {
+      .lobby-content-grid {
         grid-template-columns: 1fr;
       }
+
       .game-selector-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .lobby-container {
+        padding: 16px 16px 64px;
+      }
+
+      .game-selector-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
       }
     }
   `]
@@ -974,7 +951,7 @@ export class LobbyComponent {
 
   selectGame(game: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | null) {
     this.selectedGame.set(game);
-    this.loadStats(); // Reload stats when clicking back or switching
+    this.loadStats();
   }
 
   joinRoom(roomId: string) {
