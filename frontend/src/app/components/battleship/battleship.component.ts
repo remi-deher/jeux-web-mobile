@@ -41,9 +41,23 @@ import { GameService } from '../../services/game.service';
 
           <div class="status-message">
             @if (room()?.status === 'waiting') {
-              <div class="pulse-text">En attente d'un adversaire...</div>
+              <div class="waiting-container" style="display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: 12px;">
+                <div class="pulse-text">En attente d'un adversaire...</div>
+                <button class="tonal-btn share-btn" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 20px; font-weight: 500; font-size: 13px;" (click)="shareInvitationLink()">
+                  <span class="material-symbols">share</span>
+                  <span>Partager l'invitation</span>
+                </button>
+              </div>
             } @else if (phase() === 'setup') {
-              @if (myState()?.ready) {
+              @if (room()?.isLocal) {
+                <div class="setup-instructions">
+                  <strong>{{ localActivePlayerId() === 'local-player-2' ? 'Joueur 2' : (room()?.players?.[0]?.username || 'Joueur 1') }}</strong> : Placez votre flotte de 5 navires.
+                  <button class="orient-btn" (click)="toggleOrientation()">
+                    <span class="material-symbols">sync_alt</span>
+                    <span>Orientation : {{ isHorizontal() ? 'Horizontal' : 'Vertical' }}</span>
+                  </button>
+                </div>
+              } @else if (myState()?.ready) {
                 <div class="pulse-text">Prêt ! En attente du placement de l'adversaire...</div>
               } @else {
                 <div class="setup-instructions">
@@ -55,14 +69,18 @@ import { GameService } from '../../services/game.service';
                 </div>
               }
             } @else if (phase() === 'playing') {
-              @if (isMyTurn()) {
+              @if (room()?.isLocal) {
+                <div class="turn-alert my-turn">C'est au tour de {{ room()?.gameState?.currentPlayerId === 'local-player-2' ? 'Joueur 2' : (room()?.players?.[0]?.username || 'Joueur 1') }} de tirer !</div>
+              } @else if (isMyTurn()) {
                 <div class="turn-alert my-turn">C'est votre tour de tirer ! Sélectionnez une case chez l'adversaire.</div>
               } @else {
                 <div class="turn-alert opponent-turn">En attente du tir adverse...</div>
               }
             } @else if (phase() === 'finished') {
               <div class="win-banner" [class.victory]="isWinner()" [class.defeat]="isLoser()">
-                @if (isWinner()) {
+                @if (room()?.isLocal) {
+                  🏆 Partie terminée ! Gagnant : {{ room()?.gameState?.winnerId === 'local-player-2' ? 'Joueur 2' : (room()?.players?.[0]?.username || 'Joueur 1') }}
+                } @else if (isWinner()) {
                   🏆 Victoire ! Vous avez détruit tous les navires adverses !
                 } @else {
                   ☠️ Défaite... L'adversaire a anéanti votre flotte.
@@ -175,12 +193,27 @@ import { GameService } from '../../services/game.service';
                         </div>
                       }
                     }
+                  </div>
                 </div>
-              </div>
-            }
+              }
             </div>
           </div>
         }
+      
+      <!-- Pass Device Overlay -->
+      @if (showPassDeviceOverlay()) {
+        <div class="pass-device-overlay">
+          <div class="pass-card surface-card">
+            <span class="material-symbols device-icon">phone_android</span>
+            <h2>Passez l'appareil</h2>
+            <p>C'est au tour de <strong>{{ passToPlayerName() }}</strong>.</p>
+            <button class="primary-btn" (click)="passToPlayerNameConfirm()">
+              <span>Prêt à jouer</span>
+              <span class="material-symbols">arrow_forward</span>
+            </button>
+          </div>
+        </div>
+      }
       </div>
     }
   </div>
@@ -662,6 +695,37 @@ import { GameService } from '../../services/game.service';
         opacity: 0;
       }
     }
+    .pass-device-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--md-background);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      padding: 24px;
+    }
+    .pass-card {
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      border-radius: 28px;
+      background: var(--md-surface-container-high);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+      color: var(--md-on-surface);
+    }
+    .device-icon {
+      font-size: 64px;
+      color: var(--md-primary);
+    }
   `]
 })
 export class BattleshipComponent {
@@ -671,6 +735,11 @@ export class BattleshipComponent {
 
   floatingEmojis = signal<{ id: number; emoji: string }[]>([]);
   private emojiId = 0;
+
+  localActivePlayerId = signal<string>('');
+  showPassDeviceOverlay = signal<boolean>(false);
+  passToPlayerName = signal<string>('');
+  passActionCallback = signal<(() => void) | null>(null);
 
   hasDisconnectedPlayer = computed(() => this.room()?.players.some(p => p.disconnected) || false);
   
@@ -707,29 +776,77 @@ export class BattleshipComponent {
         this.saveStatsLocally();
       }
     });
+
+    effect(() => {
+      const r = this.room();
+      if (r) {
+        const socketId = this.gameService.getSocketId() || '';
+        if (r.isLocal && !this.localActivePlayerId()) {
+          this.localActivePlayerId.set(socketId);
+        }
+      }
+    }, { allowSignalWrites: true });
+
+    effect(() => {
+      const r = this.room();
+      const phase = this.phase();
+      const socketId = this.gameService.getSocketId() || '';
+      if (r && r.isLocal) {
+        if (phase === 'setup' && this.localActivePlayerId() !== socketId) {
+          const players = r.gameState?.players || {};
+          const allNotReady = Object.values(players).every((p: any) => !p.ready);
+          if (allNotReady) {
+            this.localActivePlayerId.set(socketId);
+            this.showPassDeviceOverlay.set(false);
+          }
+        }
+      }
+    }, { allowSignalWrites: true });
+
+    effect(() => {
+      const r = this.room();
+      if (r?.isLocal && r.status === 'playing' && r.gameState?.phase === 'playing') {
+        const turnId = r.gameState.currentPlayerId;
+        const currentActive = this.localActivePlayerId();
+        if (turnId && currentActive && turnId !== currentActive && !this.showPassDeviceOverlay()) {
+          const targetPlayer = r.players.find(p => p.id === turnId);
+          this.passToPlayerName.set(targetPlayer?.username || 'Joueur Suivant');
+          this.passActionCallback.set(() => {
+            this.localActivePlayerId.set(turnId);
+            this.showPassDeviceOverlay.set(false);
+          });
+          this.showPassDeviceOverlay.set(true);
+        }
+      }
+    }, { allowSignalWrites: true });
   }
 
   phase = computed(() => this.room()?.gameState?.phase || 'setup');
   isPlaying = computed(() => this.room()?.status === 'playing');
 
   myState = computed(() => {
-    const socketId = this.gameService.getSocketId();
-    return this.room()?.gameState?.players[socketId || ''];
+    const r = this.room();
+    if (!r || !r.gameState) return null;
+    const activeId = r.isLocal ? this.localActivePlayerId() : (this.gameService.getSocketId() || '');
+    return r.gameState.players[activeId];
   });
 
   opponentState = computed(() => {
-    const socketId = this.gameService.getSocketId();
-    const players = this.room()?.gameState?.players || {};
-    const oppId = Object.keys(players).find(id => id !== socketId);
-    return oppId ? players[oppId] : null;
+    const r = this.room();
+    if (!r || !r.gameState) return null;
+    const activeId = r.isLocal ? this.localActivePlayerId() : (this.gameService.getSocketId() || '');
+    const oppId = Object.keys(r.gameState.players).find(id => id !== activeId);
+    return oppId ? r.gameState.players[oppId] : null;
   });
 
   myBoard = computed(() => this.myState()?.board || Array(10).fill(null).map(() => Array(10).fill('empty')));
   opponentBoard = computed(() => this.opponentState()?.board || Array(10).fill(null).map(() => Array(10).fill('empty')));
 
   isMyTurn = computed(() => {
-    const socketId = this.gameService.getSocketId();
-    return this.phase() === 'playing' && this.room()?.gameState?.currentPlayerId === socketId;
+    const r = this.room();
+    if (!r || !r.gameState) return false;
+    const activeId = r.isLocal ? this.localActivePlayerId() : (this.gameService.getSocketId() || '');
+    return this.phase() === 'playing' && r.gameState.currentPlayerId === activeId;
   });
 
   allShipsPlaced = computed(() => {
@@ -737,13 +854,21 @@ export class BattleshipComponent {
   });
 
   isWinner = computed(() => {
+    const r = this.room();
+    if (!r || !r.gameState) return false;
+    if (r.isLocal) {
+      return r.gameState.winnerId !== null;
+    }
     const socketId = this.gameService.getSocketId();
-    return this.room()?.gameState?.winnerId === socketId;
+    return r.gameState.winnerId === socketId;
   });
 
   isLoser = computed(() => {
+    const r = this.room();
+    if (!r || !r.gameState) return false;
+    if (r.isLocal) return false;
     const socketId = this.gameService.getSocketId();
-    const winnerId = this.room()?.gameState?.winnerId;
+    const winnerId = r.gameState.winnerId;
     return winnerId !== null && winnerId !== socketId;
   });
 
@@ -792,12 +917,32 @@ export class BattleshipComponent {
       this.selectedShipId()!,
       row,
       col,
-      this.isHorizontal()
+      this.isHorizontal(),
+      this.room()?.isLocal ? this.localActivePlayerId() : undefined
     );
   }
 
   setReady() {
-    this.gameService.setBsReady();
+    const r = this.room();
+    if (r?.isLocal) {
+      const activeId = this.localActivePlayerId();
+      const socketId = this.gameService.getSocketId() || '';
+      if (activeId === socketId) {
+        this.gameService.setBsReady(activeId);
+        const p2 = r.players[1]?.id || 'local-player-2';
+        this.passToPlayerName.set(r.players[1]?.username || 'Joueur 2');
+        this.passActionCallback.set(() => {
+          this.localActivePlayerId.set(p2);
+          this.showPassDeviceOverlay.set(false);
+          this.selectedShipId.set(null);
+        });
+        this.showPassDeviceOverlay.set(true);
+      } else {
+        this.gameService.setBsReady(activeId);
+      }
+    } else {
+      this.gameService.setBsReady();
+    }
   }
 
   fireShot(row: number, col: number) {
@@ -805,11 +950,23 @@ export class BattleshipComponent {
     const targetCell = this.opponentBoard()[row][col];
     if (targetCell === 'hit' || targetCell === 'miss') return;
 
-    this.gameService.fireBsShot(row, col);
+    this.gameService.fireBsShot(row, col, this.room()?.isLocal ? this.localActivePlayerId() : undefined);
+  }
+
+  passToPlayerNameConfirm() {
+    const callback = this.passActionCallback();
+    if (callback) {
+      callback();
+    }
   }
 
   leaveRoom() {
     this.gameService.leaveRoom();
+  }
+
+  shareInvitationLink() {
+    const r = this.room();
+    if (r) this.gameService.shareInvitationLink(r);
   }
 
   spawnFloatingEmoji(emoji: string) {

@@ -49,11 +49,19 @@ interface Room {
   chatMessages: ChatMessage[];
   isPrivate: boolean;
   rematchVotes: string[];
+  isLocal?: boolean;
 }
 
 const rooms: { [id: string]: Room } = {};
 const globalChat: ChatMessage[] = [];
 const disconnectTimeouts: { [playerId: string]: NodeJS.Timeout } = {};
+
+const onlineUsers: { [socketId: string]: string } = {};
+
+function broadcastOnlineUsers() {
+  const list = Object.entries(onlineUsers).map(([id, username]) => ({ id, username }));
+  io.emit('onlineUsersList', list);
+}
 
 // Helper to generate a 6-letter room ID
 function generateRoomId(): string {
@@ -76,6 +84,72 @@ io.on('connection', (socket: Socket) => {
 
   // Send active rooms
   socket.emit('roomsList', getPublicRooms());
+
+  // Send online users
+  broadcastOnlineUsers();
+
+  socket.on('registerUsername', (username: string) => {
+    if (!username || !username.trim()) return;
+    onlineUsers[socket.id] = username.trim();
+    broadcastOnlineUsers();
+  });
+
+  socket.on('sendChallenge', (data: { targetSocketId: string; gameType: string }) => {
+    const challengerUsername = onlineUsers[socket.id] || 'Anonymous';
+    io.to(data.targetSocketId).emit('challengeReceived', {
+      challengerSocketId: socket.id,
+      challengerUsername,
+      gameType: data.gameType
+    });
+  });
+
+  socket.on('declineChallenge', (data: { challengerSocketId: string }) => {
+    const opponentUsername = onlineUsers[socket.id] || 'Joueur 2';
+    io.to(data.challengerSocketId).emit('challengeDeclined', { opponentUsername });
+  });
+
+  socket.on('acceptChallenge', (data: { challengerSocketId: string; gameType: string }) => {
+    const challengerSocket = io.sockets.sockets.get(data.challengerSocketId);
+    if (!challengerSocket) {
+      return socket.emit('challengeError', 'Le challenger s\'est déconnecté.');
+    }
+
+    const roomId = generateRoomId();
+    const challengerUsername = onlineUsers[data.challengerSocketId] || 'Joueur 1';
+    const opponentUsername = onlineUsers[socket.id] || 'Joueur 2';
+
+    const newRoom: Room = {
+      id: roomId,
+      gameType: data.gameType as any,
+      players: [
+        { id: data.challengerSocketId, username: challengerUsername },
+        { id: socket.id, username: opponentUsername }
+      ],
+      status: 'playing',
+      gameState: null,
+      chatMessages: [],
+      isPrivate: true,
+      rematchVotes: []
+    };
+
+    if (data.gameType === 'connect4') {
+      newRoom.gameState = createInitialConnect4State();
+    } else if (data.gameType === 'battleship') {
+      newRoom.gameState = createInitialBattleshipState([data.challengerSocketId, socket.id]);
+    } else if (data.gameType === 'tictactoe') {
+      newRoom.gameState = createInitialTicTacToeState();
+    } else if (data.gameType === 'checkers') {
+      newRoom.gameState = createInitialCheckersState();
+    } else if (data.gameType === 'chess') {
+      newRoom.gameState = createInitialChessState();
+    }
+
+    rooms[roomId] = newRoom;
+    challengerSocket.join(roomId);
+    socket.join(roomId);
+
+    io.to(roomId).emit('challengeAccepted', { roomId, room: newRoom });
+  });
 
   socket.on('globalMessage', (data: { username: string; text: string }) => {
     const msg: ChatMessage = {
@@ -109,6 +183,43 @@ io.on('connection', (socket: Socket) => {
 
     callback({ success: true, roomId, room: newRoom });
     io.emit('roomsList', getPublicRooms());
+  });
+
+  socket.on('createLocalRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess'; username: string; player1Name?: string; player2Name?: string }, callback) => {
+    const roomId = generateRoomId();
+    const newRoom: Room = {
+      id: roomId,
+      gameType: data.gameType,
+      players: [
+        { id: socket.id, username: data.player1Name || data.username || 'Joueur 1' },
+        { id: 'local-player-2', username: data.player2Name || 'Joueur 2' }
+      ],
+      status: 'playing',
+      gameState: null,
+      chatMessages: [],
+      isPrivate: true,
+      isLocal: true,
+      rematchVotes: []
+    };
+
+    if (data.gameType === 'connect4') {
+      newRoom.gameState = createInitialConnect4State();
+    } else if (data.gameType === 'battleship') {
+      newRoom.gameState = createInitialBattleshipState([socket.id, 'local-player-2']);
+    } else if (data.gameType === 'tictactoe') {
+      newRoom.gameState = createInitialTicTacToeState();
+    } else if (data.gameType === 'checkers') {
+      newRoom.gameState = createInitialCheckersState();
+    } else if (data.gameType === 'chess') {
+      newRoom.gameState = createInitialChessState();
+    }
+
+    rooms[roomId] = newRoom;
+    socket.join(roomId);
+
+    console.log(`Local room created: ${roomId} with players ${newRoom.players[0].username} and ${newRoom.players[1].username}`);
+
+    callback({ success: true, roomId, room: newRoom });
   });
 
   socket.on('joinRoom', (data: { roomId: string; username: string }, callback) => {
@@ -170,7 +281,7 @@ io.on('connection', (socket: Socket) => {
     const playerIndex = room.players.findIndex(p => p.id === socket.id);
     if (playerIndex === -1) return;
 
-    const playerNum = playerIndex + 1; // 1 or 2
+    const playerNum = room.isLocal ? (room.gameState as Connect4State).currentPlayer : (playerIndex + 1); // 1 or 2
     const success = makeConnect4Move(room.gameState as Connect4State, data.column, playerNum);
 
     if (success) {
@@ -182,13 +293,14 @@ io.on('connection', (socket: Socket) => {
   });
 
   // GAME EVENTS: Battleship
-  socket.on('bsPlaceShip', (data: { roomId: string; shipId: string; row: number; col: number; horizontal: boolean }) => {
+  socket.on('bsPlaceShip', (data: { roomId: string; shipId: string; row: number; col: number; horizontal: boolean; playerId?: string }) => {
     const room = rooms[data.roomId];
     if (!room || room.gameType !== 'battleship' || !room.gameState) return;
 
+    const activePlayerId = room.isLocal && data.playerId ? data.playerId : socket.id;
     const success = placeShip(
       room.gameState as BattleshipState,
-      socket.id,
+      activePlayerId,
       data.shipId,
       data.row,
       data.col,
@@ -200,21 +312,23 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
-  socket.on('bsReady', (data: { roomId: string }) => {
+  socket.on('bsReady', (data: { roomId: string; playerId?: string }) => {
     const room = rooms[data.roomId];
     if (!room || room.gameType !== 'battleship' || !room.gameState) return;
 
-    const success = setPlayerReady(room.gameState as BattleshipState, socket.id);
+    const activePlayerId = room.isLocal && data.playerId ? data.playerId : socket.id;
+    const success = setPlayerReady(room.gameState as BattleshipState, activePlayerId);
     if (success) {
       broadcastRoomUpdate(room);
     }
   });
 
-  socket.on('bsFire', (data: { roomId: string; row: number; col: number }) => {
+  socket.on('bsFire', (data: { roomId: string; row: number; col: number; playerId?: string }) => {
     const room = rooms[data.roomId];
     if (!room || room.gameType !== 'battleship' || !room.gameState) return;
 
-    const result = fireShot(room.gameState as BattleshipState, socket.id, data.row, data.col);
+    const activePlayerId = room.isLocal && data.playerId ? data.playerId : socket.id;
+    const result = fireShot(room.gameState as BattleshipState, activePlayerId, data.row, data.col);
     if (result.success) {
       if ((room.gameState as BattleshipState).winnerId !== null) {
         room.status = 'finished';
@@ -230,7 +344,7 @@ io.on('connection', (socket: Socket) => {
     const playerIndex = room.players.findIndex(p => p.id === socket.id);
     if (playerIndex === -1) return;
 
-    const playerSign: 'X' | 'O' = playerIndex === 0 ? 'X' : 'O';
+    const playerSign: 'X' | 'O' = room.isLocal ? (room.gameState as TicTacToeState).currentPlayer : (playerIndex === 0 ? 'X' : 'O');
     const success = makeTicTacToeMove(room.gameState as TicTacToeState, data.cellIndex, playerSign);
 
     if (success) {
@@ -248,7 +362,7 @@ io.on('connection', (socket: Socket) => {
     const playerIndex = room.players.findIndex(p => p.id === socket.id);
     if (playerIndex === -1) return;
 
-    const playerNum = (playerIndex + 1) as 1 | 2;
+    const playerNum = room.isLocal ? (room.gameState as CheckersState).currentPlayer : ((playerIndex + 1) as 1 | 2);
     const success = makeCheckersMove(room.gameState as CheckersState, data.fromRow, data.fromCol, data.toRow, data.toCol, playerNum);
 
     if (success) {
@@ -266,7 +380,7 @@ io.on('connection', (socket: Socket) => {
     const playerIndex = room.players.findIndex(p => p.id === socket.id);
     if (playerIndex === -1) return;
 
-    const playerNum = (playerIndex + 1) as 1 | 2;
+    const playerNum = room.isLocal ? (room.gameState as ChessState).currentPlayer : ((playerIndex + 1) as 1 | 2);
     const success = makeChessMove(room.gameState as ChessState, data.fromRow, data.fromCol, data.toRow, data.toCol, playerNum);
 
     if (success) {
@@ -287,12 +401,8 @@ io.on('connection', (socket: Socket) => {
     const room = rooms[data.roomId];
     if (!room || room.status !== 'finished') return;
 
-    if (!room.rematchVotes) room.rematchVotes = [];
-    if (!room.rematchVotes.includes(socket.id)) {
-      room.rematchVotes.push(socket.id);
-    }
-
-    if (room.rematchVotes.length === 2) {
+    if (room.isLocal) {
+      // For local play, a rematch is triggered immediately
       room.status = 'playing';
       room.rematchVotes = [];
       if (room.gameType === 'connect4') {
@@ -305,6 +415,27 @@ io.on('connection', (socket: Socket) => {
         room.gameState = createInitialCheckersState();
       } else if (room.gameType === 'chess') {
         room.gameState = createInitialChessState();
+      }
+    } else {
+      if (!room.rematchVotes) room.rematchVotes = [];
+      if (!room.rematchVotes.includes(socket.id)) {
+        room.rematchVotes.push(socket.id);
+      }
+
+      if (room.rematchVotes.length === 2) {
+        room.status = 'playing';
+        room.rematchVotes = [];
+        if (room.gameType === 'connect4') {
+          room.gameState = createInitialConnect4State();
+        } else if (room.gameType === 'battleship') {
+          room.gameState = createInitialBattleshipState(room.players.map(p => p.id));
+        } else if (room.gameType === 'tictactoe') {
+          room.gameState = createInitialTicTacToeState();
+        } else if (room.gameType === 'checkers') {
+          room.gameState = createInitialCheckersState();
+        } else if (room.gameType === 'chess') {
+          room.gameState = createInitialChessState();
+        }
       }
     }
 
@@ -411,6 +542,8 @@ io.on('connection', (socket: Socket) => {
 
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`);
+    delete onlineUsers[socket.id];
+    broadcastOnlineUsers();
     for (const roomId of Object.keys(rooms)) {
       const room = rooms[roomId];
       const playerIndex = room.players.findIndex(p => p.id === socket.id);
@@ -483,14 +616,19 @@ function handlePlayerLeave(socket: Socket, roomId: string) {
 
 function broadcastRoomUpdate(room: Room) {
   if (room.gameType === 'battleship' && room.gameState) {
-    // Send customized sanitised view to each player in battleship
-    room.players.forEach(p => {
-      const sanitizedState = getSanitizedBattleshipState(room.gameState as BattleshipState, p.id);
-      io.to(p.id).emit('roomUpdate', {
-        ...room,
-        gameState: sanitizedState
+    if (room.isLocal) {
+      // For local battleship, send the full unsanitized state so the client can display/manage both players' screens.
+      io.to(room.id).emit('roomUpdate', room);
+    } else {
+      // Send customized sanitised view to each player in battleship
+      room.players.forEach(p => {
+        const sanitizedState = getSanitizedBattleshipState(room.gameState as BattleshipState, p.id);
+        io.to(p.id).emit('roomUpdate', {
+          ...room,
+          gameState: sanitizedState
+        });
       });
-    });
+    }
   } else {
     io.to(room.id).emit('roomUpdate', room);
   }

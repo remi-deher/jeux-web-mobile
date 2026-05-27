@@ -1,4 +1,6 @@
-import { Component, signal, effect } from '@angular/core';
+import { BottomNavbarComponent } from './components/bottom-navbar/bottom-navbar.component';
+import { Router } from '@angular/router';
+import { Component, effect, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { GameService } from './services/game.service';
 import { LobbyComponent } from './components/lobby/lobby.component';
@@ -20,7 +22,8 @@ import { ChessComponent } from './components/chess/chess.component';
     ChatSidebarComponent,
     TicTacToeComponent,
     CheckersComponent,
-    ChessComponent
+    ChessComponent,
+    BottomNavbarComponent
   ],
   templateUrl: './app.html',
   styleUrl: './app.css'
@@ -30,14 +33,33 @@ export class App {
 
   username;
   currentRoom;
+  incomingChallenges;
 
   showProfileModal = signal<boolean>(false);
   newUsername = '';
   theme = signal<'dark' | 'light'>('dark');
 
-  constructor(private gameService: GameService) {
+  constructor(private gameService: GameService, private router: Router) {
     this.username = this.gameService.username;
     this.currentRoom = this.gameService.currentRoom;
+    this.incomingChallenges = this.gameService.incomingChallenges;
+
+    // Prompt PWA web notification permissions
+    this.gameService.requestNotificationPermission();
+
+    // Check for direct join URL parameter (e.g. ?join=ABCXYZ)
+    const params = new URLSearchParams(window.location.search);
+    const joinCode = params.get('join') || new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('join');
+    if (joinCode) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      const joinEffect = effect(() => {
+        const user = this.username();
+        if (user) {
+          this.gameService.joinRoom(joinCode.toUpperCase());
+          joinEffect.destroy();
+        }
+      }, { allowSignalWrites: true });
+    }
 
     effect(() => {
       const t = this.theme();
@@ -47,6 +69,43 @@ export class App {
         document.body.classList.remove('light-theme');
       }
     });
+  }
+
+  navigate(destination: string) {
+    switch (destination) {
+      case 'games':
+        // No action; user selects a game via lobby.
+        break;
+      case 'messages':
+        // Hide any active game room, keep chat sidebar visible.
+        this.currentRoom.set(null);
+        break;
+      case 'friends':
+        // Future: could switch chat sidebar to social tab.
+        break;
+      case 'profile':
+        this.openProfileModal();
+        break;
+    }
+  }
+
+  acceptChallenge(challengerSocketId: string, gameType: string) {
+    this.gameService.acceptChallenge(challengerSocketId, gameType);
+  }
+
+  declineChallenge(challengerSocketId: string) {
+    this.gameService.declineChallenge(challengerSocketId);
+  }
+
+  getGameLabel(gameType: string): string {
+    const gameNames: { [key: string]: string } = {
+      connect4: 'Puissance 4',
+      battleship: 'Bataille Navale',
+      tictactoe: 'Morpion',
+      checkers: 'Jeu de Dames',
+      chess: 'Échecs'
+    };
+    return gameNames[gameType] || gameType;
   }
 
   getGameType(): string {

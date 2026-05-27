@@ -23,6 +23,7 @@ export interface Room {
   gameState: any;
   chatMessages: ChatMessage[];
   rematchVotes?: string[];
+  isLocal?: boolean;
 }
 
 export interface RoomListEntry {
@@ -44,6 +45,11 @@ export class GameService {
   public roomsList = signal<RoomListEntry[]>([]);
   public globalChat = signal<ChatMessage[]>([]);
   public emojiReaction = signal<{ senderId: string; emoji: string } | null>(null);
+
+  // Friends & Social Signals
+  public onlineUsers = signal<{ id: string; username: string }[]>([]);
+  public friends = signal<string[]>(JSON.parse(localStorage.getItem('friends') || '[]'));
+  public incomingChallenges = signal<{ challengerSocketId: string; challengerUsername: string; gameType: string }[]>([]);
   
   constructor() {
     // Dynamically connect to the backend (port 3000 in dev/docker or via reverse proxy)
@@ -53,11 +59,12 @@ export class GameService {
       
     this.socket = io(serverUrl);
     
-    this.socket.on('connect', () => {
-      console.log('Connected to WebSocket server:', this.socket.id);
+      const savedUsername = this.username();
+      if (savedUsername) {
+        this.socket.emit('registerUsername', savedUsername);
+      }
       
       const savedRoomId = localStorage.getItem('roomId');
-      const savedUsername = this.username();
       if (savedRoomId && savedUsername) {
         console.log('Attempting automatic reconnection for room:', savedRoomId);
         this.socket.emit('reconnectRoom', { roomId: savedRoomId, username: savedUsername }, (res: any) => {
@@ -69,7 +76,6 @@ export class GameService {
           }
         });
       }
-    });
 
     this.socket.on('roomsList', (list: RoomListEntry[]) => {
       this.roomsList.set(list);
@@ -97,6 +103,29 @@ export class GameService {
         this.currentRoom.update(r => r ? { ...r, chatMessages: [...r.chatMessages, msg] } : null);
       }
     });
+
+    this.socket.on('onlineUsersList', (list: { id: string; username: string }[]) => {
+      this.onlineUsers.set(list);
+    });
+
+    this.socket.on('challengeReceived', (data: { challengerSocketId: string; challengerUsername: string; gameType: string }) => {
+      this.incomingChallenges.update(challenges => [...challenges, data]);
+      this.showNativeNotification(data.challengerUsername, data.gameType);
+    });
+
+    this.socket.on('challengeAccepted', (data: { roomId: string; room: Room }) => {
+      this.currentRoom.set(data.room);
+      localStorage.setItem('roomId', data.roomId);
+      this.incomingChallenges.set([]);
+    });
+
+    this.socket.on('challengeDeclined', (data: { opponentUsername: string }) => {
+      alert(`${data.opponentUsername} a décliné votre défi.`);
+    });
+
+    this.socket.on('challengeError', (msg: string) => {
+      alert(msg);
+    });
   }
 
   getSocketId(): string | undefined {
@@ -106,6 +135,9 @@ export class GameService {
   setUsername(name: string) {
     this.username.set(name);
     localStorage.setItem('username', name);
+    if (name) {
+      this.socket.emit('registerUsername', name);
+    }
   }
 
   sendGlobalMessage(text: string) {
@@ -120,6 +152,17 @@ export class GameService {
         localStorage.setItem('roomId', res.roomId);
       } else {
         alert(res.message || 'Error creating room');
+      }
+    });
+  }
+
+  createLocalRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess', player1Name?: string, player2Name?: string) {
+    this.socket.emit('createLocalRoom', { gameType, username: this.username() || 'Joueur 1', player1Name, player2Name }, (res: any) => {
+      if (res.success) {
+        this.currentRoom.set(res.room);
+        localStorage.setItem('roomId', res.roomId);
+      } else {
+        alert(res.message || 'Error creating local room');
       }
     });
   }
@@ -159,24 +202,24 @@ export class GameService {
   }
 
   // Battleship Actions
-  placeBsShip(shipId: string, row: number, col: number, horizontal: boolean) {
+  placeBsShip(shipId: string, row: number, col: number, horizontal: boolean, playerId?: string) {
     const room = this.currentRoom();
     if (room) {
-      this.socket.emit('bsPlaceShip', { roomId: room.id, shipId, row, col, horizontal });
+      this.socket.emit('bsPlaceShip', { roomId: room.id, shipId, row, col, horizontal, playerId });
     }
   }
 
-  setBsReady() {
+  setBsReady(playerId?: string) {
     const room = this.currentRoom();
     if (room) {
-      this.socket.emit('bsReady', { roomId: room.id });
+      this.socket.emit('bsReady', { roomId: room.id, playerId });
     }
   }
 
-  fireBsShot(row: number, col: number) {
+  fireBsShot(row: number, col: number, playerId?: string) {
     const room = this.currentRoom();
     if (room) {
-      this.socket.emit('bsFire', { roomId: room.id, row, col });
+      this.socket.emit('bsFire', { roomId: room.id, row, col, playerId });
     }
   }
 
@@ -219,6 +262,89 @@ export class GameService {
     const room = this.currentRoom();
     if (room) {
       this.socket.emit('chessMove', { roomId: room.id, fromRow, fromCol, toRow, toCol });
+    }
+  }
+
+  // Social Methods
+  addFriend(name: string) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const list = this.friends();
+    if (!list.includes(trimmed)) {
+      const updated = [...list, trimmed];
+      this.friends.set(updated);
+      localStorage.setItem('friends', JSON.stringify(updated));
+    }
+  }
+
+  removeFriend(name: string) {
+    const updated = this.friends().filter(f => f !== name);
+    this.friends.set(updated);
+    localStorage.setItem('friends', JSON.stringify(updated));
+  }
+
+  sendChallenge(targetSocketId: string, gameType: string) {
+    this.socket.emit('sendChallenge', { targetSocketId, gameType });
+  }
+
+  acceptChallenge(challengerSocketId: string, gameType: string) {
+    this.socket.emit('acceptChallenge', { challengerSocketId, gameType });
+    this.incomingChallenges.update(list => list.filter(c => c.challengerSocketId !== challengerSocketId));
+  }
+
+  declineChallenge(challengerSocketId: string) {
+    this.socket.emit('declineChallenge', { challengerSocketId });
+    this.incomingChallenges.update(list => list.filter(c => c.challengerSocketId !== challengerSocketId));
+  }
+
+  requestNotificationPermission() {
+    if ('Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    }
+  }
+
+  shareInvitationLink(room: Room) {
+    const url = `${window.location.origin}/?join=${room.id}`;
+    const gameNames: { [key: string]: string } = {
+      connect4: 'Puissance 4',
+      battleship: 'Bataille Navale',
+      tictactoe: 'Morpion',
+      checkers: 'Jeu de Dames',
+      chess: 'Échecs'
+    };
+    const gameLabel = gameNames[room.gameType] || room.gameType;
+    if (navigator.share) {
+      navigator.share({
+        title: 'Rejoins ma partie sur Playbox',
+        text: `Rejoins mon salon de jeu ${gameLabel} sur Playbox !`,
+        url: url
+      }).catch(err => console.log('Error sharing:', err));
+    } else {
+      navigator.clipboard.writeText(url).then(() => {
+        alert('Lien d\'invitation copié dans le presse-papiers !');
+      });
+    }
+  }
+
+  private showNativeNotification(challengerUsername: string, gameType: string) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const gameNames: { [key: string]: string } = {
+        connect4: 'Puissance 4',
+        battleship: 'Bataille Navale',
+        tictactoe: 'Morpion',
+        checkers: 'Jeu de Dames',
+        chess: 'Échecs'
+      };
+      const gameLabel = gameNames[gameType] || gameType;
+      
+      if (document.hidden) {
+        new Notification("Nouveau défi sur Playbox", {
+          body: `${challengerUsername} vous défie au jeu ${gameLabel} ! Cliquez pour jouer.`,
+          icon: '/favicon.ico'
+        });
+      }
     }
   }
 }

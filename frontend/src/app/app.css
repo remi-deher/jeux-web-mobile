@@ -1,1 +1,64 @@
-/* Styles specific to AppComponent. Global styles are defined in src/styles.css */
+.challenge-toast-banner {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  background: var(--md-surface-container-highest);
+  color: var(--md-on-surface);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 20px;
+  padding: 16px 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.36);
+  min-width: 320px;
+  max-width: 90%;
+  animation: slideInDown 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.challenge-toast-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.challenge-toast-icon {
+  font-size: 24px;
+  color: var(--md-primary);
+}
+
+.challenge-toast-text {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.challenge-toast-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.accept-challenge-btn {
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.decline-challenge-btn {
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translate(-50%, -100px);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}

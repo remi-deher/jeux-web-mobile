@@ -51,7 +51,13 @@ import { GameService } from '../../services/game.service';
 
           <div class="status-message">
             @if (room()?.status === 'waiting') {
-              <div class="pulse-text">En attente d'un adversaire...</div>
+              <div class="waiting-container" style="display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: 12px;">
+                <div class="pulse-text">En attente d'un adversaire...</div>
+                <button class="tonal-btn share-btn" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 20px; font-weight: 500; font-size: 13px;" (click)="shareInvitationLink()">
+                  <span class="material-symbols">share</span>
+                  <span>Partager l'invitation</span>
+                </button>
+              </div>
             } @else if (room()?.status === 'finished') {
               <div class="win-banner" [class.victory]="isWinner()" [class.defeat]="isLoser()">
                 @if (winnerLabel() === 'draw') {
@@ -697,6 +703,8 @@ export class Connect4Component {
   currentPlayerNum = computed(() => this.room()?.gameState?.currentPlayer || 1);
 
   isMyTurn = computed(() => {
+    const r = this.room();
+    if (r?.isLocal) return this.isPlaying();
     return this.isPlaying() && this.myPlayerNum() === this.currentPlayerNum();
   });
 
@@ -740,6 +748,11 @@ export class Connect4Component {
 
   leaveRoom() {
     this.gameService.leaveRoom();
+  }
+
+  shareInvitationLink() {
+    const r = this.room();
+    if (r) this.gameService.shareInvitationLink(r);
   }
 
   spawnFloatingEmoji(emoji: string) {

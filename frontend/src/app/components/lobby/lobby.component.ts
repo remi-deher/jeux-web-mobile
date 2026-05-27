@@ -162,6 +162,11 @@ import { GameService } from '../../services/game.service';
                 <span>Créer une partie</span>
               </button>
 
+              <button class="outlined-btn create-btn" style="margin-top: 12px;" (click)="createLocalRoom()">
+                <span class="material-symbols">phone_android</span>
+                <span>Jouer en Local (Passe & Joue)</span>
+              </button>
+
               <div class="divider">
                 <span>ou</span>
               </div>
@@ -328,6 +333,54 @@ import { GameService } from '../../services/game.service';
               <button class="outlined-btn" (click)="closeCreateModal()">Annuler</button>
               <button class="primary-btn" (click)="confirmCreateRoom()">Créer</button>
             </div>
+          </div>
+        </div>
+      }
+
+      <!-- Local Names Modal -->
+      @if (showLocalNamesModal()) {
+        <div class="modal-overlay" (click)="showLocalNamesModal.set(false)">
+          <div class="modal-card" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+              <h3>Partie Locale</h3>
+              <button class="icon-btn" (click)="showLocalNamesModal.set(false)">
+                <span class="material-symbols">close</span>
+              </button>
+            </div>
+            <p class="modal-desc">Saisissez les pseudonymes pour les deux joueurs.</p>
+
+            <form (submit)="confirmCreateLocalRoom(); $event.preventDefault()" style="display: flex; flex-direction: column; gap: 16px; width: 100%;">
+              <div class="input-col" style="display: flex; flex-direction: column; gap: 6px;">
+                <label style="font-size: 13px; font-weight: 500; color: var(--md-on-surface-variant); text-align: left;">Joueur 1 (Blanc / Croix / Flotte 1)</label>
+                <input
+                  type="text"
+                  [(ngModel)]="localPlayer1Name"
+                  name="localPlayer1Name"
+                  placeholder="Nom Joueur 1..."
+                  maxlength="15"
+                  required
+                  style="width: 100%; box-sizing: border-box;"
+                />
+              </div>
+
+              <div class="input-col" style="display: flex; flex-direction: column; gap: 6px;">
+                <label style="font-size: 13px; font-weight: 500; color: var(--md-on-surface-variant); text-align: left;">Joueur 2 (Noir / Rond / Flotte 2)</label>
+                <input
+                  type="text"
+                  [(ngModel)]="localPlayer2Name"
+                  name="localPlayer2Name"
+                  placeholder="Nom Joueur 2..."
+                  maxlength="15"
+                  required
+                  style="width: 100%; box-sizing: border-box;"
+                />
+              </div>
+
+              <div class="modal-actions" style="margin-top: 8px;">
+                <button type="button" class="outlined-btn" (click)="showLocalNamesModal.set(false)">Annuler</button>
+                <button type="submit" class="primary-btn">Lancer la partie</button>
+              </div>
+            </form>
           </div>
         </div>
       }
@@ -975,6 +1028,10 @@ export class LobbyComponent {
   isPrivateChoice = signal<boolean>(false);
   showRules = signal<boolean>(false);
 
+  showLocalNamesModal = signal<boolean>(false);
+  localPlayer1Name = '';
+  localPlayer2Name = '';
+
   username;
   roomsList;
 
@@ -1048,6 +1105,20 @@ export class LobbyComponent {
 
   setPrivateChoice(val: boolean) {
     this.isPrivateChoice.set(val);
+  }
+
+  createLocalRoom() {
+    this.localPlayer1Name = this.username() || 'Joueur 1';
+    this.localPlayer2Name = 'Joueur 2';
+    this.showLocalNamesModal.set(true);
+  }
+
+  confirmCreateLocalRoom() {
+    const game = this.selectedGame();
+    if (game) {
+      this.gameService.createLocalRoom(game, this.localPlayer1Name, this.localPlayer2Name);
+      this.showLocalNamesModal.set(false);
+    }
   }
 
   confirmCreateRoom() {

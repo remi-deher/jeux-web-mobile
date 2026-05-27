@@ -1,4 +1,25 @@
 <div class="app-container">
+  <!-- Incoming Challenge Banner -->
+  @if (incomingChallenges().length > 0) {
+    @for (challenge of incomingChallenges(); track challenge.challengerSocketId) {
+      <div class="challenge-toast-banner">
+        <div class="challenge-toast-content">
+          <span class="material-symbols challenge-toast-icon">swords</span>
+          <div class="challenge-toast-text">
+            <strong>{{ challenge.challengerUsername }}</strong> vous défie au jeu <strong>{{ getGameLabel(challenge.gameType) }}</strong> !
+          </div>
+        </div>
+        <div class="challenge-toast-actions">
+          <button class="primary-btn accept-challenge-btn" (click)="acceptChallenge(challenge.challengerSocketId, challenge.gameType)">
+            <span>Accepter</span>
+          </button>
+          <button class="outlined-btn decline-challenge-btn" (click)="declineChallenge(challenge.challengerSocketId)">
+            <span>Refuser</span>
+          </button>
+        </div>
+      </div>
+    }
+  }
   <!-- Header / Navigation -->
   <header class="app-header">
     <div class="header-logo">
@@ -38,8 +59,15 @@
     }
   </main>
 
-  <!-- Persistent Chat Sidebar -->
-  <app-chat-sidebar></app-chat-sidebar>
+  <!-- Bottom Navbar (hidden during a game) -->
+  @if (!currentRoom()) {
+    <app-bottom-navbar (nav)="navigate($event)"></app-bottom-navbar>
+  }
+
+  <!-- Chat Sidebar (visible when not in a game) -->
+  @if (!currentRoom()) {
+    <app-chat-sidebar></app-chat-sidebar>
+  }
 
   <!-- Profile & Stats Modal -->
   @if (showProfileModal()) {
@@ -51,7 +79,6 @@
             <span class="material-symbols">close</span>
           </button>
         </div>
-        
         <div class="profile-modal-body">
           <!-- Change Username -->
           <div class="profile-section">
