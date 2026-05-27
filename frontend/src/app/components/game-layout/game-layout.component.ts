@@ -1,4 +1,5 @@
-import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, inject } from '@angular/core';
+import { GameHelpersService } from '../../services/game-helpers.service';
 
 @Component({
   selector: 'app-game-layout',
@@ -13,6 +14,11 @@ import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
             <span>Quitter</span>
           </button>
           <h1 class="game-title-desktop">{{ gameTitle }}</h1>
+          <button class="help-btn" (click)="gameHelpersService.toggleSound()" [title]="gameHelpersService.soundEnabled() ? 'Couper le son' : 'Activer le son'">
+            <span class="material-symbols">
+              {{ gameHelpersService.soundEnabled() ? 'volume_up' : 'volume_off' }}
+            </span>
+          </button>
           <button class="help-btn" (click)="showRulesModal.set(true)" title="Règles du jeu">
             <span class="material-symbols">help</span>
           </button>
@@ -732,6 +738,8 @@ import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
   `]
 })
 export class GameLayoutComponent {
+  public gameHelpersService = inject(GameHelpersService);
+
   @Input() gameTitle: string = '';
   @Input() rules: string[] = [];
   @Input() room: any = null;

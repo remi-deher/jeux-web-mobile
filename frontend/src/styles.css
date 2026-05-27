@@ -583,6 +583,37 @@ select:focus,
   --md-on-primary-container: #FFD8F0;
 }
 
+/* Light mode high-contrast overrides for dynamic themes */
+body.light-theme.theme-connect4 {
+  --md-primary: #C01A2B;
+  --md-primary-container: #FFDADA;
+  --md-on-primary-container: #40000A;
+}
+
+body.light-theme.theme-battleship {
+  --md-primary: #006874;
+  --md-primary-container: #97F0FF;
+  --md-on-primary-container: #001F24;
+}
+
+body.light-theme.theme-chess {
+  --md-primary: #704F2F;
+  --md-primary-container: #FFE5A3;
+  --md-on-primary-container: #2A1A08;
+}
+
+body.light-theme.theme-checkers {
+  --md-primary: #85532A;
+  --md-primary-container: #FFEEDB;
+  --md-on-primary-container: #2C1400;
+}
+
+body.light-theme.theme-tictactoe {
+  --md-primary: #9C27B0;
+  --md-primary-container: #FFD8F0;
+  --md-on-primary-container: #2A003B;
+}
+
 /* =========================================================
    Micro-interactions Spring Physics & Safe Areas
    ========================================================= */
