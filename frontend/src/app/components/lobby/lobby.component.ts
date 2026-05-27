@@ -283,6 +283,77 @@ import { GameService } from '../../services/game.service';
               </div>
             </div>
           </div>
+
+          <!-- Rules Accordion (Expandable) -->
+          <div class="surface-card rules-card">
+            <button class="rules-toggle-btn" (click)="toggleRules()">
+              <div class="rules-toggle-left">
+                <span class="material-symbols rules-title-icon">menu_book</span>
+                <span>Comment jouer & Règle du jeu</span>
+              </div>
+              <span class="material-symbols toggle-icon">
+                {{ showRules() ? 'expand_less' : 'expand_more' }}
+              </span>
+            </button>
+            
+            @if (showRules()) {
+              <div class="rules-content">
+                @if (selectedGame() === 'connect4') {
+                  <div class="rules-section">
+                    <h4>Règles du jeu</h4>
+                    <p>Le but du jeu est d'aligner une suite de 4 pions de même couleur sur une grille de 6 rangées et 7 colonnes. L'alignement peut être horizontal, vertical ou diagonal. Le premier qui réalise cet alignement l'emporte. Si la grille est pleine sans alignement, la partie est nulle.</p>
+                    <h4>Comment jouer</h4>
+                    <ul>
+                      <li>Cliquez sur n'importe quelle colonne pour y laisser tomber un pion.</li>
+                      <li>Le pion descend automatiquement jusqu'à l'emplacement libre le plus bas.</li>
+                      <li>Survolez les colonnes pour visualiser en temps réel l'endroit où votre pion va tomber.</li>
+                    </ul>
+                  </div>
+                } @else if (selectedGame() === 'battleship') {
+                  <div class="rules-section">
+                    <h4>Règles du jeu</h4>
+                    <p>Chaque joueur dispose d'une flotte de 5 navires de longueurs différentes placés sur une grille de 10x10. À tour de rôle, les joueurs tirent sur la grille adverse pour localiser et couler les navires ennemis. Le premier qui coule tous les navires adverses a gagné.</p>
+                    <h4>Comment jouer</h4>
+                    <ul>
+                      <li><strong>Phase de placement :</strong> Cliquez sur un bateau puis sur votre grille pour le positionner. Cliquez sur le bouton "Orientation" pour basculer horizontalement ou verticalement.</li>
+                      <li><strong>Phase de combat :</strong> Cliquez sur les cases de la grille de tir (grille du haut) pour lancer une attaque. Les tirs touchés sont marqués en rouge, les tirs manqués en bleu.</li>
+                    </ul>
+                  </div>
+                } @else if (selectedGame() === 'tictactoe') {
+                  <div class="rules-section">
+                    <h4>Règles du jeu</h4>
+                    <p>Le morpion se joue sur une grille de 3x3. Le but est d'être le premier à aligner 3 symboles identiques (les X pour le créateur, les O pour l'invité) horizontalement, verticalement ou diagonalement.</p>
+                    <h4>Comment jouer</h4>
+                    <ul>
+                      <li>Cliquez simplement sur une case vide de la grille pour y placer votre symbole lorsque c'est votre tour.</li>
+                    </ul>
+                  </div>
+                } @else if (selectedGame() === 'checkers') {
+                  <div class="rules-section">
+                    <h4>Règles du jeu</h4>
+                    <p>Le jeu se déroule sur un damier. Les pions ne se déplacent qu'en diagonale vers l'avant, d'une case à la fois. Si un pion adverse est adjacent et que la case derrière lui est vide, vous devez obligatoirement sauter par-dessus pour le capturer. Si un pion atteint le bout opposé, il devient une Dame et gagne la capacité de se déplacer et capturer en arrière.</p>
+                    <h4>Comment jouer</h4>
+                    <ul>
+                      <li>Cliquez sur un de vos pions (ils sont entourés d'une surbrillance) pour le sélectionner.</li>
+                      <li>Les cases de mouvements ou de prises valides s'affichent alors en surbrillance verte.</li>
+                      <li>Cliquez sur l'une de ces cases en surbrillance pour déplacer votre pion et valider votre coup.</li>
+                    </ul>
+                  </div>
+                } @else if (selectedGame() === 'chess') {
+                  <div class="rules-section">
+                    <h4>Règles du jeu</h4>
+                    <p>Le but est de mettre le Roi adverse en "Échec et Mat", c'est-à-dire dans une position où il est menacé de capture et ne peut plus y échapper. Chaque type de pièce (pion, cavalier, fou, tour, dame, roi) possède ses propres restrictions de mouvement.</p>
+                    <h4>Comment jouer</h4>
+                    <ul>
+                      <li>Cliquez sur la pièce que vous souhaitez déplacer (les pièces sélectionnables s'illuminent au survol).</li>
+                      <li>Les cases autorisées pour cette pièce s'affichent en surbrillance.</li>
+                      <li>Cliquez sur l'une de ces cases pour finaliser le déplacement de la pièce.</li>
+                    </ul>
+                  </div>
+                }
+              </div>
+            }
+          </div>
         </div>
       }
 
@@ -923,6 +994,96 @@ import { GameService } from '../../services/game.service';
       justify-content: flex-end;
     }
 
+    /* -------- Rules Card -------- */
+    .rules-card {
+      margin-top: 16px;
+      padding: 0;
+      overflow: hidden;
+      background: var(--md-surface-container-low);
+      border: 1px solid var(--md-outline-variant);
+      transition: background 0.2s ease;
+    }
+
+    .rules-toggle-btn {
+      width: 100%;
+      background: transparent;
+      border: none;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      color: var(--md-on-surface);
+      font-size: 15px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      text-align: left;
+    }
+
+    .rules-toggle-btn:hover {
+      background: var(--md-surface-container-high);
+    }
+
+    .rules-toggle-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .rules-title-icon {
+      font-size: 20px;
+      color: var(--md-primary);
+    }
+
+    .toggle-icon {
+      font-size: 22px;
+      color: var(--md-outline);
+      transition: transform 0.2s ease;
+    }
+
+    .rules-content {
+      padding: 0 24px 24px;
+      border-top: 1px solid var(--md-outline-variant);
+      background: var(--md-surface-container);
+    }
+
+    .rules-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-top: 16px;
+    }
+
+    .rules-section h4 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--md-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .rules-section p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--md-on-surface-variant);
+    }
+
+    .rules-section ul {
+      margin: 0;
+      padding-left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .rules-section li {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--md-on-surface-variant);
+    }
+
     /* -------- Responsive -------- */
     @media (max-width: 768px) {
       .lobby-content-grid {
@@ -953,6 +1114,7 @@ export class LobbyComponent {
   selectedGame = signal<'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | null>(null);
   showCreateModal = signal<boolean>(false);
   isPrivateChoice = signal<boolean>(false);
+  showRules = signal<boolean>(false);
 
   username;
   roomsList;
@@ -997,7 +1159,12 @@ export class LobbyComponent {
 
   selectGame(game: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | null) {
     this.selectedGame.set(game);
+    this.showRules.set(false);
     this.loadStats();
+  }
+
+  toggleRules() {
+    this.showRules.set(!this.showRules());
   }
 
   joinRoom(roomId: string) {
