@@ -1023,7 +1023,7 @@ export class LobbyComponent {
   tempUsername = '';
   joinCode = '';
 
-  selectedGame = signal<'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | null>(null);
+  selectedGame;
   showCreateModal = signal<boolean>(false);
   isPrivateChoice = signal<boolean>(false);
   showRules = signal<boolean>(false);
@@ -1061,6 +1061,7 @@ export class LobbyComponent {
   });
 
   constructor(private gameService: GameService) {
+    this.selectedGame = this.gameService.activeGame;
     this.username = this.gameService.username;
     this.roomsList = this.gameService.roomsList;
     this.tempUsername = this.username();

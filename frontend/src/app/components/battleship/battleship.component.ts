@@ -1,735 +1,620 @@
-import { Component, computed, signal, effect } from '@angular/core';
+import { Component, computed, signal, effect, HostListener } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { GameService } from '../../services/game.service';
+import { GameLayoutComponent } from '../game-layout/game-layout.component';
 
 @Component({
   selector: 'app-battleship',
   standalone: true,
+  imports: [CommonModule, GameLayoutComponent],
   template: `
-    <div class="bs-container">
-      @if (room()) {
-        <!-- Header -->
-        <div class="bs-header">
-          <button class="back-btn" (click)="leaveRoom()">
-            <span class="material-symbols">arrow_back</span>
-            <span>Quitter</span>
-          </button>
-          <div class="room-badge">Code salon : <strong>{{ room()?.id }}</strong></div>
-        </div>
-
-        <!-- Status Panel -->
-        <div class="status-panel glass-card">
-          <h2>Bataille Navale</h2>
-          
-          <div class="phase-indicator">
-            @if (phase() === 'setup') {
-              <div class="badge setup-badge">Phase de placement</div>
-            } @else if (phase() === 'playing') {
-              <div class="badge playing-badge">Combat en cours</div>
-            } @else {
-              <div class="badge finished-badge">Partie terminée</div>
+    <app-game-layout
+      gameTitle="Bataille Navale"
+      [rules]="[
+        'La Bataille Navale se joue sur deux grilles de 10x10.',
+        'Sélectionnez un navire, puis cliquez sur la grille pour placer sa prévisualisation.',
+        'Cliquez à nouveau sur la case de départ pour poser le navire. Cliquez sur le navire fantôme ou utilisez Espace/R pour pivoter.',
+        'Une fois les flottes validées, tirez à tour de rôle sur la grille adverse.',
+        '💥 indique un tir réussi, 💧 indique un tir manqué.',
+        'Le premier joueur à couler tous les navires adverses gagne !'
+      ]"
+      [room]="room()"
+      [isPlaying]="isPlaying()"
+      [isMyTurn]="isMyTurn()"
+      [turnAlertText]="localOrOnlineTurnText()"
+      [opponentTurnText]="localOrOnlineOpponentTurnText()"
+      [turnAlertClass]="room()?.isLocal ? (currentPlayerNum() === 1 ? 'local-turn-red' : 'local-turn-yellow') : ''"
+      [winnerLabel]="winnerLabel()"
+      [isWinner]="isWinner()"
+      [isLoser]="isLoser()"
+      [hasVotedRematch]="hasVotedRematch()"
+      [disconnectedPlayerName]="disconnectedPlayerName()"
+      [player1Name]="player1Name()"
+      [player2Name]="player2Name()"
+      [player1Active]="currentPlayerNum() === 1 && isPlaying()"
+      [player2Active]="currentPlayerNum() === 2 && isPlaying()"
+      player1IndicatorSymbol="⚓"
+      player2IndicatorSymbol="🎯"
+      (leaveRoom)="leaveRoom()"
+      (requestRematch)="requestRematch()"
+      (sendEmoji)="sendEmoji($event)"
+      (forceEnd)="forceEnd()"
+      (shareInvitation)="shareInvitationLink()"
+    >
+      <!-- Setup UI for ship placement -->
+      @if (phase() === 'setup' && !myState()?.ready && room()?.status === 'playing') {
+        <div game-setup class="glass-card ships-to-place">
+          <div class="setup-header">
+            <h3>Flotte Tactique</h3>
+            <p class="setup-subtitle">Sélectionnez et déployez vos unités</p>
+          </div>
+          <div class="ships-list">
+            @for (ship of myState()?.ships; track ship.id) {
+              <button 
+                class="ship-place-btn" 
+                [class.selected]="selectedShipId() === ship.id"
+                [class.placed]="ship.placed"
+                (click)="selectShip(ship.id)"
+              >
+                <div class="ship-btn-info">
+                  <span class="ship-name">{{ getShipFrenchName(ship.id) }}</span>
+                  <div class="ship-svg-wrapper" [innerHTML]="getShipSvg(ship.id)"></div>
+                </div>
+                @if (ship.placed) {
+                  <span class="placed-badge">✓ DÉPLOYÉ</span>
+                } @else if (selectedShipId() === ship.id) {
+                  <span class="active-badge">ACTIF</span>
+                }
+              </button>
             }
           </div>
 
-          @if (hasDisconnectedPlayer()) {
-            <div class="disconnect-banner">
-              <span>⚠️ {{ disconnectedPlayerName() }} s'est déconnecté. En attente de reconnexion...</span>
-              @if (!amIDisconnected()) {
-                <button class="force-end-btn" (click)="forceEnd()">Forcer la fin (Gagner)</button>
-              }
-            </div>
-          }
-
-          <div class="status-message">
-            @if (room()?.status === 'waiting') {
-              <div class="waiting-container" style="display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: 12px;">
-                <div class="pulse-text">En attente d'un adversaire...</div>
-                <button class="tonal-btn share-btn" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 20px; font-weight: 500; font-size: 13px;" (click)="shareInvitationLink()">
-                  <span class="material-symbols">share</span>
-                  <span>Partager l'invitation</span>
-                </button>
-              </div>
-            } @else if (phase() === 'setup') {
-              @if (room()?.isLocal) {
-                <div class="setup-instructions">
-                  <strong>{{ localActivePlayerId() === 'local-player-2' ? 'Joueur 2' : (room()?.players?.[0]?.username || 'Joueur 1') }}</strong> : Placez votre flotte de 5 navires.
-                  <button class="orient-btn" (click)="toggleOrientation()">
-                    <span class="material-symbols">sync_alt</span>
-                    <span>Orientation : {{ isHorizontal() ? 'Horizontal' : 'Vertical' }}</span>
-                  </button>
-                </div>
-              } @else if (myState()?.ready) {
-                <div class="pulse-text">Prêt ! En attente du placement de l'adversaire...</div>
-              } @else {
-                <div class="setup-instructions">
-                  Placez votre flotte de 5 navires. Cliquez sur une case pour poser, utilisez le bouton d'orientation.
-                  <button class="orient-btn" (click)="toggleOrientation()">
-                    <span class="material-symbols">sync_alt</span>
-                    <span>Orientation : {{ isHorizontal() ? 'Horizontal' : 'Vertical' }}</span>
-                  </button>
-                </div>
-              }
-            } @else if (phase() === 'playing') {
-              @if (room()?.isLocal) {
-                <div class="turn-alert my-turn">C'est au tour de {{ room()?.gameState?.currentPlayerId === 'local-player-2' ? 'Joueur 2' : (room()?.players?.[0]?.username || 'Joueur 1') }} de tirer !</div>
-              } @else if (isMyTurn()) {
-                <div class="turn-alert my-turn">C'est votre tour de tirer ! Sélectionnez une case chez l'adversaire.</div>
-              } @else {
-                <div class="turn-alert opponent-turn">En attente du tir adverse...</div>
-              }
-            } @else if (phase() === 'finished') {
-              <div class="win-banner" [class.victory]="isWinner()" [class.defeat]="isLoser()">
-                @if (room()?.isLocal) {
-                  🏆 Partie terminée ! Gagnant : {{ room()?.gameState?.winnerId === 'local-player-2' ? 'Joueur 2' : (room()?.players?.[0]?.username || 'Joueur 1') }}
-                } @else if (isWinner()) {
-                  🏆 Victoire ! Vous avez détruit tous les navires adverses !
-                } @else {
-                  ☠️ Défaite... L'adversaire a anéanti votre flotte.
-                }
-              </div>
-              <div class="rematch-section">
-                @if (hasVotedRematch()) {
-                  <div class="rematch-status">Demande de revanche envoyée... En attente de l'adversaire.</div>
-                } @else {
-                  <button class="primary-btn rematch-btn" (click)="requestRematch()">
-                    <span class="material-symbols">replay</span>
-                    <span>Rejouer / Demander Revanche</span>
-                  </button>
-                }
-              </div>
-            }
-          </div>
-        </div>
-
-        <div class="game-grids">
-          <!-- Setup Panel: Ships list to place -->
-          @if (phase() === 'setup' && !myState()?.ready && room()?.status === 'playing') {
-            <div class="glass-card ships-to-place">
-              <h3>Sélectionnez un navire</h3>
-              <div class="ships-list">
-                @for (ship of myState()?.ships; track ship.id) {
-                  <button 
-                    class="ship-place-btn" 
-                    [class.selected]="selectedShipId() === ship.id"
-                    [class.placed]="ship.placed"
-                    (click)="selectShip(ship.id)"
-                  >
-                    <span class="ship-name">{{ getShipFrenchName(ship.id) }}</span>
-                    <span class="ship-size-dots">
-                      @for (dot of [].constructor(ship.size); track $index) {
-                        <span class="dot"></span>
-                      }
-                    </span>
-                    @if (ship.placed) {
-                      <span class="placed-check">✓ Posé</span>
-                    }
-                  </button>
-                }
-              </div>
-
-              @if (allShipsPlaced()) {
-                <button class="ready-btn" (click)="setReady()">Valider ma flotte et démarrer</button>
-              }
-            </div>
-          }
-
-          <!-- Emoji Bar (Floating Interactions) -->
-          @if (isPlaying()) {
-            <div class="emoji-bar glass-card">
-              <span class="bar-title">Réagir :</span>
-              <button (click)="sendEmoji('😂')">😂</button>
-              <button (click)="sendEmoji('😢')">😢</button>
-              <button (click)="sendEmoji('👍')">👍</button>
-              <button (click)="sendEmoji('🔥')">🔥</button>
-              <button (click)="sendEmoji('🎉')">🎉</button>
-            </div>
-          }
-
-          <!-- Playing/Finished Boards -->
-          @if (room()?.status === 'playing' || room()?.status === 'finished') {
-            <div class="boards-wrapper-rel">
-              <div class="floating-emojis-container">
-                @for (item of floatingEmojis(); track item.id) {
-                  <span class="floating-emoji">{{ item.emoji }}</span>
-                }
-              </div>
-              <div class="boards-container">
-              <!-- My Fleet Board (Left) -->
-              <div class="board-column">
-                <h3>⚓ Ma Flotte</h3>
-                <div class="board-mesh">
-                  @for (row of [0,1,2,3,4,5,6,7,8,9]; track row) {
-                    @for (col of [0,1,2,3,4,5,6,7,8,9]; track col) {
-                      <div 
-                        class="cell" 
-                        [class.ship]="myBoard()[row][col] === 'ship'"
-                        [class.hit]="myBoard()[row][col] === 'hit'"
-                        [class.miss]="myBoard()[row][col] === 'miss'"
-                        [class.placement-preview]="isPlacementPreview(row, col)"
-                        (click)="cellClickMyBoard(row, col)"
-                      >
-                        @if (myBoard()[row][col] === 'hit') { 💥 }
-                        @if (myBoard()[row][col] === 'miss') { 💧 }
-                      </div>
-                    }
-                  }
-                </div>
-              </div>
-
-              <!-- Opponent Firing Board (Right) -->
-              @if (phase() === 'playing' || phase() === 'finished') {
-                <div class="board-column">
-                  <h3>🎯 Plan de Tir (Cible)</h3>
-                  <div class="board-mesh firing-mesh" [class.disabled]="!isMyTurn()">
-                    @for (row of [0,1,2,3,4,5,6,7,8,9]; track row) {
-                      @for (col of [0,1,2,3,4,5,6,7,8,9]; track col) {
-                        <div 
-                          class="cell target-cell"
-                          [class.hit]="opponentBoard()[row][col] === 'hit'"
-                          [class.miss]="opponentBoard()[row][col] === 'miss'"
-                          (click)="fireShot(row, col)"
-                        >
-                          @if (opponentBoard()[row][col] === 'hit') { 💥 }
-                          @if (opponentBoard()[row][col] === 'miss') { 💧 }
-                        </div>
-                      }
-                    }
-                  </div>
-                </div>
-              }
-            </div>
-          </div>
-        }
-      
-      <!-- Pass Device Overlay -->
-      @if (showPassDeviceOverlay()) {
-        <div class="pass-device-overlay">
-          <div class="pass-card surface-card">
-            <span class="material-symbols device-icon">phone_android</span>
-            <h2>Passez l'appareil</h2>
-            <p>C'est au tour de <strong>{{ passToPlayerName() }}</strong>.</p>
-            <button class="primary-btn" (click)="passToPlayerNameConfirm()">
-              <span>Prêt à jouer</span>
-              <span class="material-symbols">arrow_forward</span>
+          <div class="setup-controls">
+            <button class="orient-btn" (click)="toggleOrientation()">
+              <span class="material-symbols">rotate_right</span>
+              <span>Pivoter (Espace / R)</span>
             </button>
+            @if (allShipsPlaced()) {
+              <button class="ready-btn pulse-glow" (click)="setReady()">LANCER LE COMBAT</button>
+            }
           </div>
         </div>
       }
+
+      <div game-board class="boards-wrapper-rel">
+        <div class="floating-emojis-container">
+          @for (item of floatingEmojis(); track item.id) {
+            <span class="floating-emoji">{{ item.emoji }}</span>
+          }
+        </div>
+        
+        <div class="boards-container">
+          <!-- My Fleet Board (Left / Owner) -->
+          <div class="board-column player-fleet">
+            <h3>⚓ Mon plateau</h3>
+            <div class="board-mesh cyber-grid">
+              <div class="sonar-sweep"></div>
+              @for (row of [0,1,2,3,4,5,6,7,8,9]; track row) {
+                @for (col of [0,1,2,3,4,5,6,7,8,9]; track col) {
+                  <div 
+                    class="cell" 
+                    [class.ship]="myBoard()[row][col] === 'ship'"
+                    [class.hit]="myBoard()[row][col] === 'hit'"
+                    [class.miss]="myBoard()[row][col] === 'miss'"
+                    [class.preview-active]="isInPreview(row, col)"
+                    [class.preview-invalid]="isInPreview(row, col) && !isPreviewValid()"
+                    [ngClass]="getShipSegmentClass(row, col)"
+                    (mouseenter)="cellMouseEnter(row, col)"
+                    (click)="cellClickMyBoard(row, col)"
+                  >
+                    @if (myBoard()[row][col] === 'hit') { <span class="hit-indicator">💥</span> }
+                    @if (myBoard()[row][col] === 'miss') { <span class="miss-indicator">💧</span> }
+                  </div>
+                }
+              }
+            </div>
+          </div>
+
+          <!-- Opponent Firing Board (Right) -->
+          @if (phase() === 'playing' || phase() === 'finished') {
+            <div class="board-column enemy-radar">
+              <h3>🎯 Plateau de {{ opponentName() }}</h3>
+              <div class="board-mesh firing-mesh cyber-grid red-radar" [class.disabled]="!isMyTurn()">
+                <div class="sonar-sweep"></div>
+                @for (row of [0,1,2,3,4,5,6,7,8,9]; track row) {
+                  @for (col of [0,1,2,3,4,5,6,7,8,9]; track col) {
+                    <div 
+                      class="cell target-cell"
+                      [class.hit]="opponentBoard()[row][col] === 'hit'"
+                      [class.miss]="opponentBoard()[row][col] === 'miss'"
+                      (click)="fireShot(row, col)"
+                    >
+                      @if (opponentBoard()[row][col] === 'hit') { <span class="hit-indicator target-hit">💥</span> }
+                      @if (opponentBoard()[row][col] === 'miss') { <span class="miss-indicator target-miss">💧</span> }
+                    </div>
+                  }
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </app-game-layout>
+
+    <!-- Pass Device Overlay -->
+    @if (showPassDeviceOverlay()) {
+      <div class="pass-device-overlay">
+        <div class="pass-card surface-card">
+          <span class="material-symbols device-icon">swap_horiz</span>
+          <h2>Passez l'appareil</h2>
+          <p>C'est au tour de <strong>{{ passToPlayerName() }}</strong>.</p>
+          <button class="primary-btn confirm-btn" (click)="passToPlayerNameConfirm()">
+            <span>Transférer le commandement</span>
+            <span class="material-symbols">arrow_forward</span>
+          </button>
+        </div>
       </div>
     }
-  </div>
   `,
   styles: [`
-    .bs-container {
-      max-width: 1000px;
-      margin: 20px auto;
-      padding: 0 20px;
+    :host ::ng-deep .projected-content-row {
+      @media (orientation: landscape) and (min-width: 768px) {
+        flex-direction: row !important;
+        gap: 32px !important;
+        align-items: flex-start !important;
+        justify-content: center !important;
+      }
     }
 
-    .bs-header {
+    .setup-header {
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    .setup-subtitle {
+      font-size: 11px;
+      color: var(--md-on-surface-variant);
+      margin: 2px 0 0 0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .ships-to-place {
+      margin-bottom: 12px;
+      padding: 16px;
+      max-width: 480px;
+      width: 100%;
+      box-sizing: border-box;
+      background: var(--md-surface-container-high) !important;
+      border: 1px solid var(--md-outline-variant);
+    }
+    .ships-to-place h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--md-primary);
+    }
+    .ships-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+    .ship-place-btn {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
-    }
-
-    .back-btn {
-      background: var(--md-secondary-container);
+      background: rgba(255, 255, 255, 0.03);
       border: 1px solid var(--md-outline-variant);
-      color: var(--md-on-secondary-container);
-      border-radius: var(--md-radius-full);
-      padding: 8px 16px;
+      color: var(--md-on-surface);
+      border-radius: 12px;
+      padding: 10px 16px;
       cursor: pointer;
-      font-size: 14px;
-      font-family: 'Inter', sans-serif;
-      display: inline-flex;
+      transition: all 0.25s ease;
+      text-align: left;
+      gap: 8px;
+      width: 100%;
+    }
+    .ship-place-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--md-primary);
+    }
+    .ship-place-btn.selected {
+      background: rgba(110, 68, 255, 0.15);
+      border-color: var(--md-primary);
+      box-shadow: 0 0 10px rgba(110, 68, 255, 0.3);
+    }
+    .ship-place-btn.placed {
+      opacity: 0.5;
+      border-color: #10b981;
+    }
+    .ship-btn-info {
+      display: flex;
       align-items: center;
       gap: 8px;
-      transition: all 0.2s;
+      flex: 1;
+      min-width: 0;
     }
-
-    .back-btn:hover {
-      opacity: 0.85;
-    }
-
-    .back-btn .material-symbols {
-      font-size: 18px;
-    }
-
-    .room-badge {
-      background: var(--md-surface-container);
-      border: 1px solid var(--md-outline-variant);
-      color: var(--md-on-surface-variant);
-      padding: 8px 16px;
-      border-radius: var(--md-radius-full);
-      font-size: 14px;
-    }
-
-    .glass-card {
-      background: var(--md-surface-container);
-      border: 1px solid var(--md-outline-variant);
-      border-radius: var(--md-radius-xl);
-      padding: 25px;
-      color: var(--md-on-surface);
-      margin-bottom: 30px;
-    }
-
-    .status-panel h2 {
-      margin-top: 0;
-      text-align: center;
-      font-size: 26px;
-      color: var(--md-on-surface);
-      font-weight: 700;
-      font-family: 'Inter', sans-serif;
-    }
-
-    .phase-indicator {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 15px;
-    }
-
-    .badge {
-      padding: 6px 12px;
-      border-radius: 20px;
+    .ship-name {
       font-size: 13px;
       font-weight: 600;
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-
-    .setup-badge {
-      background: rgba(245, 158, 11, 0.2);
-      color: #f59e0b;
-      border: 1px solid rgba(245, 158, 11, 0.4);
+    .ship-svg-wrapper {
+      display: flex;
+      align-items: center;
+      width: 60px;
+      height: 18px;
+      color: var(--md-on-surface-variant);
+      flex-shrink: 0;
     }
-
-    .playing-badge {
-      background: rgba(16, 185, 129, 0.2);
+    .ship-place-btn.selected .ship-svg-wrapper {
+      color: var(--md-primary);
+      filter: drop-shadow(0 0 3px rgba(110, 68, 255, 0.5));
+    }
+    .placed-badge {
+      font-size: 9px;
+      font-weight: 700;
       color: #10b981;
-      border: 1px solid rgba(16, 185, 129, 0.4);
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      background: rgba(16, 185, 129, 0.1);
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(16, 185, 129, 0.2);
     }
-
-    .finished-badge {
-      background: rgba(239, 68, 68, 0.2);
-      color: #ef4444;
-      border: 1px solid rgba(239, 68, 68, 0.4);
+    .active-badge {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--md-primary);
+      letter-spacing: 0.5px;
+      animation: pulseAlert 1.5s infinite;
+      flex-shrink: 0;
+      white-space: nowrap;
+      background: rgba(110, 68, 255, 0.1);
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(110, 68, 255, 0.2);
     }
-
-    .status-message {
-      text-align: center;
-      font-size: 15px;
-      color: #e2e8f0;
-    }
-
-    .setup-instructions {
+    .setup-controls {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      gap: 15px;
-      line-height: 1.5;
+      gap: 8px;
     }
-
     .orient-btn {
       background: var(--md-secondary-container);
       color: var(--md-on-secondary-container);
       border: 1px solid var(--md-outline-variant);
-      border-radius: var(--md-radius-full);
-      padding: 8px 16px;
-      font-weight: 500;
-      font-family: 'Inter', sans-serif;
+      border-radius: 24px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
-      transition: opacity 0.2s;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-    }
-
-    .orient-btn:hover {
-      opacity: 0.85;
-    }
-
-    .turn-alert {
-      padding: 10px;
-      border-radius: 8px;
-      font-weight: 500;
-    }
-
-    .my-turn {
-      background: rgba(16, 185, 129, 0.15);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-
-    .opponent-turn {
-      background: rgba(255, 255, 255, 0.05);
-      color: #9ca3af;
-    }
-
-    .win-banner {
-      padding: 12px 24px;
-      border-radius: var(--md-radius-lg);
-      font-weight: 700;
-      font-size: 18px;
-    }
-
-    .win-banner.victory {
-      background: var(--md-surface-container-high);
-      color: #10b981;
-      border: 1px solid var(--md-outline-variant);
-    }
-
-    .win-banner.defeat {
-      background: var(--md-surface-container-high);
-      color: #ef4444;
-      border: 1px solid var(--md-outline-variant);
-    }
-
-    /* Ship Placement Area */
-    .ships-to-place {
-      margin-bottom: 30px;
-    }
-
-    .ships-to-place h3 {
-      margin-top: 0;
-      margin-bottom: 15px;
-      color: #cbd5e1;
-    }
-
-    .ships-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-      margin-bottom: 20px;
-    }
-
-    .ship-place-btn {
-      flex: 1;
-      min-width: 140px;
-      background: var(--md-surface-container-high);
-      border: 1px solid var(--md-outline-variant);
-      border-radius: var(--md-radius-lg);
-      padding: 12px;
-      color: var(--md-on-surface);
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
+      justify-content: center;
       gap: 8px;
-      align-items: center;
       transition: all 0.2s;
     }
-
-    .ship-place-btn:hover {
-      opacity: 0.85;
+    .orient-btn:hover {
+      opacity: 0.9;
     }
-
-    .ship-place-btn.selected {
-      background: var(--md-surface-container);
-      border-color: var(--md-primary);
-    }
-
-    .ship-place-btn.placed {
-      opacity: 0.6;
-      border-color: #10b981;
-    }
-
-    .ship-name {
-      font-weight: 500;
-      font-size: 13px;
-    }
-
-    .ship-size-dots {
-      display: flex;
-      gap: 4px;
-    }
-
-    .dot {
-      width: 8px;
-      height: 8px;
-      background: #9ca3af;
-      border-radius: 50%;
-    }
-
-    .ship-place-btn.selected .dot {
-      background: #a5b4fc;
-    }
-
-    .placed-check {
-      font-size: 11px;
-      color: #10b981;
-    }
-
     .ready-btn {
-      background: var(--md-primary);
-      color: var(--md-on-primary);
+      background: #10b981;
+      color: white;
       border: none;
-      border-radius: var(--md-radius-full);
-      padding: 12px 24px;
-      font-weight: 600;
-      font-size: 16px;
-      font-family: 'Inter', sans-serif;
+      padding: 12px 20px;
+      border-radius: 24px;
       cursor: pointer;
-      width: 100%;
-      transition: opacity 0.2s;
+      font-weight: 700;
+      font-size: 14px;
+      text-align: center;
+      transition: all 0.25s;
+    }
+    .pulse-glow {
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+      animation: pulseGlow 2.0s infinite alternate;
     }
 
-    .ready-btn:hover {
-      opacity: 0.88;
-    }
-
-    /* Grid layout */
+    /* Sonar Grid Styles */
     .boards-container {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      align-items: center;
     }
-
     .board-column {
       display: flex;
       flex-direction: column;
       align-items: center;
     }
-
     .board-column h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--md-on-surface-variant);
       margin-top: 0;
-      margin-bottom: 15px;
-      color: #a5b4fc;
+      margin-bottom: 12px;
+      letter-spacing: 1.5px;
     }
-
-    .board-mesh {
+    .cyber-grid {
+      position: relative;
       display: grid;
       grid-template-columns: repeat(10, 32px);
       grid-template-rows: repeat(10, 32px);
-      gap: 3px;
-      background: #0f172a;
-      border: 4px solid #1e293b;
-      border-radius: 8px;
-      padding: 5px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+      gap: 2px;
+      background: radial-gradient(circle at center, #020c1b 0%, #01060f 100%);
+      border: 3px solid var(--md-outline-variant);
+      border-radius: 12px;
+      padding: 6px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+    }
+    .cyber-grid::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image: 
+        linear-gradient(rgba(6, 182, 212, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(6, 182, 212, 0.08) 1px, transparent 1px);
+      background-size: 10% 10%;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .red-radar {
+      background: radial-gradient(circle at center, #1b0202 0%, #0f0101 100%);
+      box-shadow: 0 8px 30px rgba(239, 68, 68, 0.15);
+    }
+    .red-radar::after {
+      background-image: 
+        linear-gradient(rgba(239, 68, 68, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(239, 68, 68, 0.08) 1px, transparent 1px);
+    }
+    
+    .sonar-sweep {
+      position: absolute;
+      width: 200%;
+      height: 200%;
+      top: -50%;
+      left: -50%;
+      background: conic-gradient(from 0deg at 50% 50%, rgba(6, 182, 212, 0.07) 0deg, rgba(6, 182, 212, 0.0) 90deg, transparent 360deg);
+      pointer-events: none;
+      z-index: 2;
+      animation: spinSonar 6s linear infinite;
+    }
+    .red-radar .sonar-sweep {
+      background: conic-gradient(from 0deg at 50% 50%, rgba(239, 68, 68, 0.07) 0deg, rgba(239, 68, 68, 0.0) 90deg, transparent 360deg);
     }
 
+    /* Sonar animation */
+    @keyframes spinSonar {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Grid Cells */
     .cell {
-      background: #1e293b;
-      border-radius: 3px;
+      position: relative;
+      background: rgba(30, 41, 59, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.03);
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: default;
-      font-size: 12px;
-      transition: all 0.15s;
+      z-index: 3;
+      transition: all 0.15s ease;
+      width: 100%;
+      height: 100%;
     }
 
-    /* Ship placement cells */
-    .cell.ship {
-      background: #475569;
-      border: 1px solid #64748b;
+    /* Cyber assets Segmented Ships */
+    .ship-part {
+      background: linear-gradient(135deg, #475569 0%, #334155 100%) !important;
+      border: 1px solid #64748b !important;
+      box-shadow: inset 0 1px 3px rgba(255,255,255,0.1);
+    }
+    
+    /* Segment curvatures based on placement orientation */
+    .ship-bow-h {
+      border-top-left-radius: 12px;
+      border-bottom-left-radius: 12px;
+      border-left: 2px solid #94a3b8 !important;
+    }
+    .ship-stern-h {
+      border-top-right-radius: 12px;
+      border-bottom-right-radius: 12px;
+      border-right: 2px solid #94a3b8 !important;
+      position: relative;
+    }
+    .ship-stern-h::after {
+      content: '';
+      position: absolute;
+      right: 2px;
+      width: 4px;
+      height: 50%;
+      background: #1e293b;
+      border-radius: 1px;
+    }
+    .ship-bow-v {
+      border-top-left-radius: 12px;
+      border-top-right-radius: 12px;
+      border-top: 2px solid #94a3b8 !important;
+    }
+    .ship-stern-v {
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+      border-bottom: 2px solid #94a3b8 !important;
+    }
+    .ship-stern-v::after {
+      content: '';
+      position: absolute;
+      bottom: 2px;
+      height: 4px;
+      width: 50%;
+      background: #1e293b;
+      border-radius: 1px;
     }
 
+    /* Hit & Miss */
     .cell.hit {
-      background: rgba(239, 68, 68, 0.2);
-      border: 1px solid #ef4444;
-      color: #ef4444;
+      background: rgba(239, 68, 68, 0.25) !important;
+      border-color: #ef4444 !important;
+      animation: hitShake 0.4s ease;
     }
-
     .cell.miss {
-      background: rgba(59, 130, 246, 0.15);
-      border: 1px solid #3b82f6;
+      background: rgba(56, 189, 248, 0.15) !important;
+      border-color: #38bdf8 !important;
+    }
+    .hit-indicator {
+      font-size: 16px;
+      z-index: 5;
+      animation: pulseIndicator 1s infinite alternate;
+    }
+    .miss-indicator {
+      font-size: 14px;
+      z-index: 5;
+      animation: rippleMiss 1.5s infinite;
     }
 
-    /* Preview style when hover placing */
-    .cell.placement-preview {
-      background: rgba(99, 102, 241, 0.4) !important;
-      border: 1px dashed #6366f1;
+    /* Placement preview fantôme */
+    .cell.preview-active {
+      background: rgba(6, 182, 212, 0.35) !important;
+      border: 1px dashed #06b6d4 !important;
       cursor: pointer;
+      box-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
+    }
+    .cell.preview-invalid {
+      background: rgba(239, 68, 68, 0.35) !important;
+      border: 1px dashed #ef4444 !important;
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
     }
 
-    /* Target board cells */
+    /* Interactive segments for previews */
+    .preview-bow-h { border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
+    .preview-stern-h { border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
+    .preview-bow-v { border-top-left-radius: 12px; border-top-right-radius: 12px; }
+    .preview-stern-v { border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
+
+    /* Target grilles */
     .target-cell {
       cursor: pointer;
     }
-
     .target-cell:hover {
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.5);
       transform: scale(1.05);
     }
-
     .firing-mesh.disabled .target-cell {
       cursor: not-allowed;
     }
-
     .firing-mesh.disabled .target-cell:hover {
-      background: #1e293b;
+      background: rgba(30, 41, 59, 0.2);
+      border-color: rgba(255, 255, 255, 0.03);
       transform: none;
     }
 
-    @keyframes pulse {
+    @keyframes pulseAlert {
       0%, 100% { opacity: 1; }
-      50% { opacity: 0.6; }
+      50% { opacity: 0.4; }
+    }
+    @keyframes pulseGlow {
+      0% { box-shadow: 0 0 5px rgba(16, 185, 129, 0.3); }
+      100% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.6); }
+    }
+    @keyframes hitShake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+    }
+    @keyframes pulseIndicator {
+      from { transform: scale(1); filter: drop-shadow(0 0 1px red); }
+      to { transform: scale(1.2); filter: drop-shadow(0 0 6px red); }
+    }
+    @keyframes rippleMiss {
+      0% { transform: scale(0.9); opacity: 1; }
+      100% { transform: scale(1.2); opacity: 0.5; }
     }
 
-    @media (max-width: 768px) {
-      .boards-container {
-        grid-template-columns: 1fr;
-        gap: 30px;
-      }
-      .board-mesh {
-        grid-template-columns: repeat(10, 28px);
-        grid-template-rows: repeat(10, 28px);
-      }
-    }
-
-    .disconnect-banner {
-      background: rgba(239, 68, 68, 0.2);
-      border: 1px solid #ef4444;
-      color: #fc8181;
-      padding: 12px 20px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: 500;
-      font-size: 14px;
-    }
-    .force-end-btn {
-      background: #ef4444;
-      border: none;
-      color: white;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 13px;
-      transition: background 0.2s;
-    }
-    .force-end-btn:hover {
-      background: #dc2626;
-    }
-    .rematch-section {
-      margin-top: 15px;
-    }
-    .rematch-btn {
-      width: auto;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 18px;
-      font-size: 14px;
-      background: var(--md-primary);
-      color: var(--md-on-primary);
-      border: none;
-      border-radius: var(--md-radius-full);
-      cursor: pointer;
-      font-family: 'Inter', sans-serif;
-      font-weight: 600;
-      transition: opacity 0.2s;
-    }
-    .rematch-btn:hover {
-      opacity: 0.88;
-    }
-    .rematch-status {
-      font-size: 14px;
-      color: var(--md-on-surface-variant);
-      font-style: italic;
-    }
-
-    /* Emoji Bar and Floating animations */
     .boards-wrapper-rel {
       position: relative;
       width: 100%;
     }
-    .emoji-bar {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      justify-content: center;
-      padding: 10px;
-    }
-    .bar-title {
-      font-size: 13px;
-      color: #cbd5e1;
-      font-weight: 500;
-    }
-    .emoji-bar button {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      font-size: 20px;
-      cursor: pointer;
-      padding: 6px 12px;
-      border-radius: 8px;
-      transition: all 0.2s;
-    }
-    .emoji-bar button:hover {
-      background: rgba(255, 255, 255, 0.15);
-      transform: scale(1.15);
-    }
-    .floating-emojis-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      pointer-events: none;
-      z-index: 10;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    .floating-emoji {
-      position: absolute;
-      font-size: 64px;
-      animation: floatEmoji 2.0s ease-in-out forwards;
-    }
-    @keyframes floatEmoji {
-      0% {
-        transform: translateY(100px) scale(0.5);
-        opacity: 0;
-      }
-      20% {
-        transform: translateY(0) scale(1.2);
-        opacity: 1;
-      }
-      80% {
-        transform: translateY(-80px) scale(1.0);
-        opacity: 1;
-      }
-      100% {
-        transform: translateY(-150px) scale(0.6);
-        opacity: 0;
-      }
-    }
+
     .pass-device-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: var(--md-background);
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(8px);
       display: flex;
       justify-content: center;
       align-items: center;
-      z-index: 9999;
+      z-index: 99999;
       padding: 24px;
     }
     .pass-card {
-      max-width: 400px;
+      max-width: 420px;
       width: 100%;
       text-align: center;
       padding: 32px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 16px;
+      gap: 20px;
       border-radius: 28px;
       background: var(--md-surface-container-high);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+      border: 1px solid var(--md-outline-variant);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
       color: var(--md-on-surface);
     }
     .device-icon {
       font-size: 64px;
       color: var(--md-primary);
+      animation: spinTransfer 3s ease-in-out infinite;
+    }
+
+    @keyframes spinTransfer {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(180deg); }
+    }
+
+    @media (max-width: 768px) {
+      .cyber-grid {
+        grid-template-columns: repeat(10, 28px);
+        grid-template-rows: repeat(10, 28px);
+      }
+    }
+
+    @media (orientation: landscape) and (min-width: 768px) {
+      .boards-container {
+        flex-direction: row;
+        justify-content: center;
+        gap: 32px;
+        min-height: 0;
+        width: 100%;
+      }
+      .cyber-grid {
+        grid-template-columns: repeat(10, min(36px, 4.8vh));
+        grid-template-rows: repeat(10, min(36px, 4.8vh));
+        gap: 2px;
+      }
+      .ships-to-place {
+        padding: 16px;
+        width: 280px;
+        flex-shrink: 0;
+      }
+      .ships-list {
+        gap: 6px;
+      }
+      .ship-place-btn {
+        padding: 8px 12px;
+      }
     }
   `]
 })
 export class BattleshipComponent {
   room;
+  showRulesModal = signal<boolean>(false);
   isHorizontal = signal<boolean>(true);
   selectedShipId = signal<string | null>(null);
 
@@ -740,6 +625,8 @@ export class BattleshipComponent {
   showPassDeviceOverlay = signal<boolean>(false);
   passToPlayerName = signal<string>('');
   passActionCallback = signal<(() => void) | null>(null);
+
+  previewStart = signal<{ r: number; c: number } | null>(null);
 
   hasDisconnectedPlayer = computed(() => this.room()?.players.some(p => p.disconnected) || false);
   
@@ -821,6 +708,81 @@ export class BattleshipComponent {
     }, { allowSignalWrites: true });
   }
 
+  @HostListener('window:keydown', ['$event'])
+  handleKeyDown(event: KeyboardEvent) {
+    if (this.phase() !== 'setup' || !this.selectedShipId()) return;
+    if (event.key === ' ' || event.key === 'r' || event.key === 'R') {
+      event.preventDefault();
+      this.toggleOrientation();
+    }
+  }
+
+  localOrOnlineTurnText = computed(() => {
+    const r = this.room();
+    if (!r) return '';
+    if (r.isLocal) {
+      if (this.phase() === 'setup') {
+        const currentPlayerName = this.localActivePlayerId() === 'local-player-2' ? 'Joueur 2' : this.player1Name();
+        return `${currentPlayerName} doit placer ses bateaux`;
+      }
+      return `Tour de : ${r.gameState?.currentPlayerId === 'local-player-2' ? 'Joueur 2' : this.player1Name()}`;
+    }
+    if (this.phase() === 'setup') {
+      return this.myState()?.ready 
+        ? `En attente de l'adversaire (${this.player2Name()})` 
+        : `${this.player1Name()} doit placer ses bateaux`;
+    }
+    return "Système d'armement paré. Sélectionnez une cible radar.";
+  });
+
+  localOrOnlineOpponentTurnText = computed(() => {
+    const r = this.room();
+    if (!r || r.isLocal) return '';
+    if (this.phase() === 'setup') {
+      return this.myState()?.ready ? "En attente de l'adversaire..." : "Déploiement en cours...";
+    }
+    return "Alerte : En attente du tir hostile...";
+  });
+
+  player1Name = computed(() => this.room()?.players[0]?.username || 'Joueur 1');
+  player2Name = computed(() => this.room()?.players[1]?.username || 'En attente...');
+
+  currentPlayerNum = computed(() => {
+    const r = this.room();
+    if (!r || !r.gameState) return 1;
+    if (r.isLocal) {
+      return this.localActivePlayerId() === 'local-player-2' ? 2 : 1;
+    }
+    const socketId = this.gameService.getSocketId();
+    const idx = r.players.findIndex(p => p.id === socketId);
+    if (idx !== -1) {
+      const isMyTurn = this.phase() === 'playing' && r.gameState.currentPlayerId === socketId;
+      if (idx === 0) {
+        return isMyTurn ? 1 : 2;
+      } else {
+        return isMyTurn ? 2 : 1;
+      }
+    }
+    return 1;
+  });
+
+  winnerLabel = computed(() => {
+    const r = this.room();
+    if (!r || !r.gameState) return '';
+    const winnerId = r.gameState.winnerId;
+    if (!winnerId) return '';
+    if (r.isLocal) {
+      return winnerId === 'local-player-2' ? 'Joueur 2' : this.player1Name();
+    }
+    const winnerIdx = r.players.findIndex(p => p.id === winnerId);
+    return winnerIdx !== -1 ? r.players[winnerIdx].username : '';
+  });
+
+  opponentName = computed(() => {
+    const num = this.currentPlayerNum();
+    return num === 1 ? this.player2Name() : this.player1Name();
+  });
+
   phase = computed(() => this.room()?.gameState?.phase || 'setup');
   isPlaying = computed(() => this.room()?.status === 'playing');
 
@@ -845,6 +807,9 @@ export class BattleshipComponent {
   isMyTurn = computed(() => {
     const r = this.room();
     if (!r || !r.gameState) return false;
+    if (this.phase() === 'setup') {
+      return !this.myState()?.ready;
+    }
     const activeId = r.isLocal ? this.localActivePlayerId() : (this.gameService.getSocketId() || '');
     return this.phase() === 'playing' && r.gameState.currentPlayerId === activeId;
   });
@@ -877,49 +842,188 @@ export class BattleshipComponent {
   }
 
   selectShip(shipId: string) {
-    const ship = this.myState()?.ships.find((s: any) => s.id === shipId);
-    if (ship && !ship.placed) {
-      this.selectedShipId.set(shipId);
-    } else {
-      // Re-place already placed ship is fine
-      this.selectedShipId.set(shipId);
-    }
+    this.selectedShipId.set(shipId);
+    this.previewStart.set(null);
   }
 
   getShipFrenchName(id: string): string {
     const names: { [key: string]: string } = {
-      carrier: 'Porte-avions (5)',
-      battleship: 'Croiseur (4)',
-      cruiser: 'Contre-torpilleur (3)',
-      submarine: 'Sous-marin (3)',
-      destroyer: 'Torpilleur (2)'
+      carrier: 'Porte-avions',
+      battleship: 'Croiseur',
+      cruiser: 'Contre-torpilleur',
+      submarine: 'Sous-marin',
+      destroyer: 'Torpilleur'
     };
     return names[id] || id;
   }
 
-  // Preview highlighting on hover (simplified: we handle preview on cell hover by setting custom preview classes)
-  // Let's implement preview checking
-  isPlacementPreview(row: number, col: number): boolean {
-    if (this.phase() !== 'setup' || !this.selectedShipId()) return false;
-    const ship = this.myState()?.ships.find((s: any) => s.id === this.selectedShipId());
-    if (!ship) return false;
+  getShipSvg(id: string): string {
+    const svgs: { [key: string]: string } = {
+      carrier: `<svg viewBox="0 0 100 24" style="width:100%; height:100%;" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M5,12 L15,4 L85,4 L95,12 L85,20 L15,20 Z" fill="rgba(255,255,255,0.05)" />
+        <rect x="25" y="7" width="50" height="10" fill="rgba(255,255,255,0.15)" stroke="currentColor" stroke-width="1" />
+        <line x1="20" y1="12" x2="80" y2="12" stroke="currentColor" stroke-dasharray="2,2" />
+      </svg>`,
+      battleship: `<svg viewBox="0 0 80 24" style="width:100%; height:100%;" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M5,12 L12,5 L68,5 L75,12 L68,19 L12,19 Z" fill="rgba(255,255,255,0.05)" />
+        <circle cx="24" cy="12" r="3" fill="currentColor" />
+        <circle cx="56" cy="12" r="3" fill="currentColor" />
+      </svg>`,
+      cruiser: `<svg viewBox="0 0 60 24" style="width:100%; height:100%;" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M5,12 L10,6 L50,6 L55,12 L50,18 L10,18 Z" fill="rgba(255,255,255,0.05)" />
+        <rect x="18" y="9" width="24" height="6" fill="currentColor" />
+      </svg>`,
+      submarine: `<svg viewBox="0 0 60 24" style="width:100%; height:100%;" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M5,12 C5,7 15,7 25,7 C30,7 35,3 37,3 L39,3 L39,7 C49,7 55,7 55,12 C55,17 49,17 39,17 L39,21 L37,21 L35,17 C25,17 15,17 5,12 Z" fill="rgba(255,255,255,0.05)" />
+      </svg>`,
+      destroyer: `<svg viewBox="0 0 40 24" style="width:100%; height:100%;" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M5,12 L10,7 L35,7 L35,17 L10,17 Z" fill="rgba(255,255,255,0.05)" />
+        <line x1="15" y1="12" x2="30" y2="12" stroke="currentColor" />
+      </svg>`
+    };
+    return svgs[id] || '';
+  }
 
-    // Standard check if cell falls under ship size based on starting preview
-    // For simplicity, we trigger placing on click, so we don't strictly need complex reactive hover states,
-    // but we can offer simple visual cues if needed. Let's make it clickable.
-    return false;
+  // Previews coordinates
+  previewCells = computed(() => {
+    const start = this.previewStart();
+    const shipId = this.selectedShipId();
+    if (!start || !shipId) return [];
+    const ship = this.myState()?.ships.find((s: any) => s.id === shipId);
+    if (!ship) return [];
+    
+    const cells: { r: number; c: number }[] = [];
+    for (let i = 0; i < ship.size; i++) {
+      const r = this.isHorizontal() ? start.r : start.r + i;
+      const c = this.isHorizontal() ? start.c + i : start.c;
+      if (r < 10 && c < 10) {
+        cells.push({ r, c });
+      }
+    }
+    return cells;
+  });
+
+  // Verification if placement fits and doesn't overlap
+  isPreviewValid = computed(() => {
+    const cells = this.previewCells();
+    const shipId = this.selectedShipId();
+    if (cells.length === 0 || !shipId) return false;
+    
+    const ship = this.myState()?.ships.find((s: any) => s.id === shipId);
+    if (!ship || cells.length < ship.size) return false;
+
+    // Check overlap with other ALREADY placed ships
+    const state = this.myState();
+    if (!state) return false;
+    
+    for (const otherShip of state.ships) {
+      if (otherShip.id === shipId || !otherShip.placed) continue;
+      
+      // Calculate other ship's active cells
+      for (let i = 0; i < otherShip.size; i++) {
+        const osr = otherShip.horizontal ? otherShip.row : otherShip.row + i;
+        const osc = otherShip.horizontal ? otherShip.col + i : otherShip.col;
+        if (cells.some(cell => cell.r === osr && cell.c === osc)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  });
+
+  isInPreview(row: number, col: number): boolean {
+    return this.previewCells().some(cell => cell.r === row && cell.c === col);
+  }
+
+  getShipSegmentClass(r: number, c: number): string {
+    const classes: string[] = [];
+
+    // 1. Check actual placed ships
+    const state = this.myState();
+    if (state) {
+      for (const ship of state.ships) {
+        if (!ship.placed) continue;
+        
+        let isPart = false;
+        let idx = -1;
+        for (let i = 0; i < ship.size; i++) {
+          const sr = ship.horizontal ? ship.row : ship.row + i;
+          const sc = ship.horizontal ? ship.col + i : ship.col;
+          if (sr === r && sc === c) {
+            isPart = true;
+            idx = i;
+            break;
+          }
+        }
+
+        if (isPart) {
+          const isStart = idx === 0;
+          const isEnd = idx === ship.size - 1;
+          
+          let segment = 'body';
+          if (isStart) segment = 'bow';
+          else if (isEnd) segment = 'stern';
+          
+          const dir = ship.horizontal ? 'h' : 'v';
+          classes.push('ship-part');
+          classes.push(`ship-${segment}-${dir}`);
+          break;
+        }
+      }
+    }
+    
+    // 2. Check preview cells
+    const cells = this.previewCells();
+    const idx = cells.findIndex(cell => cell.r === r && cell.c === c);
+    if (idx !== -1) {
+      const isStart = idx === 0;
+      const isEnd = idx === cells.length - 1;
+      const isH = this.isHorizontal();
+      let segment = 'body';
+      if (isStart) segment = 'bow';
+      else if (isEnd) segment = 'stern';
+      const dir = isH ? 'h' : 'v';
+      classes.push('preview-part');
+      classes.push(`preview-${segment}-${dir}`);
+    }
+
+    return classes.join(' ');
+  }
+
+  cellMouseEnter(row: number, col: number) {
+    if (this.phase() !== 'setup' || !this.selectedShipId()) return;
+    this.previewStart.set({ r: row, c: col });
   }
 
   cellClickMyBoard(row: number, col: number) {
     if (this.phase() !== 'setup' || !this.selectedShipId()) return;
 
-    this.gameService.placeBsShip(
-      this.selectedShipId()!,
-      row,
-      col,
-      this.isHorizontal(),
-      this.room()?.isLocal ? this.localActivePlayerId() : undefined
-    );
+    const start = this.previewStart();
+    const isInPrev = this.isInPreview(row, col);
+
+    // Touch support / Click mechanics:
+    // Case 1: Tapping the start cell confirms (places) the ship
+    if (start && start.r === row && start.c === col && isInPrev) {
+      if (this.isPreviewValid()) {
+        this.gameService.placeBsShip(
+          this.selectedShipId()!,
+          row,
+          col,
+          this.isHorizontal(),
+          this.room()?.isLocal ? this.localActivePlayerId() : undefined
+        );
+        this.selectedShipId.set(null);
+        this.previewStart.set(null);
+      }
+    }
+    // Case 2: Tapping any OTHER cell inside the preview rotates it
+    else if (isInPrev) {
+      this.toggleOrientation();
+    }
+    // Case 3: Tapping outside the preview moves it there
+    else {
+      this.previewStart.set({ r: row, c: col });
+    }
   }
 
   setReady() {
@@ -935,6 +1039,7 @@ export class BattleshipComponent {
           this.localActivePlayerId.set(p2);
           this.showPassDeviceOverlay.set(false);
           this.selectedShipId.set(null);
+          this.previewStart.set(null);
         });
         this.showPassDeviceOverlay.set(true);
       } else {

@@ -834,6 +834,19 @@ export class ChatSidebarComponent {
       this.privateMessages();
       setTimeout(() => this.scrollDmToBottom(), 50);
     });
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('open-friend-chat', (e: any) => {
+        const friend = e.detail;
+        if (friend) {
+          this.sidebarTab = 'social';
+          this.selectedFriendForChat.set(friend);
+          this.isOpen = true;
+          this.hasUnread = false;
+          setTimeout(() => this.scrollDmToBottom(), 50);
+        }
+      });
+    }
   }
 
   toggleChat() {

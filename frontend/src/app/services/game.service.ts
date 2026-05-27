@@ -60,13 +60,17 @@ export class GameService {
   public incomingChallenges = signal<{ challengerSocketId: string; challengerUsername: string; gameType: string }[]>([]);
   public privateMessages = signal<PrivateMessage[]>(JSON.parse(localStorage.getItem('privateMessages') || '[]'));
   
+  // Navigation signals
+  public activeView = signal<string>('games');
+  public activeGame = signal<'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | null>(null);
+  
   constructor() {
-    // Dynamically connect to the backend (port 3000 in dev/docker or via reverse proxy)
-    const serverUrl = window.location.port === '4200' 
-      ? 'http://localhost:3001' 
-      : `${window.location.protocol}//${window.location.hostname}:3001`;
-      
-    this.socket = io(serverUrl);
+    // In dev mode (ng serve on port 4200), connect directly to backend on port 3001.
+    // In production (Docker/nginx), socket.io is proxied via nginx on the same origin.
+    const isDev = window.location.port === '4200';
+    this.socket = isDev 
+      ? io('http://localhost:3001') 
+      : io(); // Connects to same origin — nginx proxies /socket.io/ to backend
     
       const savedUsername = this.username();
       if (savedUsername) {
@@ -320,10 +324,13 @@ export class GameService {
   }
 
   requestNotificationPermission() {
-    if ('Notification' in window) {
-      if (Notification.permission === 'default') {
+    try {
+      if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission();
       }
+    } catch (e) {
+      // iOS Safari may throw if called without user gesture
+      console.warn('Notification permission request failed:', e);
     }
   }
 

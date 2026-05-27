@@ -10,6 +10,7 @@ import { ChatSidebarComponent } from './components/chat-sidebar/chat-sidebar.com
 import { TicTacToeComponent } from './components/tictactoe/tictactoe.component';
 import { CheckersComponent } from './components/checkers/checkers.component';
 import { ChessComponent } from './components/chess/chess.component';
+import { FriendsPageComponent } from './components/friends-page/friends-page.component';
 
 @Component({
   selector: 'app-root',
@@ -23,7 +24,8 @@ import { ChessComponent } from './components/chess/chess.component';
     TicTacToeComponent,
     CheckersComponent,
     ChessComponent,
-    BottomNavbarComponent
+    BottomNavbarComponent,
+    FriendsPageComponent
   ],
   templateUrl: './app.html',
   styleUrl: './app.css'
@@ -35,6 +37,9 @@ export class App {
   currentRoom;
   incomingChallenges;
 
+  activeView;
+  activeGame;
+
   showProfileModal = signal<boolean>(false);
   newUsername = '';
   theme = signal<'dark' | 'light'>('dark');
@@ -43,6 +48,8 @@ export class App {
     this.username = this.gameService.username;
     this.currentRoom = this.gameService.currentRoom;
     this.incomingChallenges = this.gameService.incomingChallenges;
+    this.activeView = this.gameService.activeView;
+    this.activeGame = this.gameService.activeGame;
 
     // Prompt PWA web notification permissions
     this.gameService.requestNotificationPermission();
@@ -74,14 +81,15 @@ export class App {
   navigate(destination: string) {
     switch (destination) {
       case 'games':
-        // No action; user selects a game via lobby.
+        this.activeGame.set(null);
+        this.activeView.set('games');
         break;
       case 'messages':
         // Hide any active game room, keep chat sidebar visible.
         this.currentRoom.set(null);
         break;
       case 'friends':
-        // Future: could switch chat sidebar to social tab.
+        this.activeView.set('friends');
         break;
       case 'profile':
         this.openProfileModal();

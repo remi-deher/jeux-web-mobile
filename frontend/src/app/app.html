@@ -47,7 +47,11 @@
   <!-- Main View Area -->
   <main class="app-main">
     @if (!currentRoom()) {
-      <app-lobby></app-lobby>
+      @if (activeView() === 'friends') {
+        <app-friends-page></app-friends-page>
+      } @else {
+        <app-lobby></app-lobby>
+      }
     } @else if (getGameType() === 'connect4') {
       <app-connect4></app-connect4>
     } @else if (getGameType() === 'battleship') {

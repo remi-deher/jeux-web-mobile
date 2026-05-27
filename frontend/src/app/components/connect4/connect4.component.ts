@@ -1,380 +1,111 @@
 import { Component, computed, signal, effect } from '@angular/core';
 import { GameService } from '../../services/game.service';
+import { GameLayoutComponent } from '../game-layout/game-layout.component';
 
 @Component({
   selector: 'app-connect4',
   standalone: true,
+  imports: [GameLayoutComponent],
   template: `
-    <div class="c4-container">
-      @if (room()) {
-        <!-- Header -->
-        <div class="c4-header">
-          <button class="back-btn" (click)="leaveRoom()">
-            <span class="material-symbols">arrow_back</span>
-            <span>Quitter</span>
-          </button>
-          <div class="room-badge">Code salon : <strong>{{ room()?.id }}</strong></div>
+    <app-game-layout
+      gameTitle="Puissance 4"
+      [rules]="[
+        'Le Puissance 4 se joue sur une grille verticale de 7 colonnes et 6 rangées.',
+        'Chaque joueur dispose de jetons d\\'une couleur (rouge ou jaune).',
+        'Chacun leur tour, les joueurs laissent glisser un jeton dans la colonne de leur choix. Le jeton tombe au niveau le plus bas possible.',
+        'Le premier joueur qui parvient à aligner 4 jetons consécutifs de sa couleur horizontalement, verticalement ou en diagonale gagne la partie.',
+        'Si la grille est remplie sans aucun alignement de 4 jetons, la partie est déclarée nulle.'
+      ]"
+      [room]="room()"
+      [isPlaying]="isPlaying()"
+      [isMyTurn]="isMyTurn()"
+      [turnAlertText]="localOrOnlineTurnText()"
+      [opponentTurnText]="localOrOnlineOpponentTurnText()"
+      [turnAlertClass]="room()?.isLocal ? (currentPlayerNum() === 1 ? 'local-turn-red' : 'local-turn-yellow') : ''"
+      [winnerLabel]="winnerLabel()"
+      [isWinner]="isWinner()"
+      [isLoser]="isLoser()"
+      [hasVotedRematch]="hasVotedRematch()"
+      [disconnectedPlayerName]="disconnectedPlayerName()"
+      [player1Name]="player1Name()"
+      [player2Name]="player2Name()"
+      [player1Active]="currentPlayerNum() === 1 && isPlaying()"
+      [player2Active]="currentPlayerNum() === 2 && isPlaying()"
+      player1IndicatorClass="token token-red"
+      player2IndicatorClass="token token-yellow"
+      (leaveRoom)="leaveRoom()"
+      (requestRematch)="requestRematch()"
+      (sendEmoji)="sendEmoji($event)"
+      (forceEnd)="forceEnd()"
+      (shareInvitation)="shareInvitationLink()"
+    >
+      <div game-board class="board-wrapper">
+        <!-- Floating Emojis Layer -->
+        <div class="floating-emojis-container">
+          @for (item of floatingEmojis(); track item.id) {
+            <span class="floating-emoji">{{ item.emoji }}</span>
+          }
         </div>
 
-        <!-- Status Panel -->
-        <div class="status-panel glass-card">
-          <h2>Puissance 4</h2>
-          
-          <div class="players-display">
-            <div class="player-slot" [class.active]="currentPlayerNum() === 1 && isPlaying()">
-              <span class="token token-red"></span>
-              <div class="player-info">
-                <span class="player-name">{{ player1Name() }}</span>
-                <span class="player-label">Joueur 1 (Vous)</span>
-              </div>
-            </div>
-            
-            <div class="vs-divider">VS</div>
-            
-            <div class="player-slot" [class.active]="currentPlayerNum() === 2 && isPlaying()">
-              <span class="token token-yellow"></span>
-              <div class="player-info">
-                <span class="player-name">{{ player2Name() }}</span>
-                <span class="player-label">Joueur 2</span>
-              </div>
-            </div>
+        <div class="board-grid">
+          <!-- Drop indicator zone above board -->
+          <div class="drop-indicators">
+            @for (col of [0,1,2,3,4,5,6]; track col) {
+              <button 
+                class="drop-arrow-btn" 
+                [class.my-turn]="isMyTurn()" 
+                [class.col-hovered]="hoveredColumn() === col"
+                (click)="makeMove(col)"
+                [disabled]="!isMyTurn()"
+                (mouseenter)="hoveredColumn.set(col)"
+                (mouseleave)="hoveredColumn.set(null)"
+              >
+                @if (isMyTurn()) {
+                  <span class="material-symbols arrow-down" [class.red]="currentPlayerNum() === 1" [class.yellow]="currentPlayerNum() === 2">arrow_downward</span>
+                }
+              </button>
+            }
           </div>
 
-          @if (hasDisconnectedPlayer()) {
-            <div class="disconnect-banner">
-              <span>⚠️ {{ disconnectedPlayerName() }} s'est déconnecté. En attente de reconnexion...</span>
-              @if (!amIDisconnected()) {
-                <button class="force-end-btn" (click)="forceEnd()">Forcer la fin (Gagner)</button>
-              }
-            </div>
-          }
-
-          <div class="status-message">
-            @if (room()?.status === 'waiting') {
-              <div class="waiting-container" style="display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: 12px;">
-                <div class="pulse-text">En attente d'un adversaire...</div>
-                <button class="tonal-btn share-btn" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 20px; font-weight: 500; font-size: 13px;" (click)="shareInvitationLink()">
-                  <span class="material-symbols">share</span>
-                  <span>Partager l'invitation</span>
-                </button>
-              </div>
-            } @else if (room()?.status === 'finished') {
-              <div class="win-banner" [class.victory]="isWinner()" [class.defeat]="isLoser()">
-                @if (winnerLabel() === 'draw') {
-                  Égalité ! Bien joué aux deux joueurs.
-                } @else {
-                  🏆 {{ winnerLabel() }} a gagné la partie !
-                }
-              </div>
-              <div class="rematch-section">
-                @if (hasVotedRematch()) {
-                  <div class="rematch-status">Demande de revanche envoyée... En attente de l'adversaire.</div>
-                } @else {
-                  <button class="primary-btn rematch-btn" (click)="requestRematch()">
-                    <span class="material-symbols">replay</span>
-                    <span>Rejouer / Demander Revanche</span>
-                  </button>
-                }
-              </div>
-            } @else {
-              @if (isMyTurn()) {
-                <div class="turn-alert my-turn">C'est votre tour ! Cliquez sur une colonne.</div>
-              } @else {
-                <div class="turn-alert opponent-turn">En attente du coup de l'adversaire...</div>
+          <!-- Main board mesh -->
+          <div class="board-mesh">
+            @for (rowIdx of [0,1,2,3,4,5]; track rowIdx) {
+              @for (colIdx of [0,1,2,3,4,5,6]; track colIdx) {
+                <div 
+                  class="board-cell"
+                  [class.winning-cell]="isWinningCell(rowIdx, colIdx)"
+                  (click)="makeMove(colIdx)"
+                  (mouseenter)="hoveredColumn.set(colIdx)"
+                  (mouseleave)="hoveredColumn.set(null)"
+                >
+                  <!-- Slot content -->
+                  @if (board()[rowIdx][colIdx] === 1) {
+                    <div class="token token-red animate-drop"></div>
+                  } @else if (board()[rowIdx][colIdx] === 2) {
+                    <div class="token token-yellow animate-drop"></div>
+                  } @else if (previewRow() === rowIdx && hoveredColumn() === colIdx) {
+                    <div class="token ghost-token" [class.red]="myPlayerNum() === 1" [class.yellow]="myPlayerNum() === 2"></div>
+                  } @else {
+                    <div class="token-slot-empty"></div>
+                  }
+                </div>
               }
             }
           </div>
         </div>
-
-        <!-- Emoji Bar (Floating Interactions) -->
-        @if (isPlaying()) {
-          <div class="emoji-bar glass-card">
-            <span class="bar-title">Réagir :</span>
-            <button (click)="sendEmoji('😂')">😂</button>
-            <button (click)="sendEmoji('😢')">😢</button>
-            <button (click)="sendEmoji('👍')">👍</button>
-            <button (click)="sendEmoji('🔥')">🔥</button>
-            <button (click)="sendEmoji('🎉')">🎉</button>
-          </div>
-        }
-
-        <!-- Game Board -->
-        @if (isPlaying() || room()?.status === 'finished') {
-          <div class="board-wrapper">
-            <!-- Floating Emojis Layer -->
-            <div class="floating-emojis-container">
-              @for (item of floatingEmojis(); track item.id) {
-                <span class="floating-emoji">{{ item.emoji }}</span>
-              }
-            </div>
-
-            <div class="board-grid">
-              <!-- Drop indicator zone above board -->
-              <div class="drop-indicators">
-                @for (col of [0,1,2,3,4,5,6]; track col) {
-                  <button 
-                    class="drop-arrow-btn" 
-                    [class.my-turn]="isMyTurn()" 
-                    [class.col-hovered]="hoveredColumn() === col"
-                    (click)="makeMove(col)"
-                    [disabled]="!isMyTurn()"
-                    (mouseenter)="hoveredColumn.set(col)"
-                    (mouseleave)="hoveredColumn.set(null)"
-                  >
-                    @if (isMyTurn()) {
-                      <span class="material-symbols arrow-down" [class.red]="currentPlayerNum() === 1" [class.yellow]="currentPlayerNum() === 2">arrow_downward</span>
-                    }
-                  </button>
-                }
-              </div>
-
-              <!-- Main board mesh -->
-              <div class="board-mesh">
-                @for (rowIdx of [0,1,2,3,4,5]; track rowIdx) {
-                  @for (colIdx of [0,1,2,3,4,5,6]; track colIdx) {
-                    <div 
-                      class="board-cell"
-                      [class.winning-cell]="isWinningCell(rowIdx, colIdx)"
-                      (click)="makeMove(colIdx)"
-                      (mouseenter)="hoveredColumn.set(colIdx)"
-                      (mouseleave)="hoveredColumn.set(null)"
-                    >
-                      <!-- Slot content -->
-                      @if (board()[rowIdx][colIdx] === 1) {
-                        <div class="token token-red animate-drop"></div>
-                      } @else if (board()[rowIdx][colIdx] === 2) {
-                        <div class="token token-yellow animate-drop"></div>
-                      } @else if (previewRow() === rowIdx && hoveredColumn() === colIdx) {
-                      <div class="token ghost-token" [class.red]="currentPlayerNum() === 1" [class.yellow]="currentPlayerNum() === 2"></div>
-                      } @else {
-                        <div class="token-slot-empty"></div>
-                      }
-                    </div>
-                  }
-                }
-              </div>
-            </div>
-          </div>
-        }
-      }
-    </div>
+      </div>
+    </app-game-layout>
   `,
   styles: [`
-    .c4-container {
-      max-width: 800px;
-      margin: 20px auto;
-      padding: 0 20px;
-    }
-
-    .c4-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-
-    .back-btn {
-      background: var(--md-secondary-container);
-      border: 1px solid var(--md-outline-variant);
-      color: var(--md-on-secondary-container);
-      border-radius: var(--md-radius-full);
-      padding: 8px 16px;
-      cursor: pointer;
-      font-size: 14px;
-      font-family: 'Inter', sans-serif;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s;
-    }
-
-    .back-btn:hover {
-      opacity: 0.85;
-    }
-
-    .back-btn .material-symbols {
-      font-size: 18px;
-    }
-
-    .room-badge {
-      background: var(--md-surface-container);
-      border: 1px solid var(--md-outline-variant);
-      color: var(--md-on-surface-variant);
-      padding: 8px 16px;
-      border-radius: var(--md-radius-full);
-      font-size: 14px;
-    }
-
-    .glass-card {
-      background: var(--md-surface-container);
-      border: 1px solid var(--md-outline-variant);
-      border-radius: var(--md-radius-xl);
-      padding: 25px;
-      color: var(--md-on-surface);
-      margin-bottom: 30px;
-    }
-
-    .status-panel h2 {
-      margin-top: 0;
-      text-align: center;
-      font-size: 26px;
-      color: var(--md-on-surface);
-      font-weight: 700;
-      font-family: 'Inter', sans-serif;
-    }
-
-    .players-display {
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      margin: 20px 0;
-      background: var(--md-surface-container-high);
-      padding: 15px;
-      border-radius: var(--md-radius-lg);
-      border: 1px solid var(--md-outline-variant);
-    }
-
-    .player-slot {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 8px 16px;
-      border-radius: var(--md-radius-lg);
-      border: 1px solid transparent;
-      transition: all 0.2s;
-    }
-
-    .player-slot.active {
-      background: var(--md-surface-container);
-      border-color: var(--md-outline-variant);
-    }
-
-    .vs-divider {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--md-on-surface-variant);
-    }
-
-    .player-info {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .player-name {
-      font-weight: 600;
-      color: var(--md-on-surface);
-    }
-
-    .player-label {
-      font-size: 11px;
-      color: var(--md-on-surface-variant);
-    }
-
-    .token {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      box-shadow: inset 0 -4px 6px rgba(0, 0, 0, 0.3), 0 3px 6px rgba(0, 0, 0, 0.2);
-    }
-
-    .token-red {
-      background: radial-gradient(circle at 35% 35%, #ff4b5c, #c01a2b);
-    }
-
-    .token-yellow {
-      background: radial-gradient(circle at 35% 35%, #ffd13b, #cfa000);
-    }
-
-    .token-slot-empty {
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      background: rgba(10, 10, 15, 0.7);
-      box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.8);
-    }
-
-    .ghost-token {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      border: 2px dashed rgba(255, 255, 255, 0.5);
-      opacity: 0.5;
-      animation: pulse-preview 1.5s infinite ease-in-out;
-    }
-
-    .ghost-token.red {
-      background: radial-gradient(circle at 35% 35%, rgba(255, 75, 92, 0.6), rgba(192, 26, 43, 0.3));
-      box-shadow: 0 0 8px rgba(255, 75, 92, 0.5);
-    }
-
-    .ghost-token.yellow {
-      background: radial-gradient(circle at 35% 35%, rgba(255, 209, 59, 0.6), rgba(207, 160, 0, 0.3));
-      box-shadow: 0 0 8px rgba(255, 209, 59, 0.5);
-    }
-
-    @keyframes pulse-preview {
-      0%, 100% {
-        transform: scale(0.92);
-        opacity: 0.4;
-      }
-      50% {
-        transform: scale(1.02);
-        opacity: 0.7;
-      }
-    }
-
-    .status-message {
-      text-align: center;
-      font-size: 16px;
-      font-weight: 500;
-    }
-
-    .pulse-text {
-      color: #9ca3af;
-      animation: pulse 1.5s infinite;
-    }
-
-    .turn-alert {
-      padding: 10px;
-      border-radius: 8px;
-    }
-
-    .my-turn {
-      background: rgba(16, 185, 129, 0.15);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      animation: pulse 2s infinite;
-    }
-
-    .opponent-turn {
-      background: rgba(255, 255, 255, 0.05);
-      color: #9ca3af;
-    }
-
-    .win-banner {
-      padding: 12px 24px;
-      border-radius: var(--md-radius-lg);
-      font-weight: 700;
-      font-size: 18px;
-    }
-
-    .win-banner.victory {
-      background: var(--md-surface-container-high);
-      color: #10b981;
-      border: 1px solid var(--md-outline-variant);
-    }
-
-    .win-banner.defeat {
-      background: var(--md-surface-container-high);
-      color: #f43f5e;
-      border: 1px solid var(--md-outline-variant);
-    }
-
-    /* Board Area */
     .board-wrapper {
+      position: relative;
+      margin: 0 auto;
+      flex: 1;
       display: flex;
+      align-items: center;
       justify-content: center;
-      margin-bottom: 40px;
+      min-height: 0;
+      width: 100%;
     }
 
     .board-grid {
@@ -389,7 +120,7 @@ import { GameService } from '../../services/game.service';
 
     .drop-indicators {
       display: grid;
-      grid-template-columns: repeat(7, 60px);
+      grid-template-columns: repeat(7, min(60px, 8vh));
       gap: 8px;
       height: 40px;
       margin-bottom: 8px;
@@ -424,8 +155,8 @@ import { GameService } from '../../services/game.service';
 
     .board-mesh {
       display: grid;
-      grid-template-columns: repeat(7, 60px);
-      grid-template-rows: repeat(6, 60px);
+      grid-template-columns: repeat(7, min(60px, 8vh));
+      grid-template-rows: repeat(6, min(60px, 8vh));
       gap: 8px;
       touch-action: manipulation;
     }
@@ -491,108 +222,50 @@ import { GameService } from '../../services/game.service';
       }
     }
 
-    @media (max-width: 480px) {
-      .board-grid {
-        border-width: 3px;
-        padding: 5px;
-      }
-      .drop-indicators {
-        grid-template-columns: repeat(7, 40px);
-        gap: 4px;
-        height: 30px;
-      }
-      .board-mesh {
-        grid-template-columns: repeat(7, 40px);
-        grid-template-rows: repeat(6, 40px);
-        gap: 4px;
-      }
-      .token {
-        width: 24px;
-        height: 24px;
-      }
+    
+    .token {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      box-shadow: inset 0 -4px 6px rgba(0, 0, 0, 0.4),
+                  0 6px 8px rgba(0, 0, 0, 0.3);
+      position: relative;
     }
 
-    .disconnect-banner {
-      background: rgba(239, 68, 68, 0.2);
-      border: 1px solid #ef4444;
-      color: #fc8181;
-      padding: 12px 20px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: 500;
-      font-size: 14px;
-    }
-    .force-end-btn {
-      background: #ef4444;
-      border: none;
-      color: white;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 13px;
-      transition: background 0.2s;
-    }
-    .force-end-btn:hover {
-      background: #dc2626;
-    }
-    .rematch-section {
-      margin-top: 15px;
-    }
-    .rematch-btn {
-      width: auto;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 18px;
-      font-size: 14px;
-      background: var(--md-primary);
-      color: var(--md-on-primary);
-      border: none;
-      border-radius: var(--md-radius-full);
-      cursor: pointer;
-      font-family: 'Inter', sans-serif;
-      font-weight: 600;
-      transition: opacity 0.2s;
-    }
-    .rematch-btn:hover {
-      opacity: 0.88;
-    }
-    .rematch-status {
-      font-size: 14px;
-      color: var(--md-on-surface-variant);
-      font-style: italic;
+    .token-red {
+      background: radial-gradient(circle at 35% 35%, #ff4b5c 0%, #c01a2b 70%, #800e19 100%);
+      border: 1px solid #c01a2b;
     }
 
-    /* Emoji Bar and Floating animations */
-    .emoji-bar {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      justify-content: center;
-      padding: 10px;
+    .token-yellow {
+      background: radial-gradient(circle at 35% 35%, #ffd13b 0%, #cfa000 70%, #8a6a00 100%);
+      border: 1px solid #cfa000;
     }
-    .bar-title {
-      font-size: 13px;
-      color: #cbd5e1;
-      font-weight: 500;
+
+    .ghost-token {
+      position: absolute;
+      opacity: 0.4;
+      pointer-events: none;
+      width: 100%;
+      height: 100%;
     }
-    .emoji-bar button {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      font-size: 20px;
-      cursor: pointer;
-      padding: 6px 12px;
-      border-radius: 8px;
-      transition: all 0.2s;
+
+    .ghost-token.red {
+      background: radial-gradient(circle at 35% 35%, #ff4b5c, #c01a2b);
     }
-    .emoji-bar button:hover {
-      background: rgba(255, 255, 255, 0.15);
-      transform: scale(1.15);
+
+    .ghost-token.yellow {
+      background: radial-gradient(circle at 35% 35%, #ffd13b, #cfa000);
     }
+
+    .token-slot-empty {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.6);
+      background: #111122;
+    }
+
     .floating-emojis-container {
       position: absolute;
       top: 0;
@@ -605,33 +278,30 @@ import { GameService } from '../../services/game.service';
       justify-content: center;
       align-items: center;
     }
+
     .floating-emoji {
       position: absolute;
       font-size: 64px;
       animation: floatEmoji 2.0s ease-in-out forwards;
     }
+
     @keyframes floatEmoji {
-      0% {
-        transform: translateY(100px) scale(0.5);
-        opacity: 0;
-      }
-      20% {
-        transform: translateY(0) scale(1.2);
-        opacity: 1;
-      }
-      80% {
-        transform: translateY(-80px) scale(1.0);
-        opacity: 1;
-      }
-      100% {
-        transform: translateY(-150px) scale(0.6);
-        opacity: 0;
+      0% { transform: translateY(100px) scale(0.5); opacity: 0; }
+      20% { transform: translateY(0) scale(1.2); opacity: 1; }
+      80% { transform: translateY(-80px) scale(1.0); opacity: 1; }
+      100% { transform: translateY(-150px) scale(0.6); opacity: 0; }
+    }
+
+    @media (orientation: landscape) and (min-width: 768px) {
+      .board-grid {
+        margin: 5px auto;
       }
     }
-  `]
+  `],
 })
 export class Connect4Component {
   room;
+  showRulesModal = signal<boolean>(false);
 
   floatingEmojis = signal<{ id: number; emoji: string }[]>([]);
   private emojiId = 0;
@@ -775,6 +445,23 @@ export class Connect4Component {
   forceEnd() {
     this.gameService.forceEnd();
   }
+
+  localOrOnlineTurnText = computed(() => {
+    const r = this.room();
+    if (r?.isLocal) {
+      const colorText = this.currentPlayerNum() === 1 ? 'rouge' : 'jaune';
+      return `Tour de : ${this.currentPlayerNum() === 1 ? this.player1Name() : this.player2Name()} (${colorText})`;
+    }
+    return "C'est votre tour ! Cliquez sur une colonne.";
+  });
+
+  localOrOnlineOpponentTurnText = computed(() => {
+    const r = this.room();
+    if (r?.isLocal) {
+      return '';
+    }
+    return "En attente du coup de l'adversaire...";
+  });
 
   private saveStatsLocally() {
     const r = this.room();

@@ -1,6 +1,7 @@
 import { Component, computed, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GameService } from '../../services/game.service';
+import { GameLayoutComponent } from '../game-layout/game-layout.component';
 
 interface ChessPiece {
   type: 'pawn' | 'knight' | 'bishop' | 'rook' | 'queen' | 'king';
@@ -14,478 +15,232 @@ interface ChessMove {
   toCol: number;
 }
 
+
 @Component({
   selector: 'app-chess',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, GameLayoutComponent],
   template: `
-    <div class="chess-container">
-      @if (room()) {
-        <!-- Header -->
-        <div class="game-header">
-          <button class="back-btn" (click)="leaveRoom()">
-            <span class="material-symbols">arrow_back</span>
-            <span>Quitter</span>
-          </button>
-          <div class="room-badge">Code salon : <strong>{{ room()?.id }}</strong></div>
+    <app-game-layout
+      gameTitle="Jeu d'Échecs"
+      [rules]="[
+        'Le jeu d\\'échecs oppose deux joueurs sur un échiquier de 8x8 cases.',
+        'Pion (♟) : avance d\\'une case (ou deux au premier coup), capture en diagonale.',
+        'Tour (♜) : se déplace horizontalement ou verticalement.',
+        'Cavalier (♞) : se déplace en L et peut sauter par-dessus les autres pièces.',
+        'Fou (♝) : se déplace en diagonale.',
+        'Dame (♛) : combine les mouvements de la Tour et du Fou.',
+        'Roi (♚) : se déplace d\\'une case dans toutes les directions.',
+        'Le but est de mettre le Roi adverse en position de Checkmate (Échec et Mat).'
+      ]"
+      [room]="room()"
+      [isPlaying]="isPlaying()"
+      [isMyTurn]="isMyTurn()"
+      [turnAlertText]="localOrOnlineTurnText()"
+      [opponentTurnText]="localOrOnlineOpponentTurnText()"
+      [turnAlertClass]="room()?.isLocal ? (currentPlayerNum() === 1 ? 'local-turn-red' : 'local-turn-yellow') : ''"
+      [winnerLabel]="winnerLabel()"
+      [isWinner]="isWinner()"
+      [isLoser]="isLoser()"
+      [hasVotedRematch]="hasVotedRematch()"
+      [disconnectedPlayerName]="disconnectedPlayerName()"
+      [player1Name]="player1Name()"
+      [player2Name]="player2Name()"
+      [player1Active]="currentPlayer() === 1 && isPlaying()"
+      [player2Active]="currentPlayer() === 2 && isPlaying()"
+      player1IndicatorSymbol="♔"
+      player2IndicatorSymbol="♚"
+      (leaveRoom)="leaveRoom()"
+      (requestRematch)="requestRematch()"
+      (sendEmoji)="sendEmoji($event)"
+      (forceEnd)="forceEnd()"
+      (shareInvitation)="shareInvitationLink()"
+    >
+      <div game-board class="board-wrapper-rel">
+        <!-- Floating Emojis -->
+        <div class="floating-emojis-container">
+          @for (item of floatingEmojis(); track item.id) {
+            <span class="floating-emoji">{{ item.emoji }}</span>
+          }
         </div>
 
-        <!-- Status Panel -->
-        <div class="status-panel glass-card">
-          <h2>Jeu d'Échecs</h2>
-          
-          <div class="turn-indicator">
-            <span class="player-badge player1" [class.active]="currentPlayer() === 1 && isPlaying()">
-              👑 {{ player1Name() }} (Blancs)
-            </span>
-            <span class="vs">VS</span>
-            <span class="player-badge player2" [class.active]="currentPlayer() === 2 && isPlaying()">
-              👑 {{ player2Name() }} (Noirs)
-            </span>
-          </div>
+        <div class="board-container glass-card" [class.disabled]="!isMyTurn()">
+          @for (row of [0,1,2,3,4,5,6,7]; track row) {
+            <div class="board-row">
+              @for (col of [0,1,2,3,4,5,6,7]; track col) {
+                <div 
+                  class="board-cell"
+                  [class.dark-cell]="(row + col) % 2 === 1"
+                  [class.light-cell]="(row + col) % 2 === 0"
+                  [class.selected-cell]="selectedPiece()?.r === row && selectedPiece()?.c === col"
+                  [class.highlighted-target]="isHighlighted(row, col)"
+                  [class.highlighted-hover-target]="isHoverHighlighted(row, col)"
+                  (click)="cellClick(row, col)"
+                  (mouseenter)="cellMouseEnter(row, col)"
+                  (mouseleave)="cellMouseLeave()"
+                >
+                  <!-- Visual dot for valid moves -->
+                  @if (isHighlighted(row, col)) {
+                    <div class="target-dot"></div>
+                  } @else if (isHoverHighlighted(row, col)) {
+                    <div class="target-dot hover-target-dot"></div>
+                  }
 
-          @if (hasDisconnectedPlayer()) {
-            <div class="disconnect-banner">
-              <span>⚠️ {{ disconnectedPlayerName() }} s'est déconnecté. En attente...</span>
-              @if (!amIDisconnected()) {
-                <button class="force-end-btn" (click)="forceEnd()">Forcer la fin (Gagner)</button>
+                  <!-- Chess piece Unicode icon -->
+                  @if (board()[row][col]; as piece) {
+                    <span 
+                      class="piece-symbol"
+                      [class.player1-piece]="piece.player === 1"
+                      [class.player2-piece]="piece.player === 2"
+                    >
+                      {{ getPieceSymbol(piece) }}
+                    </span>
+                  }
+                </div>
               }
             </div>
           }
-
-          <div class="status-message">
-            @if (room()?.status === 'waiting') {
-              <div class="waiting-container" style="display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: 12px;">
-                <div class="pulse-text">En attente d'un adversaire...</div>
-                <button class="tonal-btn share-btn" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 20px; font-weight: 500; font-size: 13px;" (click)="shareInvitationLink()">
-                  <span class="material-symbols">share</span>
-                  <span>Partager l'invitation</span>
-                </button>
-              </div>
-            } @else if (isPlaying()) {
-              @if (isMyTurn()) {
-                <div class="turn-alert my-turn">C'est votre tour ! Sélectionnez une pièce.</div>
-              } @else {
-                <div class="turn-alert opponent-turn">En attente du coup adverse...</div>
-              }
-            } @else if (room()?.status === 'finished') {
-              <div class="win-banner" [class.victory]="isWinner()" [class.defeat]="isLoser()">
-                @if (winnerNum() === myPlayerNum()) {
-                  🏆 Victoire par Échec et Mat !
-                } @else if (winnerNum() === 'draw') {
-                  🤝 Match nul (Pat) !
-                } @else {
-                  ☠️ Échec et Mat ! Défaite...
-                }
-              </div>
-              <div class="rematch-section">
-                @if (hasVotedRematch()) {
-                  <div class="rematch-status">Demande de revanche envoyée...</div>
-                } @else {
-                  <button class="primary-btn rematch-btn" (click)="requestRematch()">
-                    <span class="material-symbols">replay</span>
-                    <span>Rejouer</span>
-                  </button>
-                }
-              </div>
-            }
-          </div>
         </div>
-
-        <!-- Emoji Bar -->
-        @if (isPlaying()) {
-          <div class="emoji-bar glass-card">
-            <span class="bar-title">Réagir :</span>
-            <button (click)="sendEmoji('😂')">😂</button>
-            <button (click)="sendEmoji('😢')">😢</button>
-            <button (click)="sendEmoji('👍')">👍</button>
-            <button (click)="sendEmoji('🔥')">🔥</button>
-            <button (click)="sendEmoji('🎉')">🎉</button>
-          </div>
-        }
-
-        <!-- Chess Board -->
-        <div class="board-wrapper-rel">
-          <!-- Floating Emojis -->
-          <div class="floating-emojis-container">
-            @for (item of floatingEmojis(); track item.id) {
-              <span class="floating-emoji">{{ item.emoji }}</span>
-            }
-          </div>
-
-          <div class="board-container glass-card" [class.disabled]="!isMyTurn()">
-            @for (row of [0,1,2,3,4,5,6,7]; track row) {
-              <div class="board-row">
-                @for (col of [0,1,2,3,4,5,6,7]; track col) {
-                  <div 
-                    class="board-cell"
-                    [class.dark-cell]="(row + col) % 2 === 1"
-                    [class.light-cell]="(row + col) % 2 === 0"
-                    [class.selected-cell]="selectedPiece()?.r === row && selectedPiece()?.c === col"
-                    [class.highlighted-target]="isHighlighted(row, col)"
-                    [class.highlighted-hover-target]="isHoverHighlighted(row, col)"
-                    (click)="cellClick(row, col)"
-                    (mouseenter)="cellMouseEnter(row, col)"
-                    (mouseleave)="cellMouseLeave()"
-                  >
-                    <!-- Visual dot for valid moves -->
-                    @if (isHighlighted(row, col)) {
-                      <div class="target-dot"></div>
-                    } @else if (isHoverHighlighted(row, col)) {
-                      <div class="target-dot hover-target-dot"></div>
-                    }
-
-                    <!-- Chess piece Unicode icon -->
-                    @if (board()[row][col]; as piece) {
-                      <span 
-                        class="piece-symbol"
-                        [class.player1-piece]="piece.player === 1"
-                        [class.player2-piece]="piece.player === 2"
-                      >
-                        {{ getPieceSymbol(piece) }}
-                      </span>
-                    }
-                  </div>
-                }
-              </div>
-            }
-          </div>
-        </div>
-      }
-    </div>
+      </div>
+    </app-game-layout>
   `,
   styles: [`
-    .chess-container {
-      max-width: 600px;
-      margin: 20px auto;
-      padding: 0 15px;
-    }
-
-    .game-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-    }
-
-    .back-btn {
-      background: var(--md-secondary-container);
-      border: 1px solid var(--md-outline-variant);
-      color: var(--md-on-secondary-container);
-      border-radius: var(--md-radius-full);
-      padding: 8px 16px;
-      cursor: pointer;
-      font-size: 14px;
-      font-family: 'Inter', sans-serif;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s;
-    }
-
-    .back-btn:hover {
-      opacity: 0.85;
-    }
-
-    .back-btn .material-symbols {
-      font-size: 18px;
-    }
-
-    .room-badge {
-      background: var(--md-surface-container);
-      border: 1px solid var(--md-outline-variant);
-      color: var(--md-on-surface-variant);
-      padding: 8px 16px;
-      border-radius: var(--md-radius-full);
-      font-size: 14px;
-    }
-
-    .status-panel {
-      background: var(--md-surface-container);
-      border: 1px solid var(--md-outline-variant);
-      border-radius: var(--md-radius-xl);
-      color: var(--md-on-surface);
-      text-align: center;
-      padding: 20px;
-      margin-bottom: 15px;
-    }
-
-    .status-panel h2 {
-      margin: 0 0 15px 0;
-      font-size: 26px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      color: var(--md-on-surface);
-      font-family: 'Inter', sans-serif;
-    }
-
-    .turn-indicator {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 15px;
-      margin-bottom: 15px;
-    }
-
-    .player-badge {
-      padding: 6px 12px;
-      border-radius: var(--md-radius-full);
-      font-size: 14px;
-      background: var(--md-surface-container-high);
-      border: 1px solid var(--md-outline-variant);
-      color: var(--md-on-surface-variant);
-      transition: all 0.3s ease;
-    }
-
-    .player-badge.active {
-      background: var(--md-surface-container);
-      border-color: var(--md-primary);
-      color: var(--md-on-surface);
-      transform: scale(1.05);
-    }
-
-    .vs {
-      font-size: 12px;
-      color: var(--md-on-surface-variant);
-      font-weight: bold;
-    }
-
-    .turn-alert {
-      font-size: 15px;
-      font-weight: 500;
-      padding: 8px;
-      border-radius: 8px;
-    }
-
-    .my-turn {
-      color: #34d399;
-      background: rgba(52, 211, 153, 0.1);
-    }
-
-    .opponent-turn {
-      color: rgba(255, 255, 255, 0.6);
-    }
-
-    .win-banner {
-      font-size: 18px;
-      font-weight: bold;
-      padding: 12px;
-      border-radius: 10px;
-      margin-bottom: 15px;
-    }
-
-    .victory {
-      background: rgba(16, 185, 129, 0.2);
-      color: #10b981;
-      border: 1px solid rgba(16, 185, 129, 0.4);
-    }
-
-    .defeat {
-      background: rgba(239, 68, 68, 0.2);
-      color: #ef4444;
-      border: 1px solid rgba(239, 68, 68, 0.4);
-    }
-
-    .rematch-btn {
-      padding: 10px 24px;
-      font-size: 16px;
-      background: var(--md-primary);
-      color: var(--md-on-primary);
-      border: none;
-      border-radius: var(--md-radius-full);
-      cursor: pointer;
-      font-family: 'Inter', sans-serif;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: opacity 0.2s;
-    }
-    .rematch-btn:hover {
-      opacity: 0.88;
-    }
-
-    .rematch-status {
-      font-style: italic;
-      color: var(--md-on-surface-variant);
-    }
-
-    /* Emoji Reactions */
-    .emoji-bar {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 10px;
-      padding: 10px;
-      margin-bottom: 15px;
-      background: var(--md-surface-container);
-      border: 1px solid var(--md-outline-variant);
-      border-radius: var(--md-radius-xl);
-    }
-
-    .bar-title {
-      font-size: 14px;
-      color: var(--md-on-surface-variant);
-      margin-right: 5px;
-    }
-
-    .emoji-bar button {
-      background: none;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      transition: transform 0.15s ease;
-    }
-
-    .emoji-bar button:hover {
-      transform: scale(1.3);
-    }
-
-    /* Board Area */
     .board-wrapper-rel {
       position: relative;
-      width: 100%;
-      aspect-ratio: 1;
-      max-width: 480px;
       margin: 0 auto;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+      width: 100%;
     }
 
     .board-container {
       display: flex;
       flex-direction: column;
+      background: rgba(30, 41, 59, 0.8) !important;
+      border: 4px solid var(--md-outline-variant);
+      border-radius: var(--md-radius-xl);
+      padding: 12px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
       width: 100%;
-      height: 100%;
-      padding: 8px;
-      gap: 2px;
-      touch-action: manipulation;
-    }
-
-    .board-container.disabled {
-      pointer-events: none;
-      opacity: 0.95;
+      max-width: min(480px, 70vh);
+      box-sizing: border-box;
     }
 
     .board-row {
       display: flex;
       flex: 1;
-      gap: 2px;
     }
 
     .board-cell {
-      position: relative;
       flex: 1;
       aspect-ratio: 1;
+      position: relative;
       display: flex;
-      justify-content: center;
       align-items: center;
+      justify-content: center;
       cursor: pointer;
       transition: background-color 0.2s;
-      touch-action: manipulation;
-    }
-
-    .dark-cell {
-      background-color: rgba(51, 65, 85, 0.55);
     }
 
     .light-cell {
-      background-color: rgba(241, 245, 249, 0.12);
+      background-color: #f1f5f9;
+    }
+
+    .dark-cell {
+      background-color: #334155;
     }
 
     .selected-cell {
-      background-color: rgba(99, 102, 241, 0.45) !important;
-      box-shadow: inset 0 0 8px rgba(99, 102, 241, 0.8);
+      background-color: #6366f1 !important;
     }
 
     .highlighted-target {
-      background-color: rgba(52, 211, 153, 0.22) !important;
-      cursor: pointer;
-      box-shadow: inset 0 0 6px rgba(52, 211, 153, 0.5);
+      background-color: #10b981 !important;
     }
 
     .highlighted-hover-target {
-      background-color: rgba(52, 211, 153, 0.1) !important;
-      cursor: pointer;
-      box-shadow: inset 0 0 4px rgba(52, 211, 153, 0.3);
+      background-color: #059669 !important;
+    }
+
+    .piece-symbol {
+      font-size: min(32px, 6vh);
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s;
+      user-select: none;
+    }
+
+    .piece-symbol:hover {
+      transform: scale(1.1);
+    }
+
+    .player1-piece {
+      color: #ffffff;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5), 0 0 2px rgba(0,0,0,0.8);
+    }
+
+    .player2-piece {
+      color: #111827;
+      text-shadow: 0 2px 4px rgba(255,255,255,0.1), 0 0 2px rgba(0,0,0,0.9);
     }
 
     .target-dot {
       width: 12px;
       height: 12px;
-      background-color: #34d399;
       border-radius: 50%;
-      opacity: 0.75;
-      box-shadow: 0 0 6px #34d399;
+      background-color: #34d399;
+      box-shadow: 0 0 8px rgba(52, 211, 153, 0.8);
       position: absolute;
-      z-index: 2;
+      pointer-events: none;
     }
 
     .hover-target-dot {
-      background-color: #34d399 !important;
-      opacity: 0.35 !important;
-      box-shadow: 0 0 3px #34d399 !important;
-      position: absolute;
-      z-index: 2;
+      background-color: #fbbf24;
+      box-shadow: 0 0 8px rgba(251, 191, 36, 0.8);
     }
 
-    .piece-symbol {
-      font-size: 38px;
-      line-height: 1;
-      user-select: none;
-      z-index: 1;
-      transition: transform 0.15s ease;
-    }
-
-    @media (hover: hover) {
-      .piece-symbol:hover {
-        transform: scale(1.1);
-      }
-    }
-
-    .player1-piece {
-      color: #fcd34d; /* Golden white for player 1 */
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 8px rgba(252, 211, 77, 0.3);
-    }
-
-    .player2-piece {
-      color: #94a3b8; /* Slate gray/black for player 2 */
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6), 0 0 8px rgba(148, 163, 184, 0.2);
-    }
-
-    /* Floating Emojis Layer */
     .floating-emojis-container {
       position: absolute;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
+      right: 0;
+      bottom: 0;
       pointer-events: none;
       z-index: 10;
-      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
     .floating-emoji {
       position: absolute;
-      bottom: 10%;
-      left: 50%;
-      font-size: 40px;
-      animation: floatUp 2s ease-out forwards;
-      opacity: 0;
+      font-size: 64px;
+      animation: floatEmoji 2.0s ease-in-out forwards;
     }
 
-    @keyframes floatUp {
-      0% {
-        transform: translate(-50%, 0) scale(0.5);
-        opacity: 0;
+    @keyframes floatEmoji {
+      0% { transform: translateY(100px) scale(0.5); opacity: 0; }
+      20% { transform: translateY(0) scale(1.2); opacity: 1; }
+      80% { transform: translateY(-80px) scale(1.0); opacity: 1; }
+      100% { transform: translateY(-150px) scale(0.6); opacity: 0; }
+    }
+
+    @media (max-width: 480px) {
+      .board-container {
+        padding: 6px;
       }
-      10% {
-        opacity: 1;
-      }
-      90% {
-        opacity: 1;
-      }
-      100% {
-        transform: translate(-50%, -350px) scale(1.5);
-        opacity: 0;
+    }
+
+    @media (orientation: landscape) and (min-width: 768px) {
+      .board-container {
+        width: min(450px, calc(100dvh - 220px));
+        height: min(450px, calc(100dvh - 220px));
+        margin: 5px auto;
       }
     }
   `]
@@ -493,6 +248,7 @@ interface ChessMove {
 export class ChessComponent {
   room;
   username;
+  showRulesModal = signal<boolean>(false);
   floatingEmojis = signal<{ id: number; emoji: string }[]>([]);
   emojiIdCounter = 0;
 
@@ -551,6 +307,33 @@ export class ChessComponent {
     if (r?.isLocal) return this.isPlaying();
     return this.isPlaying() && this.currentPlayer() === this.myPlayerNum();
   });
+
+  localOrOnlineTurnText = computed(() => {
+    const r = this.room();
+    if (r?.isLocal) {
+      const colorText = this.currentPlayer() === 1 ? 'Blancs' : 'Noirs';
+      return `Tour de : ${this.currentPlayer() === 1 ? this.player1Name() : this.player2Name()} (${colorText})`;
+    }
+    return "C'est votre tour ! Sélectionnez une pièce.";
+  });
+
+  localOrOnlineOpponentTurnText = computed(() => {
+    const r = this.room();
+    if (r?.isLocal) {
+      return '';
+    }
+    return "En attente du coup adverse...";
+  });
+
+  winnerLabel = computed(() => {
+    const win = this.winnerNum();
+    if (win === 'draw') return 'draw';
+    if (win === 1) return this.player1Name();
+    if (win === 2) return this.player2Name();
+    return '';
+  });
+
+  currentPlayerNum = computed(() => this.currentPlayer());
 
   player1Name = computed(() => this.room()?.players[0]?.username || 'Joueur Blancs');
   player2Name = computed(() => this.room()?.players[1]?.username || 'Joueur Noirs');
