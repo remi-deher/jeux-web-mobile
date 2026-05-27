@@ -42,13 +42,25 @@ import { GameService } from '../../services/game.service';
         <div class="chat-messages" #scrollContainer>
           @for (msg of currentMessages(); track msg.id) {
             <div class="message-wrapper" [class.self]="msg.username === username()">
-              <div class="message-meta">
-                <span class="msg-author">{{ msg.username }}</span>
-                <span class="msg-time">{{ msg.timestamp | date:'HH:mm' }}</span>
+              @if (msg.username !== username()) {
+                <div class="msg-avatar" [style.background-color]="getAvatarColor(msg.username)">
+                  {{ msg.username.charAt(0).toUpperCase() }}
+                </div>
+              }
+              <div class="msg-body-wrapper">
+                <div class="message-meta">
+                  <span class="msg-author">{{ msg.username }}</span>
+                  <span class="msg-time">{{ msg.timestamp | date:'HH:mm' }}</span>
+                </div>
+                <div class="message-bubble">
+                  {{ msg.text }}
+                </div>
               </div>
-              <div class="message-bubble">
-                {{ msg.text }}
-              </div>
+              @if (msg.username === username()) {
+                <div class="msg-avatar self-avatar" [style.background-color]="getAvatarColor(msg.username)">
+                  {{ msg.username.charAt(0).toUpperCase() }}
+                </div>
+              }
             </div>
           } @empty {
             <div class="empty-chat">
@@ -215,13 +227,41 @@ import { GameService } from '../../services/game.service';
 
     .message-wrapper {
       display: flex;
-      flex-direction: column;
       align-items: flex-start;
-      max-width: 88%;
+      gap: 8px;
+      max-width: 92%;
     }
 
     .message-wrapper.self {
       align-self: flex-end;
+      flex-direction: row;
+    }
+
+    .msg-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #141218;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .msg-avatar.self-avatar {
+      color: #ffffff;
+    }
+
+    .msg-body-wrapper {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .message-wrapper.self .msg-body-wrapper {
       align-items: flex-end;
     }
 
@@ -400,6 +440,16 @@ export class ChatSidebarComponent {
       this.gameService.sendGlobalMessage(this.newMessage);
     }
     this.newMessage = '';
+  }
+
+  getAvatarColor(name: string): string {
+    const colors = ['#9D8EFF', '#C08DFC', '#FF8A80', '#69F0AE', '#FFD54F', '#4FC3F7', '#FF8A80', '#A1887F'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
   }
 
   private scrollToBottom(): void {

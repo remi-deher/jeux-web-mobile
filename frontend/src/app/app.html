@@ -8,13 +8,10 @@
     
     @if (username()) {
       <div class="header-user">
-        <span class="user-badge">
+        <span class="user-badge clickable-badge" (click)="openProfileModal()" title="Voir le profil & statistiques">
           <span class="material-symbols badge-icon">account_circle</span>
           <span>{{ username() }}</span>
         </span>
-        <button class="logout-btn" (click)="resetUsername()" title="Changer de pseudonyme">
-          <span class="material-symbols">logout</span>
-        </button>
       </div>
     }
   </header>
@@ -38,4 +35,62 @@
 
   <!-- Persistent Chat Sidebar -->
   <app-chat-sidebar></app-chat-sidebar>
+
+  <!-- Profile & Stats Modal -->
+  @if (showProfileModal()) {
+    <div class="modal-overlay" (click)="closeProfileModal()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Votre Profil</h3>
+          <button class="icon-btn" (click)="closeProfileModal()">
+            <span class="material-symbols">close</span>
+          </button>
+        </div>
+        
+        <div class="profile-modal-body">
+          <!-- Change Username -->
+          <div class="profile-section">
+            <h4 class="section-title">
+              <span class="material-symbols">edit</span>
+              Changer de pseudonyme
+            </h4>
+            <form (submit)="saveNewUsername(); $event.preventDefault()" class="username-edit-form">
+              <input
+                type="text"
+                [(ngModel)]="newUsername"
+                name="newUsername"
+                placeholder="Pseudonyme..."
+                maxlength="15"
+                required
+              />
+              <button type="submit" class="primary-btn">Enregistrer</button>
+            </form>
+          </div>
+
+          <!-- Stats -->
+          <div class="profile-section">
+            <h4 class="section-title">
+              <span class="material-symbols">bar_chart</span>
+              Vos statistiques
+            </h4>
+            <div class="stats-list">
+              @for (stat of getStatsList(); track stat.name) {
+                <div class="stat-item">
+                  <div class="stat-label">
+                    <span class="stat-dot" [style.background-color]="stat.color"></span>
+                    <span>{{ stat.name }}</span>
+                  </div>
+                  <div class="stat-values">
+                    <span class="stat-chip win">{{ stat.wins }}V</span>
+                    <span class="stat-chip loss">{{ stat.losses }}D</span>
+                    <span class="stat-chip draw">{{ stat.draws }}N</span>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
 </div>
