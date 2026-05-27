@@ -163,6 +163,29 @@ io.on('connection', (socket: Socket) => {
     io.emit('globalMessage', msg);
   });
 
+  socket.on('privateMessage', (data: { recipientUsername: string; text: string }) => {
+    const senderUsername = onlineUsers[socket.id];
+    if (!senderUsername) return;
+
+    const recipientEntry = Object.entries(onlineUsers).find(
+      ([_, uname]) => uname.toLowerCase() === data.recipientUsername.toLowerCase()
+    );
+
+    const msg = {
+      id: Math.random().toString(36).substring(2, 9),
+      sender: senderUsername,
+      recipient: data.recipientUsername,
+      text: data.text,
+      timestamp: Date.now()
+    };
+
+    if (recipientEntry) {
+      io.to(recipientEntry[0]).emit('privateMessage', msg);
+    }
+    socket.emit('privateMessage', msg);
+  });
+
+
   socket.on('createRoom', (data: { gameType: 'connect4' | 'battleship'; username: string; isPrivate?: boolean }, callback) => {
     const roomId = generateRoomId();
     const newRoom: Room = {

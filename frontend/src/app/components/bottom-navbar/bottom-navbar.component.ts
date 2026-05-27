@@ -9,10 +9,6 @@ import { Component, EventEmitter, Output } from '@angular/core';
         <span class="material-symbols">sports_esports</span>
         <span>Jeux</span>
       </button>
-      <button (click)="nav.emit('messages')">
-        <span class="material-symbols">chat</span>
-        <span>Message</span>
-      </button>
       <button (click)="nav.emit('friends')">
         <span class="material-symbols">people</span>
         <span>Amis</span>

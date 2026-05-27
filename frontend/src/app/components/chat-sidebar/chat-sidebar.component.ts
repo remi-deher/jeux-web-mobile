@@ -17,173 +17,237 @@ import { GameService } from '../../services/game.service';
         }
       </button>
 
-      <!-- Chat Panel -->
-      <div class="chat-panel">
-        <!-- Chat Header Tabs -->
-        <div class="chat-header">
-          <div class="header-tabs">
-            <button class="tab-btn" [class.active]="sidebarTab === 'chat'" (click)="sidebarTab = 'chat'">Discussion</button>
-            <button class="tab-btn" [class.active]="sidebarTab === 'social'" (click)="sidebarTab = 'social'">Social</button>
-          </div>
-          <button class="icon-btn" (click)="toggleChat()">
-            <span class="material-symbols">close</span>
-          </button>
-        </div>
-
-        @if (sidebarTab === 'chat') {
-          <!-- Chat Tabs (if in a room) -->
-          @if (currentRoom()) {
-            <div class="chat-tabs">
-              <button [class.active]="activeTab === 'global'" (click)="activeTab = 'global'">
-                Global
-              </button>
-              <button [class.active]="activeTab === 'room'" (click)="activeTab = 'room'">
-                Partie
-              </button>
+        <!-- Chat Panel -->
+        <div class="chat-panel">
+          <!-- Chat Header Tabs -->
+          <div class="chat-header">
+            <div class="header-tabs">
+              <button class="tab-btn" [class.active]="sidebarTab === 'chat'" (click)="sidebarTab = 'chat'">Global</button>
+              <button class="tab-btn" [class.active]="sidebarTab === 'social'" (click)="sidebarTab = 'social'">Amis</button>
             </div>
-          }
-
-          <!-- Message List -->
-          <div class="chat-messages" #scrollContainer>
-            @for (msg of currentMessages(); track msg.id) {
-              <div class="message-wrapper" [class.self]="msg.username === username()">
-                @if (msg.username !== username()) {
-                  <div class="msg-avatar" [style.background-color]="getAvatarColor(msg.username)">
-                    {{ msg.username.charAt(0).toUpperCase() }}
-                  </div>
-                }
-                <div class="msg-body-wrapper">
-                  <div class="message-meta">
-                    <span class="msg-author">{{ msg.username }}</span>
-                    <span class="msg-time">{{ msg.timestamp | date:'HH:mm' }}</span>
-                  </div>
-                  <div class="message-bubble">
-                    {{ msg.text }}
-                  </div>
-                </div>
-                @if (msg.username === username()) {
-                  <div class="msg-avatar self-avatar" [style.background-color]="getAvatarColor(msg.username)">
-                    {{ msg.username.charAt(0).toUpperCase() }}
-                  </div>
-                }
-              </div>
-            } @empty {
-              <div class="empty-chat">
-                <span class="material-symbols">forum</span>
-                <p>Aucun message pour l'instant.</p>
+            <button class="icon-btn" (click)="toggleChat()">
+              <span class="material-symbols">close</span>
+            </button>
+          </div>
+  
+          @if (sidebarTab === 'chat') {
+            <!-- Chat Tabs (if in a room) -->
+            @if (currentRoom()) {
+              <div class="chat-tabs">
+                <button [class.active]="activeTab === 'global'" (click)="activeTab = 'global'">
+                  Global
+                </button>
+                <button [class.active]="activeTab === 'room'" (click)="activeTab = 'room'">
+                  Partie
+                </button>
               </div>
             }
-          </div>
-
-          <!-- Message Input -->
-          <form class="chat-input-form" (submit)="sendMessage(); $event.preventDefault()">
-            <input
-              type="text"
-              [(ngModel)]="newMessage"
-              name="message"
-              placeholder="Écrire un message..."
-              autocomplete="off"
-              required
-            />
-            <button type="submit" title="Envoyer" class="send-btn">
-              <span class="material-symbols">send</span>
-            </button>
-          </form>
-        } @else {
-          <!-- Social Tab View -->
-          <div class="social-panel">
-            <!-- Add Friend Input -->
-            <div class="social-section add-friend-section">
-              <form (submit)="addFriend(); $event.preventDefault()" class="add-friend-form">
-                <input
-                  type="text"
-                  [(ngModel)]="addFriendName"
-                  name="addFriendName"
-                  placeholder="Pseudo de l'ami..."
-                  required
-                />
-                <button type="submit" class="primary-btn" title="Ajouter en ami">
-                  <span class="material-symbols">person_add</span>
-                </button>
-              </form>
-            </div>
-
-            <!-- Friends List -->
-            <div class="social-section">
-              <h4>Amis ({{ friends().length }})</h4>
-              <div class="friends-list">
-                @for (friendName of friends(); track friendName) {
-                  <div class="social-item">
-                    <div class="social-item-info">
-                      <span class="friend-status-dot" [class.online]="isUserOnline(friendName)"></span>
-                      <span class="social-name">{{ friendName }}</span>
+  
+            <!-- Message List -->
+            <div class="chat-messages" #scrollContainer>
+              @for (msg of currentMessages(); track msg.id) {
+                <div class="message-wrapper" [class.self]="msg.username === username()">
+                  @if (msg.username !== username()) {
+                    <div class="msg-avatar" [style.background-color]="getAvatarColor(msg.username)">
+                      {{ msg.username.charAt(0).toUpperCase() }}
                     </div>
-                    <div class="social-item-actions" style="display: flex; align-items: center; gap: 8px;">
-                      @if (isUserOnline(friendName)) {
-                        @if (getOnlineUserByName(friendName); as onlineUser) {
-                          @if (selectedUserToChallenge() === onlineUser.id) {
+                  }
+                  <div class="msg-body-wrapper">
+                    <div class="message-meta">
+                      <span class="msg-author">{{ msg.username }}</span>
+                      <span class="msg-time">{{ msg.timestamp | date:'HH:mm' }}</span>
+                    </div>
+                    <div class="message-bubble">
+                      {{ msg.text }}
+                    </div>
+                  </div>
+                  @if (msg.username === username()) {
+                    <div class="msg-avatar self-avatar" [style.background-color]="getAvatarColor(msg.username)">
+                      {{ msg.username.charAt(0).toUpperCase() }}
+                    </div>
+                  }
+                </div>
+              } @empty {
+                <div class="empty-chat">
+                  <span class="material-symbols">forum</span>
+                  <p>Aucun message pour l'instant.</p>
+                </div>
+              }
+            </div>
+  
+            <!-- Message Input -->
+            <form class="chat-input-form" (submit)="sendMessage(); $event.preventDefault()">
+              <input
+                type="text"
+                [(ngModel)]="newMessage"
+                name="message"
+                placeholder="Écrire un message..."
+                autocomplete="off"
+                required
+              />
+              <button type="submit" title="Envoyer" class="send-btn">
+                <span class="material-symbols">send</span>
+              </button>
+            </form>
+          } @else {
+            <!-- Social / Amis View -->
+            @if (selectedFriendForChat()) {
+              <div class="dm-chat-container">
+                <div class="dm-chat-header">
+                  <button class="icon-btn back-btn" (click)="selectedFriendForChat.set(null)" title="Retour aux amis">
+                    <span class="material-symbols">arrow_back</span>
+                  </button>
+                  <div class="dm-header-title">
+                    <span class="friend-status-dot" [class.online]="isUserOnline(selectedFriendForChat()!)"></span>
+                    <span class="dm-friend-name">{{ selectedFriendForChat() }}</span>
+                  </div>
+                </div>
+  
+                <!-- Message list -->
+                <div class="chat-messages dm-messages" #dmScrollContainer>
+                  @for (msg of privateMessages(); track msg.id) {
+                    <div class="message-wrapper" [class.self]="msg.sender === username()">
+                      @if (msg.sender !== username()) {
+                        <div class="msg-avatar" [style.background-color]="getAvatarColor(msg.sender)">
+                          {{ msg.sender.charAt(0).toUpperCase() }}
+                        </div>
+                      }
+                      <div class="msg-body-wrapper">
+                        <div class="message-meta">
+                          <span class="msg-author">{{ msg.sender }}</span>
+                          <span class="msg-time">{{ msg.timestamp | date:'HH:mm' }}</span>
+                        </div>
+                        <div class="message-bubble">
+                          {{ msg.text }}
+                        </div>
+                      </div>
+                      @if (msg.sender === username()) {
+                        <div class="msg-avatar self-avatar" [style.background-color]="getAvatarColor(msg.sender)">
+                          {{ msg.sender.charAt(0).toUpperCase() }}
+                        </div>
+                      }
+                    </div>
+                  } @empty {
+                    <div class="empty-chat">
+                      <span class="material-symbols">chat_bubble</span>
+                      <p>Aucun message avec {{ selectedFriendForChat() }} pour l'instant.</p>
+                    </div>
+                  }
+                </div>
+  
+                <!-- Input form -->
+                <form class="chat-input-form" (submit)="sendPrivateMessage(); $event.preventDefault()">
+                  <input
+                    type="text"
+                    [(ngModel)]="privateNewMessage"
+                    name="privateMessage"
+                    placeholder="Écrire un message privé..."
+                    autocomplete="off"
+                    required
+                  />
+                  <button type="submit" title="Envoyer" class="send-btn">
+                    <span class="material-symbols">send</span>
+                  </button>
+                </form>
+              </div>
+            } @else {
+              <div class="social-panel">
+                <!-- Add Friend Input -->
+                <div class="social-section add-friend-section">
+                  <form (submit)="addFriend(); $event.preventDefault()" class="add-friend-form">
+                    <input
+                      type="text"
+                      [(ngModel)]="addFriendName"
+                      name="addFriendName"
+                      placeholder="Pseudo de l'ami..."
+                      required
+                    />
+                    <button type="submit" class="primary-btn" title="Ajouter en ami">
+                      <span class="material-symbols">person_add</span>
+                    </button>
+                  </form>
+                </div>
+  
+                <!-- Friends List -->
+                <div class="social-section">
+                  <h4>Amis ({{ friends().length }})</h4>
+                  <div class="friends-list">
+                    @for (friendName of friends(); track friendName) {
+                      <div class="social-item">
+                        <div class="social-item-info clickable-friend" (click)="selectedFriendForChat.set(friendName)">
+                          <span class="friend-status-dot" [class.online]="isUserOnline(friendName)"></span>
+                          <span class="social-name">{{ friendName }}</span>
+                        </div>
+                        <div class="social-item-actions" style="display: flex; align-items: center; gap: 8px;">
+                          <button class="icon-btn message-friend-btn" (click)="selectedFriendForChat.set(friendName)" title="Envoyer un message">
+                            <span class="material-symbols">chat</span>
+                          </button>
+                          @if (isUserOnline(friendName)) {
+                            @if (getOnlineUserByName(friendName); as onlineUser) {
+                              @if (selectedUserToChallenge() === onlineUser.id) {
+                                <div class="challenge-options">
+                                  <button (click)="challengeUser(onlineUser.id, 'connect4')" title="Puissance 4">🔴</button>
+                                  <button (click)="challengeUser(onlineUser.id, 'battleship')" title="Bataille Navale">🚢</button>
+                                  <button (click)="challengeUser(onlineUser.id, 'tictactoe')" title="Morpion">❌</button>
+                                  <button (click)="challengeUser(onlineUser.id, 'checkers')" title="Dames">🏁</button>
+                                  <button (click)="challengeUser(onlineUser.id, 'chess')" title="Échecs">👑</button>
+                                  <button class="cancel-btn" (click)="selectedUserToChallenge.set(null)">✕</button>
+                                </div>
+                              } @else {
+                                <button class="challenge-btn" (click)="selectedUserToChallenge.set(onlineUser.id)" title="Défier">
+                                  <span class="material-symbols">swords</span>
+                                </button>
+                              }
+                            }
+                          } @else {
+                            <span class="offline-tag">Hors-ligne</span>
+                          }
+                          <button class="icon-btn remove-friend-btn" (click)="removeFriend(friendName)" title="Retirer de mes amis">
+                            <span class="material-symbols">person_remove</span>
+                          </button>
+                        </div>
+                      </div>
+                    } @empty {
+                      <div class="empty-list">Aucun ami ajouté.</div>
+                    }
+                  </div>
+                </div>
+  
+                <!-- Other Online Users -->
+                <div class="social-section">
+                  <h4>Joueurs connectés ({{ getOtherOnlineUsersCount() }})</h4>
+                  <div class="online-users-list">
+                    @for (user of getOtherOnlineUsers(); track user.id) {
+                      <div class="social-item">
+                        <span class="social-name">{{ user.username }}</span>
+                        <div class="social-item-actions" style="display: flex; align-items: center; gap: 8px;">
+                          @if (selectedUserToChallenge() === user.id) {
                             <div class="challenge-options">
-                              <button (click)="challengeUser(onlineUser.id, 'connect4')" title="Puissance 4">🔴</button>
-                              <button (click)="challengeUser(onlineUser.id, 'battleship')" title="Bataille Navale">🚢</button>
-                              <button (click)="challengeUser(onlineUser.id, 'tictactoe')" title="Morpion">❌</button>
-                              <button (click)="challengeUser(onlineUser.id, 'checkers')" title="Dames">🏁</button>
-                              <button (click)="challengeUser(onlineUser.id, 'chess')" title="Échecs">👑</button>
+                              <button (click)="challengeUser(user.id, 'connect4')" title="Puissance 4">🔴</button>
+                              <button (click)="challengeUser(user.id, 'battleship')" title="Bataille Navale">🚢</button>
+                              <button (click)="challengeUser(user.id, 'tictactoe')" title="Morpion">❌</button>
+                              <button (click)="challengeUser(user.id, 'checkers')" title="Dames">🏁</button>
+                              <button (click)="challengeUser(user.id, 'chess')" title="Échecs">👑</button>
                               <button class="cancel-btn" (click)="selectedUserToChallenge.set(null)">✕</button>
                             </div>
                           } @else {
-                            <button class="challenge-btn" (click)="selectedUserToChallenge.set(onlineUser.id)" title="Défier">
+                            <button class="challenge-btn" (click)="selectedUserToChallenge.set(user.id)" title="Défier">
                               <span class="material-symbols">swords</span>
                             </button>
                           }
-                        }
-                      } @else {
-                        <span class="offline-tag">Hors-ligne</span>
-                      }
-                      <button class="icon-btn remove-friend-btn" (click)="removeFriend(friendName)" title="Retirer de mes amis">
-                        <span class="material-symbols">person_remove</span>
-                      </button>
-                    </div>
-                  </div>
-                } @empty {
-                  <div class="empty-list">Aucun ami ajouté.</div>
-                }
-              </div>
-            </div>
-
-            <!-- Other Online Users -->
-            <div class="social-section">
-              <h4>Joueurs connectés ({{ getOtherOnlineUsersCount() }})</h4>
-              <div class="online-users-list">
-                @for (user of getOtherOnlineUsers(); track user.id) {
-                  <div class="social-item">
-                    <span class="social-name">{{ user.username }}</span>
-                    <div class="social-item-actions" style="display: flex; align-items: center; gap: 8px;">
-                      @if (selectedUserToChallenge() === user.id) {
-                        <div class="challenge-options">
-                          <button (click)="challengeUser(user.id, 'connect4')" title="Puissance 4">🔴</button>
-                          <button (click)="challengeUser(user.id, 'battleship')" title="Bataille Navale">🚢</button>
-                          <button (click)="challengeUser(user.id, 'tictactoe')" title="Morpion">❌</button>
-                          <button (click)="challengeUser(user.id, 'checkers')" title="Dames">🏁</button>
-                          <button (click)="challengeUser(user.id, 'chess')" title="Échecs">👑</button>
-                          <button class="cancel-btn" (click)="selectedUserToChallenge.set(null)">✕</button>
+                          <button class="icon-btn add-friend-btn" (click)="addFriendDirect(user.username)" title="Ajouter en ami">
+                            <span class="material-symbols">person_add</span>
+                          </button>
                         </div>
-                      } @else {
-                        <button class="challenge-btn" (click)="selectedUserToChallenge.set(user.id)" title="Défier">
-                          <span class="material-symbols">swords</span>
-                        </button>
-                      }
-                      <button class="icon-btn add-friend-btn" (click)="addFriendDirect(user.username)" title="Ajouter en ami">
-                        <span class="material-symbols">person_add</span>
-                      </button>
-                    </div>
+                      </div>
+                    } @empty {
+                      <div class="empty-list">Aucun autre joueur connecté.</div>
+                    }
                   </div>
-                } @empty {
-                  <div class="empty-list">Aucun autre joueur connecté.</div>
-                }
+                </div>
               </div>
-            </div>
-          </div>
-        }
+            }
+          }
       </div>
     </div>
   `,
@@ -674,10 +738,50 @@ import { GameService } from '../../services/game.service';
       font-weight: bold;
       color: var(--md-error);
     }
+    
+    .dm-chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+    .dm-chat-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--md-outline-variant);
+      background: var(--md-surface-container-low);
+    }
+    .dm-header-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dm-friend-name {
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--md-on-surface);
+    }
+    .clickable-friend {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+    .clickable-friend:hover .social-name {
+      color: var(--md-primary);
+    }
+    .dm-messages {
+      flex: 1;
+      overflow-y: auto;
+    }
   `]
 })
 export class ChatSidebarComponent {
   @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
+  @ViewChild('dmScrollContainer') private dmScrollContainer!: ElementRef;
 
   isOpen = false;
   activeTab: 'global' | 'room' = 'global';
@@ -686,6 +790,9 @@ export class ChatSidebarComponent {
   addFriendName = '';
   hasUnread = false;
   selectedUserToChallenge = signal<string | null>(null);
+
+  selectedFriendForChat = signal<string | null>(null);
+  privateNewMessage = '';
 
   username;
   currentRoom;
@@ -696,6 +803,17 @@ export class ChatSidebarComponent {
       return this.currentRoom()?.chatMessages || [];
     }
     return this.gameService.globalChat();
+  });
+
+  privateMessages = computed(() => {
+    const friend = this.selectedFriendForChat();
+    const me = this.username()?.toLowerCase();
+    if (!friend || !me) return [];
+    const friendLower = friend.toLowerCase();
+    return this.gameService.privateMessages().filter(m => 
+      (m.sender.toLowerCase() === me && m.recipient.toLowerCase() === friendLower) ||
+      (m.sender.toLowerCase() === friendLower && m.recipient.toLowerCase() === me)
+    );
   });
 
   constructor(private gameService: GameService) {
@@ -712,6 +830,10 @@ export class ChatSidebarComponent {
       this.currentMessages();
       setTimeout(() => this.scrollToBottom(), 50);
     });
+    effect(() => {
+      this.privateMessages();
+      setTimeout(() => this.scrollDmToBottom(), 50);
+    });
   }
 
   toggleChat() {
@@ -719,6 +841,7 @@ export class ChatSidebarComponent {
     if (this.isOpen) {
       this.hasUnread = false;
       setTimeout(() => this.scrollToBottom(), 50);
+      setTimeout(() => this.scrollDmToBottom(), 50);
     }
   }
 
@@ -730,6 +853,13 @@ export class ChatSidebarComponent {
       this.gameService.sendGlobalMessage(this.newMessage);
     }
     this.newMessage = '';
+  }
+
+  sendPrivateMessage() {
+    const friend = this.selectedFriendForChat();
+    if (!friend || !this.privateNewMessage.trim()) return;
+    this.gameService.sendPrivateMessage(friend, this.privateNewMessage);
+    this.privateNewMessage = '';
   }
 
   getAvatarColor(name: string): string {
@@ -787,6 +917,14 @@ export class ChatSidebarComponent {
     try {
       if (this.scrollContainer) {
         this.scrollContainer.nativeElement.scrollTop = this.scrollContainer.nativeElement.scrollHeight;
+      }
+    } catch (err) {}
+  }
+
+  private scrollDmToBottom(): void {
+    try {
+      if (this.dmScrollContainer) {
+        this.dmScrollContainer.nativeElement.scrollTop = this.dmScrollContainer.nativeElement.scrollHeight;
       }
     } catch (err) {}
   }

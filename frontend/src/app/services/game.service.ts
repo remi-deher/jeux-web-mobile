@@ -9,6 +9,14 @@ export interface ChatMessage {
   roomId?: string;
 }
 
+export interface PrivateMessage {
+  id: string;
+  sender: string;
+  recipient: string;
+  text: string;
+  timestamp: number;
+}
+
 export interface Player {
   id: string;
   username: string;
@@ -50,6 +58,7 @@ export class GameService {
   public onlineUsers = signal<{ id: string; username: string }[]>([]);
   public friends = signal<string[]>(JSON.parse(localStorage.getItem('friends') || '[]'));
   public incomingChallenges = signal<{ challengerSocketId: string; challengerUsername: string; gameType: string }[]>([]);
+  public privateMessages = signal<PrivateMessage[]>(JSON.parse(localStorage.getItem('privateMessages') || '[]'));
   
   constructor() {
     // Dynamically connect to the backend (port 3000 in dev/docker or via reverse proxy)
@@ -126,6 +135,19 @@ export class GameService {
     this.socket.on('challengeError', (msg: string) => {
       alert(msg);
     });
+
+    this.socket.on('privateMessage', (msg: PrivateMessage) => {
+      this.privateMessages.update(msgs => {
+        const updated = [...msgs, msg];
+        localStorage.setItem('privateMessages', JSON.stringify(updated));
+        return updated;
+      });
+    });
+  }
+
+  sendPrivateMessage(recipientUsername: string, text: string) {
+    if (!recipientUsername.trim() || !text.trim()) return;
+    this.socket.emit('privateMessage', { recipientUsername, text });
   }
 
   getSocketId(): string | undefined {

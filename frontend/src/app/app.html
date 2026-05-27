@@ -60,9 +60,9 @@
   </main>
 
   <!-- Bottom Navbar (hidden during a game) -->
-  @if (!currentRoom()) {
-    <app-bottom-navbar (nav)="navigate($event)"></app-bottom-navbar>
-  }
+  <!-- Bottom Navbar (always visible) -->
+  <app-bottom-navbar (nav)="navigate($event)"></app-bottom-navbar>
+
 
   <!-- Chat Sidebar (visible when not in a game) -->
   @if (!currentRoom()) {
