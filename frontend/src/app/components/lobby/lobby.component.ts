@@ -44,7 +44,15 @@ import { GameService } from '../../services/game.service';
           <div class="game-selector-grid">
             <button class="game-card" (click)="selectGame('connect4')">
               <div class="game-card-image">
-                <img src="assets/games/connect4.png" alt="Puissance 4" />
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="100" height="100" rx="24" fill="#2A2438"/>
+                  <rect x="15" y="15" width="70" height="70" rx="12" fill="#352F44"/>
+                  <circle cx="35" cy="35" r="8" fill="#5C5470"/>
+                  <circle cx="65" cy="35" r="8" fill="#5C5470"/>
+                  <circle cx="35" cy="65" r="8" fill="#D0BCFF"/>
+                  <circle cx="65" cy="65" r="8" fill="#F2B8B5"/>
+                  <circle cx="50" cy="50" r="8" fill="#D0BCFF"/>
+                </svg>
               </div>
               <div class="game-card-info">
                 <span class="game-name">Puissance 4</span>
@@ -54,7 +62,15 @@ import { GameService } from '../../services/game.service';
 
             <button class="game-card" (click)="selectGame('battleship')">
               <div class="game-card-image">
-                <img src="assets/games/battleship.png" alt="Bataille Navale" />
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="100" height="100" rx="24" fill="#1E2A38"/>
+                  <path d="M15 70 C30 65, 45 75, 60 70 C75 65, 85 70, 85 70" stroke="#3A506B" stroke-width="3" stroke-linecap="round"/>
+                  <path d="M15 50 C25 45, 40 55, 55 50 C70 45, 85 50, 85 50" stroke="#3A506B" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M30 55 L35 43 L60 43 L65 55 Z" fill="#D0BCFF"/>
+                  <rect x="42" y="32" width="12" height="12" fill="#A892EE" rx="2"/>
+                  <circle cx="70" cy="30" r="12" stroke="#EFB8C8" stroke-width="2" stroke-dasharray="3 3"/>
+                  <circle cx="70" cy="30" r="4" fill="#EFB8C8"/>
+                </svg>
               </div>
               <div class="game-card-info">
                 <span class="game-name">Bataille Navale</span>
@@ -64,7 +80,16 @@ import { GameService } from '../../services/game.service';
 
             <button class="game-card" (click)="selectGame('tictactoe')">
               <div class="game-card-image">
-                <img src="assets/games/tictactoe.png" alt="Morpion" />
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="100" height="100" rx="24" fill="#2E232F"/>
+                  <line x1="40" y1="20" x2="40" y2="80" stroke="#4A394E" stroke-width="4" stroke-linecap="round"/>
+                  <line x1="60" y1="20" x2="60" y2="80" stroke="#4A394E" stroke-width="4" stroke-linecap="round"/>
+                  <line x1="20" y1="40" x2="80" y2="40" stroke="#4A394E" stroke-width="4" stroke-linecap="round"/>
+                  <line x1="20" y1="60" x2="80" y2="60" stroke="#4A394E" stroke-width="4" stroke-linecap="round"/>
+                  <path d="M25 25 L35 35 M35 25 L25 35" stroke="#D0BCFF" stroke-width="4" stroke-linecap="round"/>
+                  <circle cx="50" cy="50" r="6" stroke="#EFB8C8" stroke-width="4"/>
+                  <path d="M65 65 L75 75 M75 65 L65 75" stroke="#D0BCFF" stroke-width="4" stroke-linecap="round"/>
+                </svg>
               </div>
               <div class="game-card-info">
                 <span class="game-name">Morpion</span>
@@ -74,7 +99,18 @@ import { GameService } from '../../services/game.service';
 
             <button class="game-card" (click)="selectGame('checkers')">
               <div class="game-card-image">
-                <img src="assets/games/checkers.png" alt="Jeu de Dames" />
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="100" height="100" rx="24" fill="#1C2E24"/>
+                  <rect x="20" y="20" width="20" height="20" fill="#2E4A3B"/>
+                  <rect x="60" y="20" width="20" height="20" fill="#2E4A3B"/>
+                  <rect x="40" y="40" width="20" height="20" fill="#2E4A3B"/>
+                  <rect x="20" y="60" width="20" height="20" fill="#2E4A3B"/>
+                  <rect x="60" y="60" width="20" height="20" fill="#2E4A3B"/>
+                  <circle cx="30" cy="30" r="8" fill="#141218" stroke="#CAC4D0" stroke-width="1.5"/>
+                  <circle cx="30" cy="30" r="4" fill="none" stroke="#CAC4D0" stroke-width="1"/>
+                  <circle cx="50" cy="50" r="8" fill="#D0BCFF" stroke="#381E72" stroke-width="1.5"/>
+                  <circle cx="50" cy="50" r="4" fill="none" stroke="#381E72" stroke-width="1"/>
+                </svg>
               </div>
               <div class="game-card-info">
                 <span class="game-name">Jeu de Dames</span>
@@ -84,7 +120,13 @@ import { GameService } from '../../services/game.service';
 
             <button class="game-card" (click)="selectGame('chess')">
               <div class="game-card-image">
-                <img src="assets/games/chess.png" alt="Échecs" />
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="100" height="100" rx="24" fill="#2E2B20"/>
+                  <path d="M35 75 C35 75 35 60 40 50 C45 40 40 30 50 25 C60 20 65 30 60 40 C55 50 65 50 65 60 C65 70 60 75 60 75 Z" fill="#D0BCFF" stroke="#381E72" stroke-width="2"/>
+                  <path d="M35 75 L65 75" stroke="#381E72" stroke-width="4" stroke-linecap="round"/>
+                  <circle cx="48" cy="35" r="2" fill="#381E72"/>
+                  <path d="M60 48 L53 50" stroke="#381E72" stroke-width="2" stroke-linecap="round"/>
+                </svg>
               </div>
               <div class="game-card-info">
                 <span class="game-name">Échecs</span>
@@ -429,12 +471,16 @@ import { GameService } from '../../services/game.service';
       overflow: hidden;
       border-radius: var(--md-radius-xl) var(--md-radius-xl) 0 0;
       background: var(--md-surface-container-high);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      box-sizing: border-box;
     }
 
-    .game-card-image img {
+    .game-card-image svg {
       width: 100%;
       height: 100%;
-      object-fit: cover;
       display: block;
     }
 
