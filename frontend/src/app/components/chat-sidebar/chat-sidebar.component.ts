@@ -8,7 +8,7 @@ import { GameService } from '../../services/game.service';
   standalone: true,
   imports: [FormsModule, DatePipe],
   template: `
-    <div class="chat-container" [class.open]="isOpen">
+    <div class="chat-wrapper" [class.open]="isOpen">
       <!-- Toggle Button -->
       <button class="chat-toggle" (click)="toggleChat()" [class.has-unread]="hasUnread && !isOpen">
         <span class="material-symbols">chat_bubble</span>
@@ -88,34 +88,23 @@ import { GameService } from '../../services/game.service';
     </div>
   `,
   styles: [`
-    .chat-container {
+    .chat-wrapper {
       position: fixed;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      width: 320px;
-      background: var(--md-surface-container-low);
-      border-left: 1px solid var(--md-outline-variant);
-      box-shadow: -4px 0 20px rgba(0,0,0,0.25);
+      inset: 0;
       z-index: 1000;
-      transform: translateX(100%);
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
       display: flex;
-      flex-direction: column;
+      justify-content: flex-end;
     }
 
-    .chat-container.open {
-      transform: translateX(0);
-    }
-
-    /* ---- Toggle Button ---- */
+    /* ---- Toggle FAB Button ---- */
     .chat-toggle {
-      position: absolute;
-      left: -52px;
-      top: 20px;
-      width: 44px;
-      height: 44px;
-      border-radius: 50% 0 0 50%;
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 56px;
+      height: 56px;
+      border-radius: var(--md-radius-xl);
       background: var(--md-primary-container);
       border: none;
       color: var(--md-on-primary-container);
@@ -123,12 +112,30 @@ import { GameService } from '../../services/game.service';
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.15s;
-      position: absolute;
+      box-shadow: var(--md-elevation-3);
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background 0.15s, opacity 0.2s, visibility 0.2s;
+      pointer-events: auto;
     }
 
     .chat-toggle:hover {
-      background: var(--md-secondary-container);
+      background: var(--md-primary);
+      color: var(--md-on-primary);
+      transform: scale(1.06);
+    }
+
+    .chat-toggle:active {
+      transform: scale(0.95);
+    }
+
+    .chat-toggle .material-symbols {
+      font-size: 24px;
+    }
+
+    /* Hide the button when chat is open */
+    .chat-wrapper.open .chat-toggle {
+      opacity: 0;
+      visibility: hidden;
+      transform: scale(0.5);
     }
 
     .unread-dot {
@@ -144,10 +151,21 @@ import { GameService } from '../../services/game.service';
 
     /* ---- Panel Layout ---- */
     .chat-panel {
+      width: 320px;
+      height: 100%;
+      background: var(--md-surface-container-low);
+      border-left: 1px solid var(--md-outline-variant);
+      box-shadow: -4px 0 20px rgba(0,0,0,0.25);
       display: flex;
       flex-direction: column;
-      height: 100%;
+      pointer-events: auto;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       color: var(--md-on-surface);
+    }
+
+    .chat-wrapper.open .chat-panel {
+      transform: translateX(0);
     }
 
     .chat-header {
