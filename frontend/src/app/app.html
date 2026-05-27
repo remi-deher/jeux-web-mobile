@@ -60,14 +60,12 @@
   </main>
 
   <!-- Bottom Navbar (hidden during a game) -->
-  <!-- Bottom Navbar (always visible) -->
-  <app-bottom-navbar (nav)="navigate($event)"></app-bottom-navbar>
-
-
-  <!-- Chat Sidebar (visible when not in a game) -->
   @if (!currentRoom()) {
-    <app-chat-sidebar></app-chat-sidebar>
+    <app-bottom-navbar (nav)="navigate($event)"></app-bottom-navbar>
   }
+
+  <!-- Chat Sidebar (always visible) -->
+  <app-chat-sidebar></app-chat-sidebar>
 
   <!-- Profile & Stats Modal -->
   @if (showProfileModal()) {
