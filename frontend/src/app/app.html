@@ -20,27 +20,29 @@
       </div>
     }
   }
-  <!-- Header / Navigation -->
-  <header class="app-header">
-    <div class="header-logo">
-      <span class="material-symbols logo-icon">sports_esports</span>
-      <h1>Playbox</h1>
-    </div>
-    
-    @if (username()) {
-      <div class="header-user">
-        <span class="user-badge clickable-badge" (click)="openProfileModal()" title="Voir le profil & statistiques">
-          <span class="material-symbols badge-icon">account_circle</span>
-          <span>{{ username() }}</span>
-        </span>
-        <button class="icon-btn theme-toggle-btn" (click)="toggleTheme()" title="Changer de thème">
-          <span class="material-symbols">
-            {{ theme() === 'dark' ? 'light_mode' : 'dark_mode' }}
-          </span>
-        </button>
+  <!-- Header / Navigation (hidden during a game) -->
+  @if (!currentRoom()) {
+    <header class="app-header">
+      <div class="header-logo">
+        <span class="material-symbols logo-icon">sports_esports</span>
+        <h1>Playbox</h1>
       </div>
-    }
-  </header>
+      
+      @if (username()) {
+        <div class="header-user">
+          <span class="user-badge clickable-badge" (click)="openProfileModal()" title="Voir le profil & statistiques">
+            <span class="material-symbols badge-icon">account_circle</span>
+            <span>{{ username() }}</span>
+          </span>
+          <button class="icon-btn theme-toggle-btn" (click)="toggleTheme()" title="Changer de thème">
+            <span class="material-symbols">
+              {{ theme() === 'dark' ? 'light_mode' : 'dark_mode' }}
+            </span>
+          </button>
+        </div>
+      }
+    </header>
+  }
 
   <!-- Main View Area -->
   <main class="app-main">

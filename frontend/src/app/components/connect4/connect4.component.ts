@@ -122,7 +122,7 @@ import { GameService } from '../../services/game.service';
                     (mouseleave)="hoveredColumn.set(null)"
                   >
                     @if (isMyTurn()) {
-                      <span class="material-symbols arrow-down" [class.red]="myPlayerNum() === 1" [class.yellow]="myPlayerNum() === 2">arrow_downward</span>
+                      <span class="material-symbols arrow-down" [class.red]="currentPlayerNum() === 1" [class.yellow]="currentPlayerNum() === 2">arrow_downward</span>
                     }
                   </button>
                 }
@@ -145,7 +145,7 @@ import { GameService } from '../../services/game.service';
                       } @else if (board()[rowIdx][colIdx] === 2) {
                         <div class="token token-yellow animate-drop"></div>
                       } @else if (previewRow() === rowIdx && hoveredColumn() === colIdx) {
-                        <div class="token ghost-token" [class.red]="myPlayerNum() === 1" [class.yellow]="myPlayerNum() === 2"></div>
+                      <div class="token ghost-token" [class.red]="currentPlayerNum() === 1" [class.yellow]="currentPlayerNum() === 2"></div>
                       } @else {
                         <div class="token-slot-empty"></div>
                       }
