@@ -686,3 +686,39 @@ input[type="text"]::placeholder {
     font-size: 17px;
   }
 }
+
+/* Variant Badges in Room List */
+.variant-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--md-radius-sm);
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+  vertical-align: middle;
+}
+.variant-badge.classic {
+  background: rgba(142, 85, 233, 0.15);
+  color: #c792ea;
+  border: 1px solid rgba(142, 85, 233, 0.3);
+}
+.variant-badge.branches {
+  background: rgba(0, 188, 212, 0.15);
+  color: #80deea;
+  border: 1px solid rgba(0, 188, 212, 0.3);
+}
+.variant-badge.grid {
+  background: rgba(255, 152, 0, 0.15);
+  color: #ffcc80;
+  border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+/* Active tab style in Dominos variant modal */
+.variant-tab-btn.active {
+  background: var(--md-primary) !important;
+  color: var(--md-on-primary) !important;
+  border-color: var(--md-primary) !important;
+}
+

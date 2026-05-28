@@ -19,8 +19,9 @@ import { GameHelpersService } from '../../services/game-helpers.service';
               {{ gameHelpersService.soundEnabled() ? 'volume_up' : 'volume_off' }}
             </span>
           </button>
-          <button class="help-btn" (click)="showRulesModal.set(true)" title="Règles du jeu">
-            <span class="material-symbols">help</span>
+          <button class="rules-btn" (click)="showRulesModal.set(true)" title="Voir les règles du jeu">
+            <span class="material-symbols">menu_book</span>
+            <span class="rules-btn-label">Règles</span>
           </button>
           <button class="help-btn" (click)="toggleFullscreen()" [title]="isFullscreen() ? 'Quitter le plein écran' : 'Plein écran'">
             <span class="material-symbols">
@@ -258,22 +259,41 @@ import { GameHelpersService } from '../../services/game-helpers.service';
 
       </div>
 
-      <!-- Rules Help Modal Overlay -->
+      <!-- Rules Modal -->
       @if (showRulesModal()) {
         <div class="rules-modal-overlay" (click)="showRulesModal.set(false)">
-          <div class="rules-modal-card glass-card" (click)="$event.stopPropagation()">
+          <div class="rules-modal-card" (click)="$event.stopPropagation()">
+            <!-- Drag handle (mobile only) -->
+            <div class="modal-handle-bar"></div>
+
+            <!-- Header -->
             <div class="rules-modal-header">
-              <h3>Règles : {{ gameTitle }}</h3>
-              <button class="close-rules-btn" (click)="showRulesModal.set(false)">
+              <div class="rules-modal-title">
+                <span class="material-symbols rules-modal-icon">menu_book</span>
+                <h3>{{ gameTitle }} — Règles</h3>
+              </div>
+              <button class="close-rules-btn" (click)="showRulesModal.set(false)" aria-label="Fermer">
                 <span class="material-symbols">close</span>
               </button>
             </div>
+
+            <!-- Rules list -->
             <div class="rules-modal-body">
-              <ul>
+              <ol class="rules-list">
                 @for (rule of rules; track rule) {
-                  <li>{{ rule }}</li>
+                  <li class="rules-item">
+                    <span class="rules-item-text">{{ rule }}</span>
+                  </li>
                 }
-              </ul>
+              </ol>
+            </div>
+
+            <!-- Footer close -->
+            <div class="rules-modal-footer">
+              <button class="primary-btn" (click)="showRulesModal.set(false)">
+                <span class="material-symbols">check</span>
+                <span>Compris !</span>
+              </button>
             </div>
           </div>
         </div>
@@ -631,73 +651,198 @@ import { GameHelpersService } from '../../services/game-helpers.service';
       font-size: 20px;
     }
 
+    /* ── Rules button (visible pill) ─────────────────────────────── */
+    .rules-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant);
+      color: var(--md-on-surface-variant);
+      border-radius: var(--md-radius-full);
+      padding: 5px 12px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .rules-btn:hover {
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+      border-color: var(--md-primary);
+    }
+    .rules-btn .material-symbols { font-size: 17px; }
+
+    /* Hide label on very small screens, keep icon only */
+    @media (max-width: 380px) {
+      .rules-btn-label { display: none; }
+      .rules-btn { padding: 5px 8px; }
+    }
+
+    /* ── Rules Modal ──────────────────────────────────────────────── */
     .rules-modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(4px);
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       display: flex;
       justify-content: center;
-      align-items: center;
+      align-items: center;    /* centered on desktop */
       z-index: 10000;
-      padding: calc(20px + env(safe-area-inset-top,    0px))
-               calc(20px + env(safe-area-inset-right,  0px))
-               calc(20px + env(safe-area-inset-bottom, 0px))
-               calc(20px + env(safe-area-inset-left,   0px));
-      box-sizing: border-box;
-      animation: modalOverlayFadeIn 0.3s ease-out forwards;
-    }
-    .rules-modal-card {
-      max-width: 500px;
-      width: 100%;
       padding: 24px;
-      margin-bottom: 0;
-      background: var(--md-surface-container-high) !important;
-      border-radius: var(--md-radius-xl);
-      color: var(--md-on-surface);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      animation: modalZoomIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      box-sizing: border-box;
+      animation: modalOverlayFadeIn 0.2s ease-out forwards;
     }
+
+    .rules-modal-card {
+      width: 100%;
+      max-width: 520px;
+      max-height: 80dvh;
+      background: var(--md-surface-container-high);
+      border-radius: var(--md-radius-xl);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 0 1px var(--md-outline-variant);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalZoomIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    /* drag handle bar (visible on mobile only) */
+    .modal-handle-bar {
+      display: none;
+      width: 40px;
+      height: 4px;
+      background: var(--md-outline-variant);
+      border-radius: 2px;
+      margin: 12px auto 0;
+      flex-shrink: 0;
+    }
+
     .rules-modal-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
+      padding: 20px 20px 16px;
       border-bottom: 1px solid var(--md-outline-variant);
-      padding-bottom: 12px;
+      flex-shrink: 0;
+    }
+    .rules-modal-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .rules-modal-icon {
+      font-size: 22px;
+      color: var(--md-primary);
     }
     .rules-modal-header h3 {
       margin: 0;
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 700;
+      color: var(--md-on-surface);
     }
     .close-rules-btn {
-      background: none;
-      border: none;
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant);
       color: var(--md-on-surface-variant);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 4px;
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
-      transition: background 0.2s;
+      transition: all 0.15s;
+      flex-shrink: 0;
     }
     .close-rules-btn:hover {
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--md-surface-container-highest);
+      color: var(--md-on-surface);
     }
+    .close-rules-btn .material-symbols { font-size: 18px; }
+
     .rules-modal-body {
-      font-size: 14px;
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .rules-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      counter-reset: rules-counter;
+    }
+    .rules-item {
+      counter-increment: rules-counter;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 11px 14px;
+      background: var(--md-surface-container);
+      border-radius: var(--md-radius-md);
+      border-left: 3px solid var(--md-primary);
+    }
+    .rules-item::before {
+      content: counter(rules-counter);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--md-on-primary);
+      background: var(--md-primary);
+      min-width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .rules-item-text {
+      font-size: 13px;
       line-height: 1.6;
       color: var(--md-on-surface-variant);
-      text-align: left;
     }
-    .rules-modal-body ul {
-      margin: 10px 0;
-      padding-left: 20px;
+
+    .rules-modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--md-outline-variant);
+      display: flex;
+      justify-content: center;
+      flex-shrink: 0;
     }
-    .rules-modal-body li {
-      margin-bottom: 8px;
+    .rules-modal-footer .primary-btn {
+      min-width: 140px;
+      justify-content: center;
+    }
+
+    /* ── Mobile: bottom sheet ─────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .rules-modal-overlay {
+        align-items: flex-end;
+        padding: 0;
+      }
+      .rules-modal-card {
+        max-width: 100%;
+        border-radius: 24px 24px 0 0;
+        max-height: 88dvh;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        animation: slideUpModal 0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
+      }
+      .modal-handle-bar { display: block; }
+      .rules-modal-header { padding-top: 14px; }
+    }
+
+    @keyframes slideUpModal {
+      from { transform: translateY(40px); opacity: 0; }
+      to   { transform: translateY(0);   opacity: 1; }
     }
 
     /* Emoji Bar */

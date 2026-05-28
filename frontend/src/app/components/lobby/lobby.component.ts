@@ -293,7 +293,14 @@ import { gameLabel } from '../../constants/game-labels';
               <div class="rooms-list">
                 @for (room of filteredRooms(); track room.id) {
                   <div class="room-item">
-                    <div class="room-code">{{ room.id }}</div>
+                    <div class="room-code">
+                      {{ room.id }}
+                      @if (room.variant) {
+                        <span class="variant-badge" [class]="room.variant">
+                          {{ room.variant === 'classic' ? 'Classique' : room.variant === 'branches' ? 'Branches' : 'Grille 2D' }}
+                        </span>
+                      }
+                    </div>
                     <div class="room-players">
                       <span class="material-symbols players-icon">group</span>
                       {{ room.playersCount }}/2
@@ -539,6 +546,75 @@ import { gameLabel } from '../../constants/game-labels';
           </div>
         </div>
       }
+      @if (showDominosVariantModal()) {
+        <div class="modal-overlay">
+          <div class="modal-card" style="max-width: 480px; width: 90%;">
+            <div class="modal-header">
+              <h3>Variante de Dominos</h3>
+              <button class="icon-btn" (click)="showDominosVariantModal.set(false)">
+                <span class="material-symbols">close</span>
+              </button>
+            </div>
+            <p class="modal-desc">Choisissez la variante et découvrez ses règles.</p>
+
+            <div class="variant-tabs" style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <button type="button" class="variant-tab-btn" [class.active]="dominosVariant() === 'classic'" (click)="dominosVariant.set('classic')" style="flex: 1; padding: 10px; border-radius: var(--md-radius-md); border: 1px solid var(--md-outline-variant); background: transparent; cursor: pointer; color: var(--md-on-surface); font-weight: 600; font-family: inherit;">
+                Classique
+              </button>
+              <button type="button" class="variant-tab-btn" [class.active]="dominosVariant() === 'branches'" (click)="dominosVariant.set('branches')" style="flex: 1; padding: 10px; border-radius: var(--md-radius-md); border: 1px solid var(--md-outline-variant); background: transparent; cursor: pointer; color: var(--md-on-surface); font-weight: 600; font-family: inherit;">
+                Branches
+              </button>
+              <button type="button" class="variant-tab-btn" [class.active]="dominosVariant() === 'grid'" (click)="dominosVariant.set('grid')" style="flex: 1; padding: 10px; border-radius: var(--md-radius-md); border: 1px solid var(--md-outline-variant); background: transparent; cursor: pointer; color: var(--md-on-surface); font-weight: 600; font-family: inherit;">
+                Grille 2D
+              </button>
+            </div>
+
+            <!-- Rules Explanation panel -->
+            <div class="variant-rules-desc" style="padding: 14px; border-radius: var(--md-radius-md); background: var(--md-surface-container-highest); text-align: left; min-height: 120px; font-size: 13px; line-height: 1.6; color: var(--md-on-surface-variant); border: 1px solid var(--md-outline-variant);">
+              @if (dominosVariant() === 'classic') {
+                <strong style="color: var(--md-primary); display: block; margin-bottom: 4px; font-size: 14px;">Domino Classique :</strong>
+                <span>Le jeu de domino standard. Les joueurs alignent les tuiles les unes après les autres en formant une seule chaîne linéaire. Seules les deux extrémités de la ligne sont jouables.</span>
+              } @else if (dominosVariant() === 'branches') {
+                <strong style="color: var(--md-primary); display: block; margin-bottom: 4px; font-size: 14px;">Branches Doubles (Junctions) :</strong>
+                <span>Chaque fois qu'un domino double (ex. 6-6, 5-5) est joué, il ouvre une nouvelle branche perpendiculaire (haut et bas). Les joueurs peuvent poser leurs tuiles sur n'importe quel bout ouvert de cette structure en arbre !</span>
+              } @else if (dominosVariant() === 'grid') {
+                <strong style="color: var(--md-primary); display: block; margin-bottom: 4px; font-size: 14px;">Grille 2D (Puzzle) :</strong>
+                <span>Les dominos sont posés librement sur une grille plate en deux dimensions. Pour poser un domino, celui-ci doit toucher au moins un domino existant, et TOUTES ses faces adjacentes doivent correspondre parfaitement en nombre de points !</span>
+              }
+            </div>
+
+            <!-- Configuration (Private toggle or Player Names) -->
+            @if (isLocalDominos()) {
+              <form (submit)="confirmDominosCreate(); $event.preventDefault()" style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+                <div class="input-col" style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 12px; font-weight: 500; color: var(--md-on-surface-variant); text-align: left;">Pseudonyme Joueur 1</label>
+                  <input type="text" [(ngModel)]="localPlayer1Name" name="localPlayer1Name" required style="width: 100%; box-sizing: border-box;" />
+                </div>
+                <div class="input-col" style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 12px; font-weight: 500; color: var(--md-on-surface-variant); text-align: left;">Pseudonyme Joueur 2</label>
+                  <input type="text" [(ngModel)]="localPlayer2Name" name="localPlayer2Name" required style="width: 100%; box-sizing: border-box;" />
+                </div>
+                <div class="modal-actions" style="margin-top: 8px;">
+                  <button type="button" class="outlined-btn" (click)="showDominosVariantModal.set(false)">Annuler</button>
+                  <button type="submit" class="primary-btn">Lancer la partie</button>
+                </div>
+              </form>
+            } @else {
+              <!-- Online game option -->
+              <div style="display: flex; flex-direction: column; gap: 16px; width: 100%;">
+                <label class="checkbox-row" style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; user-select: none;">
+                  <input type="checkbox" [checked]="isPrivateChoice()" (change)="isPrivateChoice.set(!isPrivateChoice())" />
+                  <span>Rendre la partie privée (accessible uniquement par code)</span>
+                </label>
+                <div class="modal-actions">
+                  <button type="button" class="outlined-btn" (click)="showDominosVariantModal.set(false)">Annuler</button>
+                  <button type="button" class="primary-btn" (click)="confirmDominosCreate()">Créer le salon</button>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
     </div>
   `
 })
@@ -554,6 +630,10 @@ export class LobbyComponent {
   showLocalNamesModal = signal<boolean>(false);
   localPlayer1Name = '';
   localPlayer2Name = '';
+
+  showDominosVariantModal = signal<boolean>(false);
+  dominosVariant = signal<'classic' | 'branches' | 'grid'>('classic');
+  isLocalDominos = signal<boolean>(false);
 
   username;
   roomsList;
@@ -599,7 +679,13 @@ export class LobbyComponent {
 
   openCreateModal() {
     this.isPrivateChoice.set(false);
-    this.showCreateModal.set(true);
+    if (this.selectedGame() === 'dominos') {
+      this.isLocalDominos.set(false);
+      this.dominosVariant.set('classic');
+      this.showDominosVariantModal.set(true);
+    } else {
+      this.showCreateModal.set(true);
+    }
   }
 
   closeCreateModal() {
@@ -613,7 +699,13 @@ export class LobbyComponent {
   createLocalRoom() {
     this.localPlayer1Name = this.username() || 'Joueur 1';
     this.localPlayer2Name = 'Joueur 2';
-    this.showLocalNamesModal.set(true);
+    if (this.selectedGame() === 'dominos') {
+      this.isLocalDominos.set(true);
+      this.dominosVariant.set('classic');
+      this.showDominosVariantModal.set(true);
+    } else {
+      this.showLocalNamesModal.set(true);
+    }
   }
 
   confirmCreateLocalRoom() {
@@ -632,4 +724,12 @@ export class LobbyComponent {
     }
   }
 
+  confirmDominosCreate() {
+    if (this.isLocalDominos()) {
+      this.gameService.createLocalRoom('dominos', this.localPlayer1Name, this.localPlayer2Name, this.dominosVariant());
+    } else {
+      this.gameService.createRoom('dominos', this.isPrivateChoice(), this.dominosVariant());
+    }
+    this.showDominosVariantModal.set(false);
+  }
 }

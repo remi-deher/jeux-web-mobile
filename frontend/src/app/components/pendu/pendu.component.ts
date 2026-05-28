@@ -13,7 +13,7 @@ const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
   template: `
     <app-game-layout
       gameTitle="Le Pendu"
-      [rules]="rules"
+      [rules]="rules()"
       [room]="room()"
       [isPlaying]="isPlaying()"
       [isMyTurn]="isMyTurn()"
@@ -434,14 +434,22 @@ export class PenduComponent {
   private gameService = inject(GameService);
   private session = injectGameSession('pendu');
 
-  readonly rules = [
-    'Le serveur choisit un mot secret au hasard dans le dictionnaire.',
-    'À chaque tour, le joueur actif propose une lettre via le clavier virtuel.',
-    'Chaque lettre correcte rapporte 10 points par occurrence dans le mot.',
-    'Chaque erreur retire 5 points et dessine une partie du pendu.',
-    'Après 7 erreurs, le pendu est complet et la partie s\'arrête.',
-    'Deviner le mot entier : le joueur avec le plus de points gagne !'
-  ];
+  rules = computed(() => {
+    const gs = this.gs();
+    const wordLen: number | undefined = gs?.word?.length;
+    const maxErr: number = gs?.maxErrors ?? 7;
+    const wordInfo = wordLen
+      ? `Mot mystère : ${wordLen} lettre${wordLen > 1 ? 's' : ''}.`
+      : 'Le serveur choisit un mot secret au hasard dans le dictionnaire.';
+    return [
+      wordInfo,
+      'À chaque tour, le joueur actif propose une lettre via le clavier virtuel.',
+      'Lettre correcte : +10 points par occurrence dans le mot.',
+      'Lettre incorrecte : −5 points + une partie du pendu dessinée.',
+      `${maxErr} erreurs maximum — pendu complet = fin de partie.`,
+      'Le joueur avec le plus de points gagne !'
+    ];
+  });
 
   readonly alphabet = ALPHABET;
 
