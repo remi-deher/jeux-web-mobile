@@ -143,6 +143,14 @@ export class PongComponent implements AfterViewInit, OnDestroy {
   // ── Canvas & render loop ────────────────────────────────────────────────────
   private resizeObserver: ResizeObserver | null = null;
   private rafId: number | null = null;
+  private visibilityHandler = () => {
+    if (document.hidden) {
+      if (this.rafId !== null) { cancelAnimationFrame(this.rafId); this.rafId = null; }
+    } else if (this.rafId === null) {
+      const resume = () => { this.tickInterpolation(); this.drawFrame(); this.rafId = requestAnimationFrame(resume); };
+      this.rafId = requestAnimationFrame(resume);
+    }
+  };
 
   // ── Server-authoritative snapshot ──────────────────────────────────────────
   private lastState: any  = null;
@@ -291,6 +299,9 @@ export class PongComponent implements AfterViewInit, OnDestroy {
       this.rafId = requestAnimationFrame(loop);
     };
     this.rafId = requestAnimationFrame(loop);
+
+    // ── Pause loop when tab is hidden (saves CPU/GPU) ────────────────────────
+    document.addEventListener('visibilitychange', this.visibilityHandler);
   }
 
   ngOnDestroy() {
@@ -299,6 +310,7 @@ export class PongComponent implements AfterViewInit, OnDestroy {
     if (this.keyboardInterval) clearInterval(this.keyboardInterval);
     document.removeEventListener('keydown', this.keydownHandler);
     document.removeEventListener('keyup',   this.keyupHandler);
+    document.removeEventListener('visibilitychange', this.visibilityHandler);
   }
 
   // ── Input helpers ───────────────────────────────────────────────────────────

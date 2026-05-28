@@ -1,6 +1,7 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { SoundService } from './sound.service';
+import { gameLabel } from '../constants/game-labels';
 
 import { ChatMessage, PrivateMessage, Player, Room, RoomListEntry } from '../models/game.models';
 
@@ -55,6 +56,27 @@ export class GameService {
           }
         });
       }
+
+      // ── Reconnexion automatique après coupure réseau ──────────────────────
+      // socket.io-client reconnecte tout seul, mais il faut ré-enregistrer
+      // le username et re-rejoindre la salle éventuellement en cours.
+      this.socket.io.on('reconnect', () => {
+        const user = this.username();
+        if (user) {
+          this.socket.emit('registerUsername', user);
+        }
+        const roomId = localStorage.getItem('roomId');
+        if (roomId && user) {
+          this.socket.emit('reconnectRoom', { roomId, username: user }, (res: any) => {
+            if (res?.success) {
+              this.currentRoom.set(res.room);
+            } else {
+              localStorage.removeItem('roomId');
+              this.currentRoom.set(null);
+            }
+          });
+        }
+      });
 
     this.socket.on('roomsList', (list: RoomListEntry[]) => {
       this.roomsList.set(list);
@@ -367,22 +389,11 @@ export class GameService {
 
   shareInvitationLink(room: Room) {
     const url = `${window.location.origin}/?join=${room.id}`;
-    const gameNames: { [key: string]: string } = {
-      connect4: 'Puissance 4',
-      battleship: 'Bataille Navale',
-      tictactoe: 'Morpion',
-      checkers: 'Jeu de Dames',
-      chess: 'Échecs',
-      gomoku: 'Gomoku',
-      othello: 'Othello',
-      pong: 'Pong',
-      pendu: 'Le Pendu'
-    };
-    const gameLabel = gameNames[room.gameType] || room.gameType;
+    const label = gameLabel(room.gameType);
     if (navigator.share) {
       navigator.share({
         title: 'Rejoins ma partie sur Playbox',
-        text: `Rejoins mon salon de jeu ${gameLabel} sur Playbox !`,
+        text: `Rejoins mon salon de jeu ${label} sur Playbox !`,
         url: url
       }).catch(err => console.log('Error sharing:', err));
     } else {
@@ -394,22 +405,9 @@ export class GameService {
 
   private showNativeNotification(challengerUsername: string, gameType: string) {
     if ('Notification' in window && Notification.permission === 'granted') {
-      const gameNames: { [key: string]: string } = {
-        connect4: 'Puissance 4',
-        battleship: 'Bataille Navale',
-        tictactoe: 'Morpion',
-        checkers: 'Jeu de Dames',
-        chess: 'Échecs',
-        gomoku: 'Gomoku',
-        othello: 'Othello',
-        pong: 'Pong',
-        pendu: 'Le Pendu'
-      };
-      const gameLabel = gameNames[gameType] || gameType;
-      
       if (document.hidden) {
-        new Notification("Nouveau défi sur Playbox", {
-          body: `${challengerUsername} vous défie au jeu ${gameLabel} ! Cliquez pour jouer.`,
+        new Notification('Nouveau défi sur Playbox', {
+          body: `${challengerUsername} vous défie au jeu ${gameLabel(gameType)} ! Cliquez pour jouer.`,
           icon: '/favicon.ico'
         });
       }

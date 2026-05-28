@@ -1,4 +1,4 @@
-import { Component, ElementRef, Input, ViewChild, computed, effect, signal } from '@angular/core';
+import { Component, ElementRef, Input, OnDestroy, ViewChild, computed, effect, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { GameService } from '../../services/game.service';
@@ -176,9 +176,9 @@ import { GameChatComponent } from './game-chat.component';
   
                 <!-- Other Online Users -->
                 <div class="social-section">
-                  <h4>Joueurs connectés ({{ getOtherOnlineUsersCount() }})</h4>
+                  <h4>Joueurs connectés ({{ otherOnlineUsers().length }})</h4>
                   <div class="online-users-list">
-                    @for (user of getOtherOnlineUsers(); track user.id) {
+                    @for (user of otherOnlineUsers(); track user.id) {
                       <div class="social-item">
                         <span class="social-name">{{ user.username }}</span>
                         <div class="social-item-actions" style="display: flex; align-items: center; gap: 8px;">
@@ -768,7 +768,7 @@ import { GameChatComponent } from './game-chat.component';
     }
   `]
 })
-export class ChatSidebarComponent {
+export class ChatSidebarComponent implements OnDestroy {
   @Input() desktopVisible: boolean = true;
 
   @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
@@ -788,6 +788,26 @@ export class ChatSidebarComponent {
   username;
   currentRoom;
   friends;
+
+  otherOnlineUsers = computed(() => {
+    const me = this.gameService.username()?.toLowerCase() || '';
+    const friendsLower = this.gameService.friends().map((f: string) => f.toLowerCase());
+    return this.gameService.onlineUsers().filter(u => {
+      const uLower = u.username.toLowerCase();
+      return uLower !== me && !friendsLower.includes(uLower);
+    });
+  });
+
+  private openFriendChatHandler = (e: Event) => {
+    const friend = (e as CustomEvent).detail;
+    if (friend) {
+      this.sidebarTab = 'social';
+      this.selectedFriendForChat.set(friend);
+      this.isOpen = true;
+      this.hasUnread = false;
+      setTimeout(() => this.scrollDmToBottom(), 50);
+    }
+  };
 
   currentMessages = computed(() => {
     if (this.activeTab === 'room' && this.currentRoom()) {
@@ -827,16 +847,13 @@ export class ChatSidebarComponent {
     });
 
     if (typeof window !== 'undefined') {
-      window.addEventListener('open-friend-chat', (e: any) => {
-        const friend = e.detail;
-        if (friend) {
-          this.sidebarTab = 'social';
-          this.selectedFriendForChat.set(friend);
-          this.isOpen = true;
-          this.hasUnread = false;
-          setTimeout(() => this.scrollDmToBottom(), 50);
-        }
-      });
+      window.addEventListener('open-friend-chat', this.openFriendChatHandler);
+    }
+  }
+
+  ngOnDestroy() {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('open-friend-chat', this.openFriendChatHandler);
     }
   }
 
@@ -880,19 +897,6 @@ export class ChatSidebarComponent {
 
   getOnlineUserByName(username: string) {
     return this.gameService.onlineUsers().find(u => u.username.toLowerCase() === username.toLowerCase());
-  }
-
-  getOtherOnlineUsers() {
-    const me = this.username()?.toLowerCase() || '';
-    const friendsLower = this.friends().map(f => f.toLowerCase());
-    return this.gameService.onlineUsers().filter(u => {
-      const uLower = u.username.toLowerCase();
-      return uLower !== me && !friendsLower.includes(uLower);
-    });
-  }
-
-  getOtherOnlineUsersCount() {
-    return this.getOtherOnlineUsers().length;
   }
 
   addFriend() {

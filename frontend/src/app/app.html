@@ -20,6 +20,7 @@
       </div>
     }
   }
+
   <!-- Header / Navigation (hidden during a game) -->
   @if (!currentRoom()) {
     <header class="app-header">
@@ -76,23 +77,23 @@
         </div>
       }
     } @else if (getGameType() === 'connect4') {
-      <app-connect4></app-connect4>
+      @defer (on immediate) { <app-connect4></app-connect4> }
     } @else if (getGameType() === 'battleship') {
-      <app-battleship></app-battleship>
+      @defer (on immediate) { <app-battleship></app-battleship> }
     } @else if (getGameType() === 'tictactoe') {
-      <app-tictactoe></app-tictactoe>
+      @defer (on immediate) { <app-tictactoe></app-tictactoe> }
     } @else if (getGameType() === 'checkers') {
-      <app-checkers></app-checkers>
+      @defer (on immediate) { <app-checkers></app-checkers> }
     } @else if (getGameType() === 'chess') {
-      <app-chess></app-chess>
+      @defer (on immediate) { <app-chess></app-chess> }
     } @else if (getGameType() === 'gomoku') {
-      <app-gomoku></app-gomoku>
+      @defer (on immediate) { <app-gomoku></app-gomoku> }
     } @else if (getGameType() === 'othello') {
-      <app-othello></app-othello>
+      @defer (on immediate) { <app-othello></app-othello> }
     } @else if (getGameType() === 'pong') {
-      <app-pong></app-pong>
+      @defer (on immediate) { <app-pong></app-pong> }
     } @else if (getGameType() === 'pendu') {
-      <app-pendu></app-pendu>
+      @defer (on immediate) { <app-pendu></app-pendu> }
     }
   </main>
 
@@ -134,14 +135,14 @@
             </form>
           </div>
 
-          <!-- Stats -->
+          <!-- Stats — utilise le computed signal statsList() -->
           <div class="profile-section">
             <h4 class="section-title">
               <span class="material-symbols">bar_chart</span>
               Vos statistiques
             </h4>
             <div class="stats-list">
-              @for (stat of getStatsList(); track stat.name) {
+              @for (stat of statsList(); track stat.name) {
                 <div class="stat-item">
                   <div class="stat-label">
                     <span class="stat-dot" [style.background-color]="stat.color"></span>

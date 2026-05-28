@@ -1,6 +1,6 @@
 import { BottomNavbarComponent } from './components/bottom-navbar/bottom-navbar.component';
 import { Router } from '@angular/router';
-import { Component, effect, signal } from '@angular/core';
+import { Component, computed, effect, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { GameService } from './services/game.service';
 import { LobbyComponent } from './components/lobby/lobby.component';
@@ -15,6 +15,7 @@ import { GomokuComponent } from './components/gomoku/gomoku.component';
 import { OthelloComponent } from './components/othello/othello.component';
 import { PongComponent } from './components/pong/pong.component';
 import { PenduComponent } from './components/pendu/pendu.component';
+import { gameLabel } from './constants/game-labels';
 
 @Component({
   selector: 'app-root',
@@ -53,6 +54,26 @@ export class App {
   theme = signal<'dark' | 'light'>('dark');
   chatVisible = signal<boolean>(true);
 
+  /**
+   * Stats computed uniquement quand le modal profil est ouvert.
+   * Évite de relire le localStorage à chaque cycle de détection de changement.
+   */
+  statsList = computed(() => {
+    if (!this.showProfileModal()) return [];
+    const read = (key: string) => localStorage.getItem(key) ?? '0';
+    return [
+      { name: 'Puissance 4',    color: '#9D8EFF', wins: read('stats_connect4_wins'),   losses: read('stats_connect4_losses'),   draws: read('stats_connect4_draws')   },
+      { name: 'Bataille Navale',color: '#C08DFC', wins: read('stats_battleship_wins'), losses: read('stats_battleship_losses'), draws: read('stats_battleship_draws') },
+      { name: 'Morpion',        color: '#FF8A80', wins: read('stats_tictactoe_wins'),  losses: read('stats_tictactoe_losses'),  draws: read('stats_tictactoe_draws')  },
+      { name: 'Jeu de Dames',   color: '#69F0AE', wins: read('stats_checkers_wins'),   losses: read('stats_checkers_losses'),   draws: read('stats_checkers_draws')   },
+      { name: 'Échecs',         color: '#FFD54F', wins: read('stats_chess_wins'),      losses: read('stats_chess_losses'),      draws: read('stats_chess_draws')      },
+      { name: 'Gomoku',         color: '#FFAB40', wins: read('stats_gomoku_wins'),     losses: read('stats_gomoku_losses'),     draws: read('stats_gomoku_draws')     },
+      { name: 'Othello',        color: '#00B0FF', wins: read('stats_othello_wins'),    losses: read('stats_othello_losses'),    draws: read('stats_othello_draws')    },
+      { name: 'Pong',           color: '#00E676', wins: read('stats_pong_wins'),       losses: read('stats_pong_losses'),       draws: read('stats_pong_draws')       },
+      { name: 'Pendu',          color: '#FFEA00', wins: read('stats_pendu_wins'),      losses: read('stats_pendu_losses'),      draws: read('stats_pendu_draws')      },
+    ];
+  });
+
   constructor(private gameService: GameService, private router: Router) {
     this.username = this.gameService.username;
     this.currentRoom = this.gameService.currentRoom;
@@ -60,10 +81,9 @@ export class App {
     this.activeView = this.gameService.activeView;
     this.activeGame = this.gameService.activeGame;
 
-    // Prompt PWA web notification permissions
     this.gameService.requestNotificationPermission();
 
-    // Check for direct join URL parameter (e.g. ?join=ABCXYZ)
+    // Direct join via URL ?join=ABCXYZ
     const params = new URLSearchParams(window.location.search);
     const joinCode = params.get('join') || new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('join');
     if (joinCode) {
@@ -78,42 +98,25 @@ export class App {
     }
 
     effect(() => {
-      const t = this.theme();
-      if (t === 'light') {
-        document.body.classList.add('light-theme');
-      } else {
-        document.body.classList.remove('light-theme');
-      }
+      document.body.classList.toggle('light-theme', this.theme() === 'light');
     });
 
     effect(() => {
       const active = this.activeGame() || this.currentRoom()?.gameType;
       document.body.classList.remove(
-        'theme-connect4', 'theme-battleship', 'theme-chess', 'theme-checkers', 
+        'theme-connect4', 'theme-battleship', 'theme-chess', 'theme-checkers',
         'theme-tictactoe', 'theme-gomoku', 'theme-othello', 'theme-pong', 'theme-pendu'
       );
-      if (active) {
-        document.body.classList.add(`theme-${active}`);
-      }
+      if (active) document.body.classList.add(`theme-${active}`);
     });
   }
 
   navigate(destination: string) {
     switch (destination) {
-      case 'games':
-        this.activeGame.set(null);
-        this.activeView.set('games');
-        break;
-      case 'messages':
-        // Hide any active game room, keep chat sidebar visible.
-        this.currentRoom.set(null);
-        break;
-      case 'friends':
-        this.activeView.set('friends');
-        break;
-      case 'profile':
-        this.openProfileModal();
-        break;
+      case 'games':   this.activeGame.set(null); this.activeView.set('games');   break;
+      case 'messages': this.currentRoom.set(null);                                break;
+      case 'friends': this.activeView.set('friends');                             break;
+      case 'profile': this.openProfileModal();                                    break;
     }
   }
 
@@ -125,19 +128,9 @@ export class App {
     this.gameService.declineChallenge(challengerSocketId);
   }
 
+  /** Utilise la constante centrale GAME_LABELS */
   getGameLabel(gameType: string): string {
-    const gameNames: { [key: string]: string } = {
-      connect4: 'Puissance 4',
-      battleship: 'Bataille Navale',
-      tictactoe: 'Morpion',
-      checkers: 'Jeu de Dames',
-      chess: 'Échecs',
-      gomoku: 'Gomoku',
-      othello: 'Othello',
-      pong: 'Pong',
-      pendu: 'Le Pendu'
-    };
-    return gameNames[gameType] || gameType;
+    return gameLabel(gameType);
   }
 
   getGameType(): string {
@@ -170,73 +163,5 @@ export class App {
       this.gameService.setUsername(this.newUsername.trim());
       this.closeProfileModal();
     }
-  }
-
-  getStatsList() {
-    return [
-      {
-        name: 'Puissance 4',
-        color: '#9D8EFF',
-        wins: localStorage.getItem('stats_connect4_wins') || '0',
-        losses: localStorage.getItem('stats_connect4_losses') || '0',
-        draws: localStorage.getItem('stats_connect4_draws') || '0'
-      },
-      {
-        name: 'Bataille Navale',
-        color: '#C08DFC',
-        wins: localStorage.getItem('stats_battleship_wins') || '0',
-        losses: localStorage.getItem('stats_battleship_losses') || '0',
-        draws: localStorage.getItem('stats_battleship_draws') || '0'
-      },
-      {
-        name: 'Morpion',
-        color: '#FF8A80',
-        wins: localStorage.getItem('stats_tictactoe_wins') || '0',
-        losses: localStorage.getItem('stats_tictactoe_losses') || '0',
-        draws: localStorage.getItem('stats_tictactoe_draws') || '0'
-      },
-      {
-        name: 'Jeu de Dames',
-        color: '#69F0AE',
-        wins: localStorage.getItem('stats_checkers_wins') || '0',
-        losses: localStorage.getItem('stats_checkers_losses') || '0',
-        draws: localStorage.getItem('stats_checkers_draws') || '0'
-      },
-      {
-        name: 'Échecs',
-        color: '#FFD54F',
-        wins: localStorage.getItem('stats_chess_wins') || '0',
-        losses: localStorage.getItem('stats_chess_losses') || '0',
-        draws: localStorage.getItem('stats_chess_draws') || '0'
-      },
-      {
-        name: 'Gomoku',
-        color: '#FFAB40',
-        wins: localStorage.getItem('stats_gomoku_wins') || '0',
-        losses: localStorage.getItem('stats_gomoku_losses') || '0',
-        draws: localStorage.getItem('stats_gomoku_draws') || '0'
-      },
-      {
-        name: 'Othello',
-        color: '#00B0FF',
-        wins: localStorage.getItem('stats_othello_wins') || '0',
-        losses: localStorage.getItem('stats_othello_losses') || '0',
-        draws: localStorage.getItem('stats_othello_draws') || '0'
-      },
-      {
-        name: 'Pong',
-        color: '#00E676',
-        wins: localStorage.getItem('stats_pong_wins') || '0',
-        losses: localStorage.getItem('stats_pong_losses') || '0',
-        draws: localStorage.getItem('stats_pong_draws') || '0'
-      },
-      {
-        name: 'Pendu',
-        color: '#FFEA00',
-        wins: localStorage.getItem('stats_pendu_wins') || '0',
-        losses: localStorage.getItem('stats_pendu_losses') || '0',
-        draws: localStorage.getItem('stats_pendu_draws') || '0'
-      }
-    ];
   }
 }

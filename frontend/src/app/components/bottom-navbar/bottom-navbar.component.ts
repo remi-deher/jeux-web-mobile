@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 
 @Component({
   selector: 'app-bottom-navbar',
@@ -19,7 +19,8 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
       </button>
     </nav>
   `,
-  styleUrls: ['./bottom-navbar.component.css']
+  styleUrls: ['./bottom-navbar.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class BottomNavbarComponent {
   @Input() activeView: string = 'games';
