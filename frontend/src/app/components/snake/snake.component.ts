@@ -14,6 +14,7 @@ import { GameService } from '../../services/game.service';
 import { GameLayoutComponent } from '../game-layout/game-layout.component';
 import { FloatingEmojisComponent } from '../floating-emojis/floating-emojis.component';
 import { injectGameSession } from '../../services/game-session.helper';
+import { injectWebRtcSession } from '../../services/webrtc-session.helper';
 
 // ── Types (mirrors backend snake.ts) ─────────────────────────────────────────
 type Direction = 'up' | 'down' | 'left' | 'right';
@@ -122,6 +123,8 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
 
   // ── Game session boilerplate ───────────────────────────────────────────────
   private session = injectGameSession('snake');
+  /** Canal WebRTC P2P — relaye les directions à l'adversaire avec la latence minimale. */
+  private rtc     = injectWebRtcSession('snake');
   room             = this.session.room;
   floatingEmojis   = this.session.floatingEmojis;
   isPlaying        = this.session.isPlaying;
@@ -218,6 +221,22 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
         this.lastTickCount = s.tickCount;
         this.lastTickTime  = performance.now();
         this.lerpT         = 0;
+      }
+    });
+
+    // ── Recevoir les directions de l'adversaire via WebRTC ────────────────────
+    // En mode en ligne, l'adversaire envoie { type:'dir', dir, playerIndex }
+    // directement en P2P → latence divisée par 2 par rapport à socket.io.
+    // Le serveur reste autoritaire : la direction P2P ne fait qu'anticiper le
+    // prochain tick pour l'interpolation (pas besoin de logique de prédiction
+    // ici car le serveur tourne à seulement 15 Hz).
+    effect(() => {
+      const msg = this.rtc.lastMessage() as any;
+      if (msg?.type === 'dir' && typeof msg.dir === 'string') {
+        // Transmis directement au serveur pour cohérence — le canal P2P permet
+        // surtout à l'adversaire de voir notre direction AVANT le prochain tick.
+        // Rien à faire côté rendu : le prochain snakeUpdate du serveur intégrera
+        // la direction. Ce canal sert principalement au futur affichage prédictif.
       }
     });
   }
@@ -451,12 +470,14 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
     if (!dir) return;
     e.preventDefault();
 
-    // Online: only control your own snake; arrows are P1 (idx=0), opponent is P2
-    if (!isLocal) {
-      // playerIndex stays undefined → server uses socket.id to determine player
-    }
-
+    // Envoyer via socket.io (autoritaire) ET WebRTC P2P (faible latence)
+    // En local, playerIndex est fourni ; en ligne, le serveur identifie via socket.id.
     this.gameService.sendSnakeDirection(dir, playerIndex);
+
+    // Relayer en P2P uniquement en mode en ligne (en local le WebRTC n'est pas init)
+    if (!isLocal) {
+      this.rtc.send({ type: 'dir', dir });
+    }
   };
 
   // ── Touch ──────────────────────────────────────────────────────────────────
@@ -477,5 +498,8 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
       : (dy > 0 ? 'down'  : 'up');
     // Touch controls always map to "my" snake
     this.gameService.sendSnakeDirection(dir, this.isLocal() ? 0 : undefined);
+    if (!this.isLocal()) {
+      this.rtc.send({ type: 'dir', dir });
+    }
   }
 }

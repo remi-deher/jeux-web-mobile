@@ -1,9 +1,9 @@
 import { Component, computed, inject, ViewChild, ElementRef, AfterViewInit, OnDestroy, effect } from '@angular/core';
 import { GameService } from '../../services/game.service';
-import { WebRtcService } from '../../services/webrtc.service';
 import { GameLayoutComponent } from '../game-layout/game-layout.component';
 import { FloatingEmojisComponent } from '../floating-emojis/floating-emojis.component';
 import { injectGameSession } from '../../services/game-session.helper';
+import { injectWebRtcSession } from '../../services/webrtc-session.helper';
 import { SimPongState, cloneServerState, stepPong } from './pong-physics';
 
 // ── Visual helpers ─────────────────────────────────────────────────────────────
@@ -113,8 +113,8 @@ export class PongComponent implements AfterViewInit, OnDestroy {
   @ViewChild('pongCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private gameService = inject(GameService);
-  private webRtcService = inject(WebRtcService);
   private session = injectGameSession('pong');
+  private rtc     = injectWebRtcSession('pong');
 
   readonly rules = [
     'Déplacez votre raquette avec la souris ou le doigt.',
@@ -181,15 +181,12 @@ export class PongComponent implements AfterViewInit, OnDestroy {
   private prevScoreP1 = 0;
   private prevScoreP2 = 0;
 
-  // ── WebRTC P2P (via injected WebRtcService) ───────────────────────────────────
+  // ── WebRTC P2P (via injectWebRtcSession) ─────────────────────────────────────
   /** Expose service status to template for badge display. */
-  get rtcStatus() { return this.webRtcService.status(); }
+  get rtcStatus() { return this.rtc.status(); }
 
   /** Last opponent-paddle Y received via WebRTC (null = use server value). */
   private rtcOppY: number | null = null;
-
-  /** Guard: start WebRTC handshake only once per room. */
-  private webrtcRoomId: string | null = null;
 
   // ── Client-side prediction for own paddle ────────────────────────────────────
   private localP1Y = 50;
@@ -248,38 +245,11 @@ export class PongComponent implements AfterViewInit, OnDestroy {
       if (state.scoreP2 !== this.prevScoreP2) { this.scoreFlash.p2 = 1.0; this.prevScoreP2 = state.scoreP2; }
     });
 
-    // ── WebRTC signaling — forward server signals to the generic service ──────────
-    effect(() => {
-      const sig = this.gameService.rtcSignal();
-      if (!sig) return;
-      const room = this.room();
-      if (!room || room.isLocal || room.gameType !== 'pong') return;
-
-      this.webRtcService.handleSignal(
-        sig,
-        a => this.gameService.sendRtcAnswer(room.id, a),
-        c => this.gameService.sendRtcIce(room.id, c),
-      );
-    });
-
-    // ── Initiate WebRTC as host (P1) when room is full ─────────────────────────
-    effect(() => {
-      const room  = this.room();
-      const myNum = this.myPlayerNum();
-      if (!room || room.isLocal || myNum !== 1) return;
-      if (room.players.length < 2)              return;
-      if (this.webrtcRoomId === room.id)        return;
-
-      this.webrtcRoomId = room.id;
-      this.webRtcService.initAsHost(
-        offer => this.gameService.sendRtcOffer(room.id, offer),
-        ice   => this.gameService.sendRtcIce(room.id, ice),
-      );
-    });
-
     // ── Receive opponent paddle via WebRTC ─────────────────────────────────────
+    // Le setup P2P (signaling, initAsHost, handleSignal) est géré par
+    // injectWebRtcSession('pong') — plus rien à écrire ici.
     effect(() => {
-      const msg = this.webRtcService.lastMessage() as any;
+      const msg = this.rtc.lastMessage() as any;
       if (msg?.type === 'paddle' && typeof msg.y === 'number') {
         this.rtcOppY = msg.y;
       }
@@ -418,7 +388,7 @@ export class PongComponent implements AfterViewInit, OnDestroy {
     document.removeEventListener('keydown', this.keydownHandler);
     document.removeEventListener('keyup',   this.keyupHandler);
     document.removeEventListener('visibilitychange', this.visibilityHandler);
-    this.webRtcService.reset();
+    // WebRTC reset géré automatiquement par injectWebRtcSession via DestroyRef
   }
 
   // ── Input helpers ───────────────────────────────────────────────────────────
@@ -440,7 +410,7 @@ export class PongComponent implements AfterViewInit, OnDestroy {
       if (paddle === 1) this.localP1Y = y; else this.localP2Y = y;
       // Send via socket.io (authoritative) AND WebRTC (low-latency P2P)
       this.gameService.sendPongPaddle(y);
-      this.webRtcService.send({ type: 'paddle', y });
+      this.rtc.send({ type: 'paddle', y });
     }
   }
 
@@ -489,13 +459,13 @@ export class PongComponent implements AfterViewInit, OnDestroy {
         if (down) this.localP1Y = Math.min(91, this.localP1Y + speed);
         if (this.simState) this.simState.p1Y = this.localP1Y;
         this.gameService.sendPongPaddle(this.localP1Y);
-        this.webRtcService.send({ type: 'paddle', y: this.localP1Y });
+        this.rtc.send({ type: 'paddle', y: this.localP1Y });
       } else {
         if (up)   this.localP2Y = Math.max(9,  this.localP2Y - speed);
         if (down) this.localP2Y = Math.min(91, this.localP2Y + speed);
         if (this.simState) this.simState.p2Y = this.localP2Y;
         this.gameService.sendPongPaddle(this.localP2Y);
-        this.webRtcService.send({ type: 'paddle', y: this.localP2Y });
+        this.rtc.send({ type: 'paddle', y: this.localP2Y });
       }
     }
   }
