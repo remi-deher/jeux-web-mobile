@@ -26,7 +26,7 @@ export class GameService {
   
   // Navigation signals
   public activeView = signal<string>('games');
-  public activeGame = signal<'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | null>(null);
+  public activeGame = signal<'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | null>(null);
   
   constructor() {
     // In dev mode (ng serve on port 4200), connect directly to backend on port 3001.
@@ -85,6 +85,27 @@ export class GameService {
         }
       } catch (err) {
         console.error('Error auto-playing game move sound:', err);
+      }
+    });
+
+    this.socket.on('pongUpdate', (pongState: any) => {
+      const room = this.currentRoom();
+      if (room && room.gameType === 'pong') {
+        const prevScores = (room.gameState as any)?.scoreP1 !== undefined ? 
+          { p1: (room.gameState as any).scoreP1, p2: (room.gameState as any).scoreP2 } : null;
+
+        this.currentRoom.set({
+          ...room,
+          gameState: pongState
+        });
+
+        // Play point score sound
+        if (prevScores && (pongState.scoreP1 !== prevScores.p1 || pongState.scoreP2 !== prevScores.p2)) {
+          this.soundService.playSound('success', 'pong');
+        } else {
+          // Play paddle bounce sound on state updates where score is the same
+          this.soundService.playSound('click', 'pong');
+        }
       }
     });
 
@@ -149,7 +170,7 @@ export class GameService {
     this.socket.emit('globalMessage', { username: this.username(), text });
   }
 
-  createRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello', isPrivate: boolean = false) {
+  createRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu', isPrivate: boolean = false) {
     this.socket.emit('createRoom', { gameType, username: this.username(), isPrivate }, (res: any) => {
       if (res.success) {
         this.currentRoom.set(res.room);
@@ -160,7 +181,7 @@ export class GameService {
     });
   }
 
-  createLocalRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello', player1Name?: string, player2Name?: string) {
+  createLocalRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu', player1Name?: string, player2Name?: string) {
     this.socket.emit('createLocalRoom', { gameType, username: this.username() || 'Joueur 1', player1Name, player2Name }, (res: any) => {
       if (res.success) {
         this.currentRoom.set(res.room);
@@ -283,6 +304,20 @@ export class GameService {
     }
   }
 
+  sendPongPaddle(yPercent: number, paddleIndex?: number) {
+    const room = this.currentRoom();
+    if (room) {
+      this.socket.emit('pongMovePaddle', { roomId: room.id, yPercent, paddleIndex });
+    }
+  }
+
+  sendPenduGuess(letter: string) {
+    const room = this.currentRoom();
+    if (room) {
+      this.socket.emit('penduGuess', { roomId: room.id, letter });
+    }
+  }
+
   // Social Methods
   addFriend(name: string) {
     const trimmed = name.trim();
@@ -335,7 +370,9 @@ export class GameService {
       checkers: 'Jeu de Dames',
       chess: 'Échecs',
       gomoku: 'Gomoku',
-      othello: 'Othello'
+      othello: 'Othello',
+      pong: 'Pong',
+      pendu: 'Le Pendu'
     };
     const gameLabel = gameNames[room.gameType] || room.gameType;
     if (navigator.share) {
@@ -360,7 +397,9 @@ export class GameService {
         checkers: 'Jeu de Dames',
         chess: 'Échecs',
         gomoku: 'Gomoku',
-        othello: 'Othello'
+        othello: 'Othello',
+        pong: 'Pong',
+        pendu: 'Le Pendu'
       };
       const gameLabel = gameNames[gameType] || gameType;
       

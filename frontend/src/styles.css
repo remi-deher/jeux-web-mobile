@@ -620,6 +620,18 @@ select:focus,
   --md-on-primary-container: #E0F2F1;
 }
 
+.theme-pong {
+  --md-primary: #00E676;
+  --md-primary-container: #003D1F;
+  --md-on-primary-container: #B9F6CA;
+}
+
+.theme-pendu {
+  --md-primary: #FFEA00;
+  --md-primary-container: #3D3000;
+  --md-on-primary-container: #FFF9C4;
+}
+
 /* Light mode high-contrast overrides for dynamic themes */
 body.light-theme.theme-connect4 {
   --md-primary: #C01A2B;
@@ -661,6 +673,18 @@ body.light-theme.theme-othello {
   --md-primary: #00695C;
   --md-primary-container: #E0F2F1;
   --md-on-primary-container: #00241A;
+}
+
+body.light-theme.theme-pong {
+  --md-primary: #00A550;
+  --md-primary-container: #B9F6CA;
+  --md-on-primary-container: #002113;
+}
+
+body.light-theme.theme-pendu {
+  --md-primary: #7B6200;
+  --md-primary-container: #FFF9C4;
+  --md-on-primary-container: #261900;
 }
 
 /* =========================================================

@@ -13,6 +13,8 @@ import { ChessComponent } from './components/chess/chess.component';
 import { FriendsPageComponent } from './components/friends-page/friends-page.component';
 import { GomokuComponent } from './components/gomoku/gomoku.component';
 import { OthelloComponent } from './components/othello/othello.component';
+import { PongComponent } from './components/pong/pong.component';
+import { PenduComponent } from './components/pendu/pendu.component';
 
 @Component({
   selector: 'app-root',
@@ -29,7 +31,9 @@ import { OthelloComponent } from './components/othello/othello.component';
     BottomNavbarComponent,
     FriendsPageComponent,
     GomokuComponent,
-    OthelloComponent
+    OthelloComponent,
+    PongComponent,
+    PenduComponent
   ],
   templateUrl: './app.html',
   styleUrl: './app.css'
@@ -83,7 +87,10 @@ export class App {
 
     effect(() => {
       const active = this.activeGame() || this.currentRoom()?.gameType;
-      document.body.classList.remove('theme-connect4', 'theme-battleship', 'theme-chess', 'theme-checkers', 'theme-tictactoe', 'theme-gomoku', 'theme-othello');
+      document.body.classList.remove(
+        'theme-connect4', 'theme-battleship', 'theme-chess', 'theme-checkers', 
+        'theme-tictactoe', 'theme-gomoku', 'theme-othello', 'theme-pong', 'theme-pendu'
+      );
       if (active) {
         document.body.classList.add(`theme-${active}`);
       }
@@ -125,7 +132,9 @@ export class App {
       checkers: 'Jeu de Dames',
       chess: 'Échecs',
       gomoku: 'Gomoku',
-      othello: 'Othello'
+      othello: 'Othello',
+      pong: 'Pong',
+      pendu: 'Le Pendu'
     };
     return gameNames[gameType] || gameType;
   }
@@ -208,6 +217,20 @@ export class App {
         wins: localStorage.getItem('stats_othello_wins') || '0',
         losses: localStorage.getItem('stats_othello_losses') || '0',
         draws: localStorage.getItem('stats_othello_draws') || '0'
+      },
+      {
+        name: 'Pong',
+        color: '#00E676',
+        wins: localStorage.getItem('stats_pong_wins') || '0',
+        losses: localStorage.getItem('stats_pong_losses') || '0',
+        draws: localStorage.getItem('stats_pong_draws') || '0'
+      },
+      {
+        name: 'Pendu',
+        color: '#FFEA00',
+        wins: localStorage.getItem('stats_pendu_wins') || '0',
+        losses: localStorage.getItem('stats_pendu_losses') || '0',
+        draws: localStorage.getItem('stats_pendu_draws') || '0'
       }
     ];
   }

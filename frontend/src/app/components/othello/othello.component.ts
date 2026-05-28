@@ -256,8 +256,27 @@ import { injectGameSession } from '../../services/game-session.helper';
 
     @media (max-width: 480px) {
       .board-grid {
-        grid-template-columns: repeat(8, min(36px, 10.5vw));
-        grid-template-rows: repeat(8, min(36px, 10.5vw));
+        grid-template-columns: repeat(8, min(46px, 11vw, calc((100dvh - 200px) / 8)));
+        grid-template-rows: repeat(8, min(46px, 11vw, calc((100dvh - 200px) / 8)));
+      }
+      .score-banner {
+        padding: 6px 12px;
+        gap: 12px;
+        border-radius: var(--md-radius-lg);
+      }
+      .score-name {
+        font-size: 12px;
+        max-width: 70px;
+      }
+      .score-value {
+        font-size: 16px;
+      }
+      .vs-label {
+        font-size: 11px;
+      }
+      .score-dot {
+        width: 12px;
+        height: 12px;
       }
     }
   `]

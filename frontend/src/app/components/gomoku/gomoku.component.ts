@@ -243,7 +243,7 @@ import { injectGameSession } from '../../services/game-session.helper';
 
     @media (max-width: 480px) {
       .board-grid {
-        max-width: min(340px, 88vw);
+        max-width: min(95vw, calc(100dvh - 130px));
         padding: 4px;
         border-width: 5px;
       }

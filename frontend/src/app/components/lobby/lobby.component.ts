@@ -164,6 +164,42 @@ import { GameService } from '../../services/game.service';
                 <span class="game-tag">Reversi</span>
               </div>
             </button>
+
+            <button class="game-card" (click)="selectGame('pong')">
+              <div class="game-card-image">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="100" height="100" rx="24" fill="#050505"/>
+                  <line x1="50" y1="15" x2="50" y2="85" stroke="#1A3D2B" stroke-width="3" stroke-dasharray="6 6"/>
+                  <rect x="12" y="35" width="8" height="30" rx="4" fill="#00E676"/>
+                  <rect x="80" y="35" width="8" height="30" rx="4" fill="#00E5FF"/>
+                  <circle cx="50" cy="50" r="7" fill="#FFFFFF"/>
+                </svg>
+              </div>
+              <div class="game-card-info">
+                <span class="game-name">Pong</span>
+                <span class="game-tag">Temps réel</span>
+              </div>
+            </button>
+
+            <button class="game-card" (click)="selectGame('pendu')">
+              <div class="game-card-image">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="100" height="100" rx="24" fill="#1C1A0F"/>
+                  <line x1="20" y1="85" x2="55" y2="85" stroke="#5D5030" stroke-width="4" stroke-linecap="round"/>
+                  <line x1="30" y1="85" x2="30" y2="20" stroke="#5D5030" stroke-width="4" stroke-linecap="round"/>
+                  <line x1="30" y1="20" x2="65" y2="20" stroke="#5D5030" stroke-width="4" stroke-linecap="round"/>
+                  <line x1="65" y1="20" x2="65" y2="32" stroke="#5D5030" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="65" cy="40" r="8" stroke="#FFEA00" stroke-width="2" fill="none"/>
+                  <line x1="65" y1="48" x2="65" y2="68" stroke="#FFEA00" stroke-width="2" stroke-linecap="round"/>
+                  <line x1="65" y1="55" x2="55" y2="63" stroke="#FFEA00" stroke-width="2" stroke-linecap="round"/>
+                  <line x1="65" y1="55" x2="75" y2="63" stroke="#FFEA00" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="game-card-info">
+                <span class="game-name">Le Pendu</span>
+                <span class="game-tag">Mots</span>
+              </div>
+            </button>
           </div>
         </div>
       } @else {
@@ -181,6 +217,8 @@ import { GameService } from '../../services/game.service';
               @else if (selectedGame() === 'chess') { Échecs }
               @else if (selectedGame() === 'gomoku') { Gomoku }
               @else if (selectedGame() === 'othello') { Othello }
+              @else if (selectedGame() === 'pong') { Pong }
+              @else if (selectedGame() === 'pendu') { Le Pendu }
             </h2>
           </div>
 
@@ -342,6 +380,34 @@ import { GameService } from '../../services/game.service';
                       <li>Les cases jouables pour votre tour s'affichent en surbrillance verte.</li>
                       <li>Cliquez sur l'une des cases vertes pour poser un pion et retourner les pions adverses.</li>
                       <li>Si vous n'avez aucun coup valide, votre tour est automatiquement passé. Le vainqueur est celui qui possède le plus de pions à la fin.</li>
+                    </ul>
+                  </div>
+                } @else if (selectedGame() === 'pong') {
+                  <div class="rules-section">
+                    <h4>Règles du jeu</h4>
+                    <p>Le Pong se joue en temps réel : la physique de la balle est calculée sur le serveur à 30 Hz pour garantir une équité totale. Le premier joueur à marquer 5 points gagne la partie.</p>
+                    <h4>Comment jouer</h4>
+                    <ul>
+                      <li>Déplacez votre raquette en bougeant la souris (ou le doigt en mode tactile) verticalement sur votre côté du terrain.</li>
+                      <li>Toucher la balle en bord de raquette lui donne un angle plus prononcé — utile pour surprendre l'adversaire !</li>
+                      <li>La balle accélère légèrement à chaque échange ; restez concentré.</li>
+                      <li>En partie locale, la moitié gauche contrôle le Joueur 1 et la moitié droite le Joueur 2.</li>
+                    </ul>
+                  </div>
+                } @else if (selectedGame() === 'pendu') {
+                  <div class="rules-section">
+                    <h4>Règles du jeu</h4>
+                    <p>Le serveur sélectionne aléatoirement un mot dans un dictionnaire de mots français. Les deux joueurs s'affrontent à tour de rôle pour deviner le mot lettre par lettre avant que le pendu ne soit entièrement dessiné (7 erreurs maximum).</p>
+                    <h4>Système de points</h4>
+                    <ul>
+                      <li>Lettre correcte : +10 points par occurrence dans le mot.</li>
+                      <li>Lettre incorrecte : −5 points.</li>
+                      <li>Fin de partie : le joueur avec le plus de points gagne. Si le pendu est complet, la partie se termine par une égalité (pénalité pour les deux).</li>
+                    </ul>
+                    <h4>Comment jouer</h4>
+                    <ul>
+                      <li>Cliquez sur une lettre du clavier virtuel pendant votre tour pour la proposer.</li>
+                      <li>Les lettres trouvées apparaissent dans le mot en vert. Les erreurs s'affichent en rouge et complètent le dessin du pendu.</li>
                     </ul>
                   </div>
                 }
@@ -1148,7 +1214,7 @@ export class LobbyComponent {
     }
   }
 
-  selectGame(game: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | null) {
+  selectGame(game: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | null) {
     this.selectedGame.set(game);
     this.showRules.set(false);
     this.loadStats();

@@ -248,8 +248,48 @@ export class SoundService {
 
           noise.connect(filter);
           filter.connect(gain);
-          gain.connect(audioCtx.destination);
+          noise.start(now);
+          noise.stop(now + duration);
+          return;
+        }
 
+        if (gameType === 'pong') {
+          // Retro arcade paddle bounce sound
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(660, now);
+          osc.frequency.exponentialRampToValueAtTime(330, now + 0.08);
+          gain.gain.setValueAtTime(0.06, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.08);
+          return;
+        }
+
+        if (gameType === 'pendu') {
+          // Chalk/pencil sketch sound using filtered short noise burst
+          const duration = 0.12;
+          const bufferSize = audioCtx.sampleRate * duration;
+          const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+          }
+          const noise = audioCtx.createBufferSource();
+          noise.buffer = buffer;
+          const filter = audioCtx.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(1800, now);
+          filter.Q.setValueAtTime(4, now);
+          const gain = audioCtx.createGain();
+          gain.gain.setValueAtTime(0.04, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(audioCtx.destination);
           noise.start(now);
           noise.stop(now + duration);
           return;

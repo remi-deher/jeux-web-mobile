@@ -22,6 +22,11 @@ import { GameHelpersService } from '../../services/game-helpers.service';
           <button class="help-btn" (click)="showRulesModal.set(true)" title="Règles du jeu">
             <span class="material-symbols">help</span>
           </button>
+          <button class="help-btn" (click)="toggleFullscreen()" [title]="isFullscreen() ? 'Quitter le plein écran' : 'Plein écran'">
+            <span class="material-symbols">
+              {{ isFullscreen() ? 'fullscreen_exit' : 'fullscreen' }}
+            </span>
+          </button>
         </div>
         
         <!-- PC Landscape Players Display -->
@@ -59,41 +64,52 @@ import { GameHelpersService } from '../../services/game-helpers.service';
       <div class="game-layout-body">
         
         <!-- Mobile Status Panel (hidden on PC landscape) -->
-        <div class="status-panel glass-card mobile-status-panel">
-          <h2>{{ gameTitle }}</h2>
+        <div class="status-panel glass-card mobile-status-panel" [class.collapsed]="isStatusCollapsed()">
+          <div class="status-panel-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <h2 style="margin: 0; font-size: 15px;">{{ gameTitle }}</h2>
+            @if (room?.status !== 'waiting') {
+              <button class="help-btn toggle-status-btn" (click)="toggleStatusCollapse()" [title]="isStatusCollapsed() ? 'Afficher les détails' : 'Masquer les détails'" style="padding: 2px;">
+                <span class="material-symbols" style="font-size: 20px;">
+                  {{ isStatusCollapsed() ? 'keyboard_arrow_down' : 'keyboard_arrow_up' }}
+                </span>
+              </button>
+            }
+          </div>
           
-          @if (room?.status !== 'waiting') {
-            <div class="players-display">
-              <div class="player-slot" [class.active]="player1Active">
-                @if (player1IndicatorClass) {
-                  <span class="indicator-element" [class]="player1IndicatorClass">
-                    {{ player1IndicatorSymbol }}
-                  </span>
-                } @else if (player1IndicatorSymbol) {
-                  <span class="indicator-symbol">{{ player1IndicatorSymbol }}</span>
-                }
-                <div class="player-info">
-                  <span class="player-name">{{ player1Name }}</span>
-                  <span class="player-label">Joueur 1</span>
+          @if (!isStatusCollapsed() || room?.status === 'waiting') {
+            @if (room?.status !== 'waiting') {
+              <div class="players-display">
+                <div class="player-slot" [class.active]="player1Active">
+                  @if (player1IndicatorClass) {
+                    <span class="indicator-element" [class]="player1IndicatorClass">
+                      {{ player1IndicatorSymbol }}
+                    </span>
+                  } @else if (player1IndicatorSymbol) {
+                    <span class="indicator-symbol">{{ player1IndicatorSymbol }}</span>
+                  }
+                  <div class="player-info">
+                    <span class="player-name">{{ player1Name }}</span>
+                    <span class="player-label">Joueur 1</span>
+                  </div>
+                </div>
+                
+                <div class="vs-divider">VS</div>
+                
+                <div class="player-slot" [class.active]="player2Active">
+                  @if (player2IndicatorClass) {
+                    <span class="indicator-element" [class]="player2IndicatorClass">
+                      {{ player2IndicatorSymbol }}
+                    </span>
+                  } @else if (player2IndicatorSymbol) {
+                    <span class="indicator-symbol">{{ player2IndicatorSymbol }}</span>
+                  }
+                  <div class="player-info">
+                    <span class="player-name">{{ player2Name }}</span>
+                    <span class="player-label">Joueur 2</span>
+                  </div>
                 </div>
               </div>
-              
-              <div class="vs-divider">VS</div>
-              
-              <div class="player-slot" [class.active]="player2Active">
-                @if (player2IndicatorClass) {
-                  <span class="indicator-element" [class]="player2IndicatorClass">
-                    {{ player2IndicatorSymbol }}
-                  </span>
-                } @else if (player2IndicatorSymbol) {
-                  <span class="indicator-symbol">{{ player2IndicatorSymbol }}</span>
-                }
-                <div class="player-info">
-                  <span class="player-name">{{ player2Name }}</span>
-                  <span class="player-label">Joueur 2</span>
-                </div>
-              </div>
-            </div>
+            }
           }
 
           @if (disconnectedPlayerName) {
@@ -742,13 +758,19 @@ import { GameHelpersService } from '../../services/game-helpers.service';
         margin-bottom: 8px;
       }
       .status-panel {
-        padding: 8px 12px;
-        margin-bottom: 8px;
-        border-radius: var(--md-radius-lg);
+        padding: 6px 12px;
+        margin-bottom: 6px;
+        border-radius: var(--md-radius-md);
       }
       .status-panel h2 {
-        font-size: 16px;
-        margin-bottom: 6px;
+        font-size: 14px;
+        margin-bottom: 0;
+      }
+      .status-panel.collapsed {
+        padding: 6px 10px;
+      }
+      .status-panel.collapsed .players-display {
+        display: none !important;
       }
       .players-display {
         margin: 6px 0;
@@ -769,8 +791,30 @@ import { GameHelpersService } from '../../services/game-helpers.service';
         font-size: 11px;
       }
       .emoji-bar {
-        padding: 6px 8px;
-        margin-top: 6px;
+        position: absolute;
+        bottom: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 100;
+        background: rgba(15, 23, 42, 0.75) !important;
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--md-radius-full);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        margin: 0;
+        padding: 4px 10px;
+        gap: 8px;
+        width: auto;
+        white-space: nowrap;
+      }
+      .emoji-bar .bar-title {
+        display: none;
+      }
+      .emoji-bar button {
+        background: transparent;
+        border: none;
+        padding: 4px 8px;
+        font-size: 18px;
       }
       .status-message {
         font-size: 12px;
@@ -818,6 +862,32 @@ export class GameLayoutComponent {
   @Output() shareInvitation = new EventEmitter<void>();
 
   showRulesModal = signal<boolean>(false);
+  isFullscreen = signal<boolean>(false);
+  isStatusCollapsed = signal<boolean>(true);
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      document.addEventListener('fullscreenchange', () => {
+        this.isFullscreen.set(!!document.fullscreenElement);
+      });
+    }
+  }
+
+  toggleFullscreen() {
+    if (typeof document !== 'undefined') {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn(`Error attempting to enable full-screen mode: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+  }
+
+  toggleStatusCollapse() {
+    this.isStatusCollapsed.update(v => !v);
+  }
 
   onLeaveRoom() {
     this.leaveRoom.emit();

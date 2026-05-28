@@ -16,6 +16,8 @@ import { CheckersState, createInitialCheckersState, makeCheckersMove } from './g
 import { ChessState, createInitialChessState, makeChessMove } from './games/chess';
 import { GomokuState, createInitialGomokuState, makeGomokuMove } from './games/gomoku';
 import { OthelloState, createInitialOthelloState, makeOthelloMove } from './games/othello';
+import { PongState, createInitialPongState, updatePongPhysics } from './games/pong';
+import { PenduState, createInitialPenduState, makePenduGuess } from './games/pendu';
 
 const app = express();
 app.use(cors());
@@ -44,10 +46,10 @@ interface Player {
 
 interface Room {
   id: string;
-  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello';
+  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu';
   players: Player[];
   status: 'waiting' | 'playing' | 'finished';
-  gameState: Connect4State | BattleshipState | TicTacToeState | CheckersState | ChessState | GomokuState | OthelloState | null;
+  gameState: Connect4State | BattleshipState | TicTacToeState | CheckersState | ChessState | GomokuState | OthelloState | PongState | PenduState | null;
   chatMessages: ChatMessage[];
   isPrivate: boolean;
   rematchVotes: string[];
@@ -148,6 +150,11 @@ io.on('connection', (socket: Socket) => {
       newRoom.gameState = createInitialGomokuState();
     } else if (data.gameType === 'othello') {
       newRoom.gameState = createInitialOthelloState();
+    } else if (data.gameType === 'pong') {
+      newRoom.gameState = createInitialPongState();
+      startPongLoop(roomId);
+    } else if (data.gameType === 'pendu') {
+      newRoom.gameState = createInitialPenduState();
     }
 
     rooms[roomId] = newRoom;
@@ -192,7 +199,7 @@ io.on('connection', (socket: Socket) => {
   });
 
 
-  socket.on('createRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello'; username: string; isPrivate?: boolean }, callback) => {
+  socket.on('createRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu'; username: string; isPrivate?: boolean }, callback) => {
     const roomId = generateRoomId();
     const newRoom: Room = {
       id: roomId,
@@ -214,7 +221,7 @@ io.on('connection', (socket: Socket) => {
     io.emit('roomsList', getPublicRooms());
   });
 
-  socket.on('createLocalRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello'; username: string; player1Name?: string; player2Name?: string }, callback) => {
+  socket.on('createLocalRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu'; username: string; player1Name?: string; player2Name?: string }, callback) => {
     const roomId = generateRoomId();
     const newRoom: Room = {
       id: roomId,
@@ -245,6 +252,11 @@ io.on('connection', (socket: Socket) => {
       newRoom.gameState = createInitialGomokuState();
     } else if (data.gameType === 'othello') {
       newRoom.gameState = createInitialOthelloState();
+    } else if (data.gameType === 'pong') {
+      newRoom.gameState = createInitialPongState();
+      startPongLoop(roomId);
+    } else if (data.gameType === 'pendu') {
+      newRoom.gameState = createInitialPenduState();
     }
 
     rooms[roomId] = newRoom;
@@ -286,6 +298,11 @@ io.on('connection', (socket: Socket) => {
         room.gameState = createInitialGomokuState();
       } else if (room.gameType === 'othello') {
         room.gameState = createInitialOthelloState();
+      } else if (room.gameType === 'pong') {
+        room.gameState = createInitialPongState();
+        startPongLoop(room.id);
+      } else if (room.gameType === 'pendu') {
+        room.gameState = createInitialPenduState();
       }
     }
 
@@ -464,6 +481,41 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
+  socket.on('pongMovePaddle', (data: { roomId: string; yPercent: number; paddleIndex?: number }) => {
+    const room = rooms[data.roomId];
+    if (!room || room.gameType !== 'pong' || !room.gameState) return;
+
+    const playerIndex = room.players.findIndex(p => p.id === socket.id);
+    if (playerIndex === -1 && data.paddleIndex === undefined) return;
+
+    const state = room.gameState as PongState;
+    const paddleIndex = data.paddleIndex !== undefined ? data.paddleIndex : (playerIndex + 1);
+    
+    if (paddleIndex === 1) {
+      state.p1Y = Math.max(state.paddleHeight / 2, Math.min(100 - state.paddleHeight / 2, data.yPercent));
+    } else if (paddleIndex === 2) {
+      state.p2Y = Math.max(state.paddleHeight / 2, Math.min(100 - state.paddleHeight / 2, data.yPercent));
+    }
+  });
+
+  socket.on('penduGuess', (data: { roomId: string; letter: string }) => {
+    const room = rooms[data.roomId];
+    if (!room || room.gameType !== 'pendu' || !room.gameState) return;
+
+    const playerIndex = room.players.findIndex(p => p.id === socket.id);
+    if (playerIndex === -1) return;
+
+    const playerNum = room.isLocal ? (room.gameState as PenduState).currentPlayer : (playerIndex + 1);
+    const success = makePenduGuess(room.gameState as PenduState, data.letter, playerNum);
+
+    if (success) {
+      if ((room.gameState as PenduState).winner !== null) {
+        room.status = 'finished';
+      }
+      broadcastRoomUpdate(room);
+    }
+  });
+
   socket.on('sendEmoji', (data: { roomId: string; emoji: string }) => {
     const room = rooms[data.roomId];
     if (!room) return;
@@ -492,6 +544,11 @@ io.on('connection', (socket: Socket) => {
         room.gameState = createInitialGomokuState();
       } else if (room.gameType === 'othello') {
         room.gameState = createInitialOthelloState();
+      } else if (room.gameType === 'pong') {
+        room.gameState = createInitialPongState();
+        startPongLoop(room.id);
+      } else if (room.gameType === 'pendu') {
+        room.gameState = createInitialPenduState();
       }
     } else {
       if (!room.rematchVotes) room.rematchVotes = [];
@@ -516,6 +573,11 @@ io.on('connection', (socket: Socket) => {
           room.gameState = createInitialGomokuState();
         } else if (room.gameType === 'othello') {
           room.gameState = createInitialOthelloState();
+        } else if (room.gameType === 'pong') {
+          room.gameState = createInitialPongState();
+          startPongLoop(room.id);
+        } else if (room.gameType === 'pendu') {
+          room.gameState = createInitialPenduState();
         }
       }
     }
@@ -711,10 +773,55 @@ function handlePlayerLeave(socket: Socket, roomId: string) {
       if (state) {
         state.winner = leavingPlayerIndex === 0 ? 2 : 1;
       }
+    } else if (room.gameType === 'pong') {
+      const state = room.gameState as PongState;
+      if (state) {
+        state.winner = leavingPlayerIndex === 0 ? 2 : 1;
+      }
+      if (pongIntervals[room.id]) {
+        clearInterval(pongIntervals[room.id]);
+        delete pongIntervals[room.id];
+      }
+    } else if (room.gameType === 'pendu') {
+      const state = room.gameState as PenduState;
+      if (state) {
+        state.winner = leavingPlayerIndex === 0 ? 2 : 1;
+      }
     }
     broadcastRoomUpdate(room);
   }
   io.emit('roomsList', getPublicRooms());
+}
+
+const pongIntervals: { [roomId: string]: NodeJS.Timeout } = {};
+
+function startPongLoop(roomId: string) {
+  if (pongIntervals[roomId]) return;
+  console.log(`Starting Pong physics tick loop for room ${roomId}`);
+  pongIntervals[roomId] = setInterval(() => {
+    const room = rooms[roomId];
+    if (!room || room.status !== 'playing' || room.gameType !== 'pong' || !room.gameState) {
+      clearInterval(pongIntervals[roomId]);
+      delete pongIntervals[roomId];
+      return;
+    }
+
+    // Pause physics if a player is disconnected
+    const anyDisconnected = room.players.some(p => p.disconnected);
+    if (anyDisconnected) return;
+
+    const state = room.gameState as PongState;
+    updatePongPhysics(state);
+
+    io.to(roomId).emit('pongUpdate', state);
+
+    if (state.winner !== null) {
+      room.status = 'finished';
+      broadcastRoomUpdate(room);
+      clearInterval(pongIntervals[roomId]);
+      delete pongIntervals[roomId];
+    }
+  }, 1000 / 30); // 30 FPS updates
 }
 
 function broadcastRoomUpdate(room: Room) {
