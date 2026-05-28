@@ -3,17 +3,18 @@
  *
  * Usage:
  *   1. Inject WebRtcService in your game component.
- *   2. P1 calls  initAsHost(roomId)   when the room is full.
- *   3. Watch     rtcSignal() from GameService in an effect, pass signals to handleSignal().
- *   4. Call      send({ ...yourPayload })  to push data to the peer.
+ *   2. P1 calls  initAsHost(sendOffer, sendIce)  when the room is full.
+ *   3. Watch     rtcSignal() from GameService in an effect → pass to handleSignal().
+ *   4. Call      send({ ...yourPayload })  to push JSON data to the peer.
  *   5. Watch     lastMessage()  signal to react to incoming messages.
  *   6. Call      reset()        in ngOnDestroy (or when leaving the room).
  *
- * Transport: ordered=false, maxRetransmits=0 (UDP-like).
- * Newest message always wins; no head-of-line blocking.
+ * ICE config is fetched dynamically from /api/rtc-config (backend).
+ * The backend returns STUN + TURN credentials (HMAC, 1h TTL) when coturn
+ * is configured, or STUN-only when TURN_SECRET is absent.
  *
- * Fallback: if ICE negotiation fails within 8 s, status → 'failed' and the
- * game continues over socket.io as before.
+ * Transport: ordered=false, maxRetransmits=0  →  UDP-like, no head-of-line blocking.
+ * Fallback: ICE timeout 8s → status='failed', game continues over socket.io.
  */
 
 import { Injectable, signal } from '@angular/core';
@@ -25,11 +26,11 @@ export type RtcSignal =
   | { type: 'answer'; answer:    RTCSessionDescriptionInit }
   | { type: 'ice';    candidate: RTCIceCandidateInit };
 
-const ICE_CONFIG: RTCConfiguration = {
+/** STUN-only fallback used if /api/rtc-config is unreachable. */
+const STUN_FALLBACK: RTCConfiguration = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
   ],
 };
 
@@ -53,32 +54,25 @@ export class WebRtcService {
   private pendingIce: RTCIceCandidateInit[] = [];
   private iceTimer:   ReturnType<typeof setTimeout> | null = null;
 
-  /** Callbacks injected by the caller for sending signaling via socket.io. */
-  private sendOffer_:  ((o: RTCSessionDescriptionInit) => void) | null = null;
-  private sendAnswer_: ((a: RTCSessionDescriptionInit) => void) | null = null;
-  private sendIce_:    ((c: RTCIceCandidateInit)       => void) | null = null;
+  private sendIce_: ((c: RTCIceCandidateInit) => void) | null = null;
 
   // ── API ────────────────────────────────────────────────────────────────────
 
-  get isOpen(): boolean {
-    return this.dc?.readyState === 'open';
-  }
+  get isOpen(): boolean { return this.dc?.readyState === 'open'; }
 
   /**
-   * P1 (host) — create offer and start ICE.
-   * @param sendOffer  forward offer SDP to peer via socket.io
-   * @param sendIce    forward ICE candidate to peer via socket.io
+   * P1 (host) — fetch ICE config, create offer, start ICE negotiation.
    */
   async initAsHost(
     sendOffer: (o: RTCSessionDescriptionInit) => void,
     sendIce:   (c: RTCIceCandidateInit)       => void,
   ): Promise<void> {
     this.reset();
-    this.sendOffer_ = sendOffer;
-    this.sendIce_   = sendIce;
+    this.sendIce_ = sendIce;
     this.setStatus('connecting');
 
-    this.pc = new RTCPeerConnection(ICE_CONFIG);
+    const iceConfig = await this.fetchIceConfig();
+    this.pc = new RTCPeerConnection(iceConfig);
     this.dc = this.pc.createDataChannel('game', { ordered: false, maxRetransmits: 0 });
     this.wireChannel(this.dc);
     this.wirePc(this.pc);
@@ -90,10 +84,8 @@ export class WebRtcService {
   }
 
   /**
-   * P2 (guest) — receive offer, send answer.
-   * Call this when a 'offer' signal arrives via socket.io.
-   * @param sendAnswer forward answer SDP to host via socket.io
-   * @param sendIce    forward ICE candidates via socket.io
+   * Handle an incoming WebRTC signal (offer / answer / ice).
+   * P2 passes sendAnswer + sendIce only on the first 'offer' signal.
    */
   async handleSignal(
     sig:        RtcSignal,
@@ -101,13 +93,14 @@ export class WebRtcService {
     sendIce:    (c: RTCIceCandidateInit)       => void,
   ): Promise<void> {
     switch (sig.type) {
-      case 'offer':
+
+      case 'offer': {
         this.reset();
-        this.sendAnswer_ = sendAnswer;
-        this.sendIce_    = sendIce;
+        this.sendIce_ = sendIce;
         this.setStatus('connecting');
 
-        this.pc = new RTCPeerConnection(ICE_CONFIG);
+        const iceConfig = await this.fetchIceConfig();
+        this.pc = new RTCPeerConnection(iceConfig);
         this.pc.ondatachannel = e => { this.dc = e.channel; this.wireChannel(this.dc); };
         this.wirePc(this.pc);
 
@@ -116,10 +109,12 @@ export class WebRtcService {
         await this.pc.setLocalDescription(answer);
         sendAnswer(answer);
 
+        // Flush ICE candidates that arrived before setRemoteDescription
         for (const c of this.pendingIce) await this.pc.addIceCandidate(c).catch(() => {});
         this.pendingIce = [];
         this.armTimeout();
         break;
+      }
 
       case 'answer':
         await this.pc?.setRemoteDescription(sig.answer).catch(() => {});
@@ -150,13 +145,32 @@ export class WebRtcService {
     if (this.iceTimer) { clearTimeout(this.iceTimer); this.iceTimer = null; }
     this.dc?.close();
     this.pc?.close();
-    this.dc = null;
-    this.pc = null;
+    this.dc       = null;
+    this.pc       = null;
+    this.sendIce_ = null;
     this.pendingIce = [];
-    this.sendOffer_  = null;
-    this.sendAnswer_ = null;
-    this.sendIce_    = null;
     this.setStatus('idle');
+  }
+
+  // ── ICE config (dynamic, from backend) ────────────────────────────────────
+
+  /**
+   * Fetch ICE server config from the backend.
+   * Returns STUN + TURN credentials when coturn is configured.
+   * Falls back to public STUN-only on any error.
+   */
+  private async fetchIceConfig(): Promise<RTCConfiguration> {
+    try {
+      const res = await fetch('/api/rtc-config', { cache: 'no-store' });
+      if (res.ok) {
+        const cfg = await res.json() as RTCConfiguration;
+        console.debug('[WebRtcService] ICE config:', cfg.iceServers);
+        return cfg;
+      }
+    } catch (err) {
+      console.warn('[WebRtcService] /api/rtc-config unreachable, using STUN fallback', err);
+    }
+    return STUN_FALLBACK;
   }
 
   // ── Internal helpers ───────────────────────────────────────────────────────
@@ -172,20 +186,15 @@ export class WebRtcService {
 
   private wirePc(pc: RTCPeerConnection): void {
     pc.onicecandidate = e => {
-      if (e.candidate) {
-        const fn = this.sendIce_;
-        if (fn) fn(e.candidate.toJSON());
-      }
+      if (e.candidate) this.sendIce_?.(e.candidate.toJSON());
     };
     pc.onconnectionstatechange = () => {
       const s = pc.connectionState;
-      if (s === 'failed' || s === 'disconnected' || s === 'closed') {
-        this.setStatus('failed');
-      }
+      if (s === 'failed' || s === 'disconnected' || s === 'closed') this.setStatus('failed');
     };
   }
 
-  /** 8-second timeout — if ICE hasn't connected, mark as failed (graceful fallback). */
+  /** 8 s timeout — if ICE hasn't connected yet, mark as failed (graceful socket.io fallback). */
   private armTimeout(): void {
     if (this.iceTimer) clearTimeout(this.iceTimer);
     this.iceTimer = setTimeout(() => {
@@ -196,7 +205,5 @@ export class WebRtcService {
     }, 8_000);
   }
 
-  private setStatus(s: RtcStatus): void {
-    this.status.set(s);
-  }
+  private setStatus(s: RtcStatus): void { this.status.set(s); }
 }

@@ -9,6 +9,8 @@ services:
     environment:
       - PORT=3001
       - NODE_ENV=production
+      - TURN_SECRET=${TURN_SECRET}
+      - TURN_HOST=${TURN_HOST}
 
   frontend:
     build:
@@ -18,3 +20,33 @@ services:
       - "8080:80"
     depends_on:
       - backend
+
+  turn:
+    image: coturn/coturn:latest
+    # coturn doit voir l'IP interne du conteneur ET l'IP publique.
+    # On passe tout en args CLI pour pouvoir injecter les variables d'env.
+    command: >
+      -n
+      --log-file=stdout
+      --listening-port=3478
+      --listening-ip=0.0.0.0
+      --external-ip=${TURN_PUBLIC_IP}
+      --relay-ip=0.0.0.0
+      --use-auth-secret
+      --static-auth-secret=${TURN_SECRET}
+      --realm=playbox
+      --min-port=49152
+      --max-port=49250
+      --fingerprint
+      --no-tls
+      --no-dtls
+      --denied-peer-ip=10.0.0.0-10.255.255.255
+      --denied-peer-ip=192.168.0.0-192.168.255.255
+      --denied-peer-ip=172.16.0.0-172.31.255.255
+    ports:
+      # STUN + TURN signaling
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+      # Relay ports (99 ports = 99 allocations simultanées max)
+      - "49152-49250:49152-49250/udp"
+    restart: unless-stopped

@@ -1,6 +1,7 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
+import crypto from 'crypto';
 import cors from 'cors';
 import { Connect4State, createInitialConnect4State, makeConnect4Move } from './games/connect4';
 import {
@@ -22,6 +23,59 @@ import { DominosState, createInitialDominosState, makeDominosMove, drawFromBoney
 
 const app = express();
 app.use(cors());
+
+/**
+ * GET /api/rtc-config
+ *
+ * Retourne la configuration ICE avec des credentials TURN dynamiques
+ * (HMAC-SHA1, valides 1 heure) compatibles avec coturn --use-auth-secret.
+ *
+ * Format du username : "<timestamp_expiry>:playbox"
+ * Format du password : base64( HMAC-SHA1( TURN_SECRET, username ) )
+ *
+ * Si TURN_SECRET ou TURN_HOST ne sont pas définis, retourne uniquement
+ * les serveurs STUN publics (fallback gracieux).
+ */
+app.get('/api/rtc-config', (_req, res) => {
+  const secret = process.env.TURN_SECRET;
+  const host   = process.env.TURN_HOST;
+
+  const stunFallback = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ];
+
+  if (!secret || !host) {
+    // Pas de TURN configuré → STUN uniquement
+    res.json({ iceServers: stunFallback });
+    return;
+  }
+
+  // Credentials valides 1 heure
+  const expiresAt = Math.floor(Date.now() / 1000) + 3600;
+  const username  = `${expiresAt}:playbox`;
+  const password  = crypto
+    .createHmac('sha1', secret)
+    .update(username)
+    .digest('base64');
+
+  res.json({
+    iceServers: [
+      // Propre serveur STUN/TURN (priorité)
+      { urls: `stun:${host}:3478` },
+      {
+        urls: [
+          `turn:${host}:3478?transport=udp`,
+          `turn:${host}:3478?transport=tcp`,
+        ],
+        username,
+        credential: password,
+      },
+      // STUN publics en fallback si le TURN privé est injoignable
+      ...stunFallback,
+    ],
+  });
+});
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
