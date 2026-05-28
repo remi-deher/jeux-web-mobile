@@ -57,7 +57,7 @@ import { GameHelpersService } from '../../services/game-helpers.service';
         }
 
         <!-- Room code badge -->
-        <div class="room-badge">Code salon : <strong>{{ room?.id }}</strong></div>
+        <div class="room-badge"><span class="room-label">Code : </span><strong>{{ room?.id }}</strong></div>
       </div>
 
       <!-- Main Layout Body -->
@@ -138,7 +138,15 @@ import { GameHelpersService } from '../../services/game-helpers.service';
               </div>
               <div class="rematch-section">
                 @if (hasVotedRematch) {
-                  <div class="rematch-status">Demande de revanche envoyée...</div>
+                  <div class="rematch-status">⏳ En attente de l'adversaire...</div>
+                } @else if (room?.rematchVotes?.length > 0) {
+                  <div class="rematch-request-banner">
+                    🔄 L'adversaire veut rejouer !
+                    <button class="primary-btn rematch-btn" (click)="onRequestRematch()">
+                      <span class="material-symbols">replay</span>
+                      <span>Accepter</span>
+                    </button>
+                  </div>
                 } @else {
                   <button class="primary-btn rematch-btn" (click)="onRequestRematch()">
                     <span class="material-symbols">replay</span>
@@ -170,7 +178,11 @@ import { GameHelpersService } from '../../services/game-helpers.service';
               }
               <div class="rematch-section-pc">
                 @if (hasVotedRematch) {
-                  <span class="rematch-status">En attente...</span>
+                  <span class="rematch-status">⏳ En attente...</span>
+                } @else if (room?.rematchVotes?.length > 0) {
+                  <button class="primary-btn rematch-btn-pc rematch-pulse" (click)="onRequestRematch()">
+                    🔄 Accepter la revanche !
+                  </button>
                 } @else {
                   <button class="primary-btn rematch-btn-pc" (click)="onRequestRematch()">
                     <span class="material-symbols">replay</span>
@@ -247,11 +259,13 @@ import { GameHelpersService } from '../../services/game-helpers.service';
       flex-direction: column;
       overflow: hidden;
       box-sizing: border-box;
+      position: relative; /* anchor for position:absolute children (emoji-bar) */
+      max-width: 100vw;   /* prevent horizontal bleed on iOS */
       /* Account for notch (top), home indicator (bottom), and rounded bezels (sides) */
       padding-top:    calc(10px + env(safe-area-inset-top,    0px));
       padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-      padding-left:   calc(15px + env(safe-area-inset-left,   0px));
-      padding-right:  calc(15px + env(safe-area-inset-right,  0px));
+      padding-left:   calc(10px + env(safe-area-inset-left,   0px));
+      padding-right:  calc(10px + env(safe-area-inset-right,  0px));
       width: 100%;
     }
 
@@ -267,7 +281,9 @@ import { GameHelpersService } from '../../services/game-helpers.service';
     .header-left {
       display: flex;
       align-items: center;
-      gap: 15px;
+      gap: 8px;
+      min-width: 0;
+      flex-shrink: 1;
     }
 
     .game-title-desktop {
@@ -368,9 +384,19 @@ import { GameHelpersService } from '../../services/game-helpers.service';
       background: var(--md-surface-container);
       border: 1px solid var(--md-outline-variant);
       color: var(--md-on-surface-variant);
-      padding: 8px 16px;
+      padding: 6px 12px;
       border-radius: var(--md-radius-full);
-      font-size: 14px;
+      font-size: 13px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    /* Hide "Code salon :" label on very narrow screens, keep only the code */
+    .room-badge .room-label { display: inline; }
+
+    @media (max-width: 400px) {
+      .room-badge { font-size: 11px; padding: 4px 8px; }
+      .room-badge .room-label { display: none; }
     }
 
     .game-layout-body {
@@ -713,6 +739,27 @@ import { GameHelpersService } from '../../services/game-helpers.service';
       font-size: 14px;
       color: var(--md-on-surface-variant);
       font-style: italic;
+    }
+    .rematch-request-banner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: rgba(208, 188, 255, 0.12);
+      border: 1px solid var(--md-primary);
+      border-radius: var(--md-radius-lg);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--md-primary);
+      animation: rematchPulse 1.5s ease-in-out infinite;
+    }
+    .rematch-pulse {
+      animation: rematchPulse 1.5s ease-in-out infinite;
+    }
+    @keyframes rematchPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(208, 188, 255, 0.4); }
+      50%       { box-shadow: 0 0 0 6px rgba(208, 188, 255, 0); }
     }
 
     .mobile-status-panel {

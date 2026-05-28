@@ -120,7 +120,7 @@ import { GameLayoutComponent } from '../game-layout/game-layout.component';
 
     .drop-indicators {
       display: grid;
-      grid-template-columns: repeat(7, min(60px, 8vh));
+      grid-template-columns: repeat(7, min(60px, 8vh, calc((100vw - 100px) / 7)));
       gap: 8px;
       height: 40px;
       margin-bottom: 8px;
@@ -155,8 +155,8 @@ import { GameLayoutComponent } from '../game-layout/game-layout.component';
 
     .board-mesh {
       display: grid;
-      grid-template-columns: repeat(7, min(60px, 8vh));
-      grid-template-rows: repeat(6, min(60px, 8vh));
+      grid-template-columns: repeat(7, min(60px, 8vh, calc((100vw - 100px) / 7)));
+      grid-template-rows: repeat(6, min(60px, 8vh, calc((100vw - 100px) / 7)));
       gap: 8px;
       touch-action: manipulation;
     }
