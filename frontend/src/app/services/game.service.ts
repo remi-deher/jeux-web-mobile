@@ -33,10 +33,10 @@ export class GameService {
 
   /**
    * WebRTC signaling messages relayed by the server.
-   * The pong component watches this signal to drive the RTCPeerConnection
-   * handshake without polling.
+   * Any real-time game component can watch this signal to drive the
+   * RTCPeerConnection handshake via WebRtcService.handleSignal().
    */
-  public pongRtcSignal = signal<
+  public rtcSignal = signal<
     | { type: 'offer';  offer:     RTCSessionDescriptionInit }
     | { type: 'answer'; answer:    RTCSessionDescriptionInit }
     | { type: 'ice';    candidate: RTCIceCandidateInit }
@@ -124,10 +124,10 @@ export class GameService {
       }
     });
 
-    // WebRTC signaling relay
-    this.socket.on('pongRtcOffer',  (d: any) => this.pongRtcSignal.set({ type: 'offer',  offer:     d.offer     }));
-    this.socket.on('pongRtcAnswer', (d: any) => this.pongRtcSignal.set({ type: 'answer', answer:    d.answer    }));
-    this.socket.on('pongRtcIce',    (d: any) => this.pongRtcSignal.set({ type: 'ice',    candidate: d.candidate }));
+    // WebRTC signaling relay (generic — used by any real-time game)
+    this.socket.on('rtcOffer',  (d: any) => this.rtcSignal.set({ type: 'offer',  offer:     d.offer     }));
+    this.socket.on('rtcAnswer', (d: any) => this.rtcSignal.set({ type: 'answer', answer:    d.answer    }));
+    this.socket.on('rtcIce',    (d: any) => this.rtcSignal.set({ type: 'ice',    candidate: d.candidate }));
 
     this.socket.on('pongUpdate', (pongState: any) => {
       const room = this.currentRoom();
@@ -348,9 +348,10 @@ export class GameService {
   }
 
   // WebRTC signaling — forward SDP/ICE to the server which relays to the other player
-  sendPongRtcOffer(roomId: string, offer: RTCSessionDescriptionInit)  { this.socket.emit('pongRtcOffer',  { roomId, offer  }); }
-  sendPongRtcAnswer(roomId: string, answer: RTCSessionDescriptionInit) { this.socket.emit('pongRtcAnswer', { roomId, answer }); }
-  sendPongRtcIce(roomId: string, candidate: RTCIceCandidateInit)       { this.socket.emit('pongRtcIce',   { roomId, candidate }); }
+  // Generic: works for any game (pong, snake, tetris…)
+  sendRtcOffer(roomId: string, offer: RTCSessionDescriptionInit)    { this.socket.emit('rtcOffer',  { roomId, offer  }); }
+  sendRtcAnswer(roomId: string, answer: RTCSessionDescriptionInit)  { this.socket.emit('rtcAnswer', { roomId, answer }); }
+  sendRtcIce(roomId: string, candidate: RTCIceCandidateInit)        { this.socket.emit('rtcIce',    { roomId, candidate }); }
 
   sendPongPaddle(yPercent: number, paddleIndex?: number) {
     const room = this.currentRoom();

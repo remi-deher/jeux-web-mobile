@@ -1,10 +1,10 @@
 import { Component, computed, inject, ViewChild, ElementRef, AfterViewInit, OnDestroy, effect } from '@angular/core';
 import { GameService } from '../../services/game.service';
+import { WebRtcService } from '../../services/webrtc.service';
 import { GameLayoutComponent } from '../game-layout/game-layout.component';
 import { FloatingEmojisComponent } from '../floating-emojis/floating-emojis.component';
 import { injectGameSession } from '../../services/game-session.helper';
 import { SimPongState, cloneServerState, stepPong } from './pong-physics';
-import { PongWebRTC, RtcStatus } from './pong-webrtc';
 
 // ── Visual helpers ─────────────────────────────────────────────────────────────
 interface Particle { x: number; y: number; vx: number; vy: number; life: number; color: string; radius: number; }
@@ -113,6 +113,7 @@ export class PongComponent implements AfterViewInit, OnDestroy {
   @ViewChild('pongCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private gameService = inject(GameService);
+  private webRtcService = inject(WebRtcService);
   private session = injectGameSession('pong');
 
   readonly rules = [
@@ -180,9 +181,9 @@ export class PongComponent implements AfterViewInit, OnDestroy {
   private prevScoreP1 = 0;
   private prevScoreP2 = 0;
 
-  // ── WebRTC P2P ───────────────────────────────────────────────────────────────
-  private webrtc = new PongWebRTC();
-  rtcStatus: RtcStatus = 'idle';
+  // ── WebRTC P2P (via injected WebRtcService) ───────────────────────────────────
+  /** Expose service status to template for badge display. */
+  get rtcStatus() { return this.webRtcService.status(); }
 
   /** Last opponent-paddle Y received via WebRTC (null = use server value). */
   private rtcOppY: number | null = null;
@@ -247,28 +248,18 @@ export class PongComponent implements AfterViewInit, OnDestroy {
       if (state.scoreP2 !== this.prevScoreP2) { this.scoreFlash.p2 = 1.0; this.prevScoreP2 = state.scoreP2; }
     });
 
-    // ── WebRTC signaling ───────────────────────────────────────────────────────
+    // ── WebRTC signaling — forward server signals to the generic service ──────────
     effect(() => {
-      const sig = this.gameService.pongRtcSignal();
+      const sig = this.gameService.rtcSignal();
       if (!sig) return;
       const room = this.room();
-      if (!room || room.isLocal) return;
+      if (!room || room.isLocal || room.gameType !== 'pong') return;
 
-      switch (sig.type) {
-        case 'offer':
-          this.webrtc.handleOffer(
-            sig.offer,
-            a => this.gameService.sendPongRtcAnswer(room.id, a),
-            c => this.gameService.sendPongRtcIce(room.id, c),
-          );
-          break;
-        case 'answer':
-          this.webrtc.handleAnswer(sig.answer);
-          break;
-        case 'ice':
-          this.webrtc.addIceCandidate(sig.candidate);
-          break;
-      }
+      this.webRtcService.handleSignal(
+        sig,
+        a => this.gameService.sendRtcAnswer(room.id, a),
+        c => this.gameService.sendRtcIce(room.id, c),
+      );
     });
 
     // ── Initiate WebRTC as host (P1) when room is full ─────────────────────────
@@ -277,28 +268,21 @@ export class PongComponent implements AfterViewInit, OnDestroy {
       const myNum = this.myPlayerNum();
       if (!room || room.isLocal || myNum !== 1) return;
       if (room.players.length < 2)              return;
-      if (this.webrtcRoomId === room.id)        return; // already started
-
-      this.webrtcRoomId = room.id;
-      this.webrtc.onStatusChange = s => { this.rtcStatus = s; };
-      this.webrtc.onOpponentPaddle = y => { this.rtcOppY = y; };
-
-      this.webrtc.initAsHost(
-        offer => this.gameService.sendPongRtcOffer(room.id, offer),
-        ice   => this.gameService.sendPongRtcIce(room.id, ice),
-      );
-    });
-
-    // ── P2 also needs to wire callbacks (offer arrives from server) ────────────
-    effect(() => {
-      const room  = this.room();
-      const myNum = this.myPlayerNum();
-      if (!room || room.isLocal || myNum !== 2) return;
       if (this.webrtcRoomId === room.id)        return;
 
       this.webrtcRoomId = room.id;
-      this.webrtc.onStatusChange    = s => { this.rtcStatus = s; };
-      this.webrtc.onOpponentPaddle  = y => { this.rtcOppY = y; };
+      this.webRtcService.initAsHost(
+        offer => this.gameService.sendRtcOffer(room.id, offer),
+        ice   => this.gameService.sendRtcIce(room.id, ice),
+      );
+    });
+
+    // ── Receive opponent paddle via WebRTC ─────────────────────────────────────
+    effect(() => {
+      const msg = this.webRtcService.lastMessage() as any;
+      if (msg?.type === 'paddle' && typeof msg.y === 'number') {
+        this.rtcOppY = msg.y;
+      }
     });
   }
 
@@ -434,7 +418,7 @@ export class PongComponent implements AfterViewInit, OnDestroy {
     document.removeEventListener('keydown', this.keydownHandler);
     document.removeEventListener('keyup',   this.keyupHandler);
     document.removeEventListener('visibilitychange', this.visibilityHandler);
-    this.webrtc.destroy();
+    this.webRtcService.reset();
   }
 
   // ── Input helpers ───────────────────────────────────────────────────────────
@@ -454,9 +438,9 @@ export class PongComponent implements AfterViewInit, OnDestroy {
       this.gameService.sendPongPaddle(y, paddle);
     } else {
       if (paddle === 1) this.localP1Y = y; else this.localP2Y = y;
-      // Send via socket.io (authoritative) and WebRTC (low-latency)
+      // Send via socket.io (authoritative) AND WebRTC (low-latency P2P)
       this.gameService.sendPongPaddle(y);
-      this.webrtc.sendPaddle(y);
+      this.webRtcService.send({ type: 'paddle', y });
     }
   }
 
@@ -505,13 +489,13 @@ export class PongComponent implements AfterViewInit, OnDestroy {
         if (down) this.localP1Y = Math.min(91, this.localP1Y + speed);
         if (this.simState) this.simState.p1Y = this.localP1Y;
         this.gameService.sendPongPaddle(this.localP1Y);
-        this.webrtc.sendPaddle(this.localP1Y);
+        this.webRtcService.send({ type: 'paddle', y: this.localP1Y });
       } else {
         if (up)   this.localP2Y = Math.max(9,  this.localP2Y - speed);
         if (down) this.localP2Y = Math.min(91, this.localP2Y + speed);
         if (this.simState) this.simState.p2Y = this.localP2Y;
         this.gameService.sendPongPaddle(this.localP2Y);
-        this.webrtc.sendPaddle(this.localP2Y);
+        this.webRtcService.send({ type: 'paddle', y: this.localP2Y });
       }
     }
   }

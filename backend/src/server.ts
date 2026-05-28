@@ -770,11 +770,12 @@ io.on('connection', (socket: Socket) => {
   // The server is just a relay for SDP + ICE messages.
   // All actual game data flows peer-to-peer after the handshake.
 
-  // Types are 'any' because WebRTC types are browser-only (not in @types/node).
-  // The server is a transparent relay — it never inspects the SDP/ICE payloads.
-  socket.on('pongRtcOffer',  (data: { roomId: string; offer: any })     => { socket.to(data.roomId).emit('pongRtcOffer',  { offer: data.offer });     });
-  socket.on('pongRtcAnswer', (data: { roomId: string; answer: any })    => { socket.to(data.roomId).emit('pongRtcAnswer', { answer: data.answer });   });
-  socket.on('pongRtcIce',    (data: { roomId: string; candidate: any }) => { socket.to(data.roomId).emit('pongRtcIce',    { candidate: data.candidate }); });
+  // WebRTC signaling relay — generic, reusable for any real-time game.
+  // The server never inspects the SDP/ICE payloads; it just forwards them to
+  // the other player(s) in the room.
+  socket.on('rtcOffer',  (data: { roomId: string; offer: any })     => { socket.to(data.roomId).emit('rtcOffer',  { offer: data.offer });         });
+  socket.on('rtcAnswer', (data: { roomId: string; answer: any })    => { socket.to(data.roomId).emit('rtcAnswer', { answer: data.answer });       });
+  socket.on('rtcIce',    (data: { roomId: string; candidate: any }) => { socket.to(data.roomId).emit('rtcIce',    { candidate: data.candidate }); });
 
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`);
