@@ -41,51 +41,82 @@
         </div>
       }
 
-      <!-- Center Board: Chain of played Dominos -->
+      <!-- Center Board: 2D Grid view of played Dominos -->
       <div class="board-chain-wrapper glass-card">
-        @if (board().length === 0) {
+        @if (placedTiles().length === 0) {
           <div class="empty-board-message">
             <span class="material-symbols board-empty-icon">grid_view</span>
             <p>Le plateau est vide. Jouez n'importe quelle tuile pour commencer !</p>
           </div>
         } @else {
-          <!-- Left side play indicator button -->
-          @if (selectedTileIndex() !== null && selectedTileSides().left) {
-            <button class="side-play-btn left-play" (click)="playSelectedTile('left')" title="Placer à gauche">
-              <span class="material-symbols">arrow_back</span>
-            </button>
-          }
-
           <div class="board-scroll-area">
-            <div class="board-chain">
-              @for (tile of board(); track $index) {
-                <div class="domino-tile placed-tile">
-                  <div class="domino-half">
-                    <div class="domino-half-grid">
-                      @for (dot of getDots(tile[0]); track $index) {
-                        <div [class.domino-dot]="dot"></div>
-                      }
+            <div class="board-grid" [style.grid-template-columns]="boardGridCols()" [style.grid-template-rows]="boardGridRows()">
+              @for (pt of placedTiles(); track $index) {
+                <div class="domino-tile placed-tile-2d"
+                     [class.is-double]="pt.isDouble"
+                     [class.vertical]="pt.y1 !== pt.y2"
+                     [style.grid-column]="getTileGridCol(pt)"
+                     [style.grid-row]="getTileGridRow(pt)">
+                  @if (pt.y1 === pt.y2) {
+                    <!-- Horizontal domino -->
+                    <div class="domino-half">
+                      <div class="domino-half-grid">
+                        @for (dot of getDots(pt.x1 < pt.x2 ? pt.tile[0] : pt.tile[1]); track $index) {
+                          <div [class.domino-dot]="dot"></div>
+                        }
+                      </div>
                     </div>
-                  </div>
-                  <div class="domino-divider"></div>
-                  <div class="domino-half">
-                    <div class="domino-half-grid">
-                      @for (dot of getDots(tile[1]); track $index) {
-                        <div [class.domino-dot]="dot"></div>
-                      }
+                    <div class="domino-divider"></div>
+                    <div class="domino-half">
+                      <div class="domino-half-grid">
+                        @for (dot of getDots(pt.x1 < pt.x2 ? pt.tile[1] : pt.tile[0]); track $index) {
+                          <div [class.domino-dot]="dot"></div>
+                        }
+                      </div>
                     </div>
+                  } @else {
+                    <!-- Vertical domino -->
+                    <div class="domino-half">
+                      <div class="domino-half-grid">
+                        @for (dot of getDots(pt.y1 < pt.y2 ? pt.tile[0] : pt.tile[1]); track $index) {
+                          <div [class.domino-dot]="dot"></div>
+                        }
+                      </div>
+                    </div>
+                    <div class="domino-divider"></div>
+                    <div class="domino-half">
+                      <div class="domino-half-grid">
+                        @for (dot of getDots(pt.y1 < pt.y2 ? pt.tile[1] : pt.tile[0]); track $index) {
+                          <div [class.domino-dot]="dot"></div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- Playable endpoints (Drop Zones / Click Targets) -->
+              @for (ep of allEndpoints(); track $index) {
+                <div class="drop-zone"
+                     [class.playable]="isEndpointPlayable(ep)"
+                     [class.drag-over]="activeDragOverEp() === ep"
+                     [style.grid-column]="getEpGridCol(ep)"
+                     [style.grid-row]="getEpGridRow(ep)"
+                     (dragover)="onDragOver($event, ep)"
+                     (dragleave)="onDragLeave()"
+                     (drop)="onDrop($event, ep)"
+                     (click)="onEpClick(ep)">
+                  <div class="drop-zone-inner">
+                    @if (selectedTileIndex() !== null && isEndpointPlayable(ep)) {
+                      <span class="material-symbols drop-icon">check_circle</span>
+                    } @else {
+                      <span class="material-symbols drop-icon">add</span>
+                    }
                   </div>
                 </div>
               }
             </div>
           </div>
-
-          <!-- Right side play indicator button -->
-          @if (selectedTileIndex() !== null && selectedTileSides().right) {
-            <button class="side-play-btn right-play" (click)="playSelectedTile('right')" title="Placer à droite">
-              <span class="material-symbols">arrow_forward</span>
-            </button>
-          }
         }
       </div>
 
@@ -145,6 +176,9 @@
                 [class.playable]="isTilePlayable(tile)"
                 [class.selected]="selectedTileIndex() === $index"
                 [disabled]="!isTilePlayable(tile) || !isMyTurn()"
+                draggable="true"
+                (dragstart)="onDragStart($event, $index)"
+                (dragend)="onDragEnd()"
                 (click)="selectTile($index)"
               >
                 <div class="domino-half">

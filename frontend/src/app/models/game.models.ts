@@ -25,6 +25,7 @@ export interface RoomListEntry {
   gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos';
   playersCount: number;
   status: 'waiting' | 'playing' | 'finished';
+  variant?: 'classic' | 'branches' | 'grid';
 }
 
 // Battleship Specific Interfaces
@@ -61,10 +62,30 @@ export interface Room<T = any> {
   chatMessages: ChatMessage[];
   rematchVotes?: string[];
   isLocal?: boolean;
+  isPrivate?: boolean;
+  variant?: 'classic' | 'branches' | 'grid';
+}
+
+export interface PlacedTile {
+  tile: [number, number];
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  isDouble: boolean;
+}
+
+export interface PlayableEndpoint {
+  xConnect: number;
+  yConnect: number;
+  xOuter: number;
+  yOuter: number;
+  matchValue: number;
 }
 
 export interface DominosGameState {
-  board: [number, number][];
+  variant: 'classic' | 'branches' | 'grid';
+  placedTiles: PlacedTile[];
   handP1: [number, number][];
   handP2: [number, number][];
   boneyard: [number, number][];
@@ -74,6 +95,5 @@ export interface DominosGameState {
   lastMove: {
     player: number;
     domino: [number, number];
-    side: 'left' | 'right';
   } | null;
 }

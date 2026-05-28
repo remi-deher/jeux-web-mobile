@@ -55,6 +55,7 @@ interface Room {
   isPrivate: boolean;
   rematchVotes: string[];
   isLocal?: boolean;
+  variant?: 'classic' | 'branches' | 'grid';
 }
 
 const rooms: { [id: string]: Room } = {};
@@ -113,19 +114,17 @@ io.on('connection', (socket: Socket) => {
     io.to(data.challengerSocketId).emit('challengeDeclined', { opponentUsername });
   });
 
-  socket.on('acceptChallenge', (data: { challengerSocketId: string; gameType: string }) => {
+  socket.on('acceptChallenge', (data: { challengerSocketId: string; gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos'; variant?: 'classic' | 'branches' | 'grid' }) => {
+    const challengerUsername = onlineUsers[data.challengerSocketId] || 'Challenger';
+    const opponentUsername = onlineUsers[socket.id] || 'Opponent';
     const challengerSocket = io.sockets.sockets.get(data.challengerSocketId);
-    if (!challengerSocket) {
-      return socket.emit('challengeError', 'Le challenger s\'est déconnecté.');
-    }
+
+    if (!challengerSocket) return;
 
     const roomId = generateRoomId();
-    const challengerUsername = onlineUsers[data.challengerSocketId] || 'Joueur 1';
-    const opponentUsername = onlineUsers[socket.id] || 'Joueur 2';
-
     const newRoom: Room = {
       id: roomId,
-      gameType: data.gameType as any,
+      gameType: data.gameType,
       players: [
         { id: data.challengerSocketId, username: challengerUsername },
         { id: socket.id, username: opponentUsername }
@@ -134,7 +133,8 @@ io.on('connection', (socket: Socket) => {
       gameState: null,
       chatMessages: [],
       isPrivate: true,
-      rematchVotes: []
+      rematchVotes: [],
+      variant: data.variant
     };
 
     if (data.gameType === 'connect4') {
@@ -157,7 +157,7 @@ io.on('connection', (socket: Socket) => {
     } else if (data.gameType === 'pendu') {
       newRoom.gameState = createInitialPenduState();
     } else if (data.gameType === 'dominos') {
-      newRoom.gameState = createInitialDominosState();
+      newRoom.gameState = createInitialDominosState(data.variant);
     }
 
     rooms[roomId] = newRoom;
@@ -202,7 +202,7 @@ io.on('connection', (socket: Socket) => {
   });
 
 
-  socket.on('createRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos'; username: string; isPrivate?: boolean }, callback) => {
+  socket.on('createRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos'; username: string; isPrivate?: boolean; variant?: 'classic' | 'branches' | 'grid' }, callback) => {
     const roomId = generateRoomId();
     const newRoom: Room = {
       id: roomId,
@@ -212,7 +212,8 @@ io.on('connection', (socket: Socket) => {
       gameState: null,
       chatMessages: [],
       isPrivate: !!data.isPrivate,
-      rematchVotes: []
+      rematchVotes: [],
+      variant: data.variant
     };
 
     rooms[roomId] = newRoom;
@@ -224,7 +225,7 @@ io.on('connection', (socket: Socket) => {
     io.emit('roomsList', getPublicRooms());
   });
 
-  socket.on('createLocalRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos'; username: string; player1Name?: string; player2Name?: string }, callback) => {
+  socket.on('createLocalRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos'; username: string; player1Name?: string; player2Name?: string; variant?: 'classic' | 'branches' | 'grid' }, callback) => {
     const roomId = generateRoomId();
     const newRoom: Room = {
       id: roomId,
@@ -238,7 +239,8 @@ io.on('connection', (socket: Socket) => {
       chatMessages: [],
       isPrivate: true,
       isLocal: true,
-      rematchVotes: []
+      rematchVotes: [],
+      variant: data.variant
     };
 
     if (data.gameType === 'connect4') {
@@ -261,7 +263,7 @@ io.on('connection', (socket: Socket) => {
     } else if (data.gameType === 'pendu') {
       newRoom.gameState = createInitialPenduState();
     } else if (data.gameType === 'dominos') {
-      newRoom.gameState = createInitialDominosState();
+      newRoom.gameState = createInitialDominosState(data.variant);
     }
 
     rooms[roomId] = newRoom;
@@ -309,7 +311,7 @@ io.on('connection', (socket: Socket) => {
       } else if (room.gameType === 'pendu') {
         room.gameState = createInitialPenduState();
       } else if (room.gameType === 'dominos') {
-        room.gameState = createInitialDominosState();
+        room.gameState = createInitialDominosState(room.variant);
       }
     }
 
@@ -523,7 +525,7 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
-  socket.on('dominosPlay', (data: { roomId: string; tileIndex: number; side: 'left' | 'right' }) => {
+  socket.on('dominosPlay', (data: { roomId: string; tileIndex: number; side: 'left' | 'right' | null; coords?: { x1: number; y1: number; x2: number; y2: number } }) => {
     const room = rooms[data.roomId];
     if (!room || room.gameType !== 'dominos' || !room.gameState) return;
 
@@ -531,7 +533,7 @@ io.on('connection', (socket: Socket) => {
     if (playerIndex === -1) return;
 
     const playerNum = room.isLocal ? (room.gameState as DominosState).currentPlayer : (playerIndex + 1);
-    const success = makeDominosMove(room.gameState as DominosState, data.tileIndex, data.side, playerNum);
+    const success = makeDominosMove(room.gameState as DominosState, data.tileIndex, data.side || null, data.coords || null, playerNum);
 
     if (success) {
       if ((room.gameState as DominosState).winner !== null) {
@@ -608,7 +610,7 @@ io.on('connection', (socket: Socket) => {
       } else if (room.gameType === 'pendu') {
         room.gameState = createInitialPenduState();
       } else if (room.gameType === 'dominos') {
-        room.gameState = createInitialDominosState();
+        room.gameState = createInitialDominosState(room.variant);
       }
     } else {
       if (!room.rematchVotes) room.rematchVotes = [];
@@ -639,7 +641,7 @@ io.on('connection', (socket: Socket) => {
         } else if (room.gameType === 'pendu') {
           room.gameState = createInitialPenduState();
         } else if (room.gameType === 'dominos') {
-          room.gameState = createInitialDominosState();
+          room.gameState = createInitialDominosState(room.variant);
         }
       }
     }
@@ -926,7 +928,8 @@ function getPublicRooms() {
       id: r.id,
       gameType: r.gameType,
       playersCount: r.players.length,
-      status: r.status
+      status: r.status,
+      variant: r.variant
     }));
 }
 
