@@ -11,8 +11,15 @@ export class GameHelpersService {
 
   soundEnabled = this.soundService.soundEnabled;
 
+  /** Visibilité du panneau chat (desktop). Masqué par défaut en jeu, visible en lobby. */
+  chatVisible = signal<boolean>(true);
+
   toggleSound() {
     this.soundService.toggleSound();
+  }
+
+  toggleChat() {
+    this.chatVisible.update(v => !v);
   }
 
   playSound(type: 'click' | 'success' | 'warning' | 'error') {

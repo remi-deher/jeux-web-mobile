@@ -1,8 +1,9 @@
 import { BottomNavbarComponent } from './components/bottom-navbar/bottom-navbar.component';
 import { Router } from '@angular/router';
-import { Component, computed, effect, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { GameService } from './services/game.service';
+import { GameHelpersService } from './services/game-helpers.service';
 import { LobbyComponent } from './components/lobby/lobby.component';
 import { Connect4Component } from './components/connect4/connect4.component';
 import { BattleshipComponent } from './components/battleship/battleship.component';
@@ -51,10 +52,12 @@ export class App {
   activeView;
   activeGame;
 
+  private gameHelpersService = inject(GameHelpersService);
+
   showProfileModal = signal<boolean>(false);
   newUsername = '';
   theme = signal<'dark' | 'light'>('dark');
-  chatVisible = signal<boolean>(true);
+  chatVisible = this.gameHelpersService.chatVisible;
 
   /**
    * Stats computed uniquement quand le modal profil est ouvert.
@@ -104,6 +107,12 @@ export class App {
       document.body.classList.toggle('light-theme', this.theme() === 'light');
     });
 
+    // Cache le chat à l'entrée d'un jeu, le restaure en lobby
+    effect(() => {
+      const inGame = !!this.currentRoom();
+      this.gameHelpersService.chatVisible.set(!inGame);
+    }, { allowSignalWrites: true });
+
     effect(() => {
       const active = this.activeGame() || this.currentRoom()?.gameType;
       document.body.classList.remove(
@@ -145,7 +154,7 @@ export class App {
   }
 
   toggleChatSidebar() {
-    this.chatVisible.set(!this.chatVisible());
+    this.gameHelpersService.toggleChat();
   }
 
   resetUsername() {

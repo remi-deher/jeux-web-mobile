@@ -70,6 +70,14 @@ import { GameHelpersService } from '../../services/game-helpers.service';
               {{ isFullscreen() ? 'fullscreen_exit' : 'fullscreen' }}
             </span>
           </button>
+          <!-- Bouton chat — desktop uniquement (caché sur mobile via CSS) -->
+          <button class="icon-btn chat-toggle-btn"
+            (click)="gameHelpersService.toggleChat()"
+            [title]="gameHelpersService.chatVisible() ? 'Masquer le chat' : 'Afficher le chat'">
+            <span class="material-symbols">
+              {{ gameHelpersService.chatVisible() ? 'right_panel_close' : 'right_panel_open' }}
+            </span>
+          </button>
           <div class="room-code">
             <span class="room-label">Code : </span>
             <strong>{{ room?.id }}</strong>
@@ -378,6 +386,13 @@ import { GameHelpersService } from '../../services/game-helpers.service';
       color: var(--md-on-surface);
     }
     .icon-btn .material-symbols { font-size: 20px; }
+
+    /* Bouton chat masqué sur mobile (la sidebar n'existe qu'en desktop) */
+    .chat-toggle-btn { display: none; }
+
+    @media (orientation: landscape) and (min-width: 768px) {
+      .chat-toggle-btn { display: inline-flex; }
+    }
 
     .room-code {
       background: var(--md-surface-container);
