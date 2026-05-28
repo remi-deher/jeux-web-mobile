@@ -184,13 +184,14 @@ export class TetrisComponent implements AfterViewInit, OnDestroy {
     return `${s.players.p1.score} - ${s.players.p2.score}`;
   });
 
-  rules = `
-    <strong>Tetris vs</strong> — Deux boards séparés, lignes effacées → garbage pour l'adversaire.<br>
-    <b>Clavier :</b> ← → déplacer | ↑/X rotation droite | Z/Ctrl rotation gauche<br>
-    ↓ soft drop | Espace hard drop | C/Shift hold<br>
-    <b>Mobile :</b> swipe gauche/droite/bas, tap = rotation, swipe haut = hard drop.<br>
-    <b>Garbage :</b> 2L→1, 3L→2, 4L (Tetris)→4.
-  `;
+  rules = [
+    'Deux boards séparés 10×20 — lignes effacées → garbage pour l\'adversaire.',
+    '← → déplacer | ↑/X rotation droite | Z/Ctrl rotation gauche',
+    '↓ soft drop | Espace hard drop | C/Shift hold',
+    'Mobile : swipe, tap rotation, swipe haut hard drop.',
+    'Garbage : 2 lignes→1 | 3 lignes→2 | 4 lignes (Tetris)→4.',
+    'Mode local P2 : A/D déplacer, W rotation, S soft drop, E hard drop, R hold.',
+  ];
 
   // ── Canvas & layout ────────────────────────────────────────────────────────
   private ctx!:     CanvasRenderingContext2D;

@@ -179,15 +179,14 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
     return room?.gameType === 'snake' ? (room.gameState as SnakeState) : null;
   });
 
-  rules = `
-    <strong>Snake vs</strong> — Deux serpents sur la même grille.<br>
-    Mangez les pommes 🍎 pour grandir et marquer des points.<br>
-    Évitez les murs, votre propre corps et l'adversaire.<br>
-    <br>
-    <b>P1 (vert)</b> : flèches ← → ↑ ↓<br>
-    <b>P2 (cyan)</b> : WASD — <em>mode local seulement</em><br>
-    Mobile : swipe pour changer de direction.
-  `;
+  rules = [
+    'Deux serpents sur la même grille 25×20.',
+    'Mangez les pommes pour grandir et marquer des points.',
+    'Évitez les murs, votre propre corps et l\'adversaire.',
+    'P1 (vert) : flèches ← → ↑ ↓',
+    'P2 (cyan, mode local) : WASD',
+    'Mobile : swipe pour changer de direction.',
+  ];
 
   // ── Rendering ─────────────────────────────────────────────────────────────
   private ctx!: CanvasRenderingContext2D;
