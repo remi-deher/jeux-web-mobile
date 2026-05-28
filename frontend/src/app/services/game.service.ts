@@ -27,7 +27,7 @@ export class GameService {
   
   // Navigation signals
   public activeView = signal<string>('games');
-  public activeGame = signal<'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | null>(null);
+  public activeGame = signal<'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | null>(null);
 
   private prevPongVx: number | null = null;
   
@@ -196,7 +196,7 @@ export class GameService {
     this.socket.emit('globalMessage', { username: this.username(), text });
   }
 
-  createRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu', isPrivate: boolean = false) {
+  createRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos', isPrivate: boolean = false) {
     this.socket.emit('createRoom', { gameType, username: this.username(), isPrivate }, (res: any) => {
       if (res.success) {
         this.currentRoom.set(res.room);
@@ -207,7 +207,7 @@ export class GameService {
     });
   }
 
-  createLocalRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu', player1Name?: string, player2Name?: string) {
+  createLocalRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos', player1Name?: string, player2Name?: string) {
     this.socket.emit('createLocalRoom', { gameType, username: this.username() || 'Joueur 1', player1Name, player2Name }, (res: any) => {
       if (res.success) {
         this.currentRoom.set(res.room);
@@ -341,6 +341,28 @@ export class GameService {
     const room = this.currentRoom();
     if (room) {
       this.socket.emit('penduGuess', { roomId: room.id, letter });
+    }
+  }
+
+  // Dominos Actions
+  makeDominosMove(tileIndex: number, side: 'left' | 'right') {
+    const room = this.currentRoom();
+    if (room) {
+      this.socket.emit('dominosPlay', { roomId: room.id, tileIndex, side });
+    }
+  }
+
+  drawDominosTile() {
+    const room = this.currentRoom();
+    if (room) {
+      this.socket.emit('dominosDraw', { roomId: room.id });
+    }
+  }
+
+  passDominosTurn() {
+    const room = this.currentRoom();
+    if (room) {
+      this.socket.emit('dominosPass', { roomId: room.id });
     }
   }
 

@@ -1,0 +1,402 @@
+.dominos-board-container {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 0;
+  padding: 8px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.game-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 760px;
+  height: 100%;
+  justify-content: center;
+}
+
+/* ---- Opponent hand (online mode) ---- */
+.opponent-hand-tracker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.opponent-label {
+  font-size: 12px;
+  color: var(--md-on-surface-variant);
+  font-weight: 500;
+}
+
+.opponent-tiles {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.opponent-tile-back {
+  width: 24px;
+  height: 48px;
+  background: radial-gradient(circle at 35% 35%, #5D4037 0%, #3E2723 70%, #271510 100%);
+  border: 1.5px solid #8D6E63;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+}
+
+.tile-back-icon {
+  font-size: 14px !important;
+  color: #D7CCC8;
+  opacity: 0.3;
+}
+
+/* ---- Board Chain (Played Dominos) ---- */
+.board-chain-wrapper {
+  width: 100%;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background: rgba(28, 27, 31, 0.4);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-radius-lg);
+  padding: 0 16px;
+}
+
+.empty-board-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: var(--md-on-surface-variant);
+  text-align: center;
+}
+
+.board-empty-icon {
+  font-size: 48px !important;
+  color: var(--md-primary);
+  opacity: 0.8;
+}
+
+.board-scroll-area {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: flex;
+  align-items: center;
+  padding: 10px 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.board-chain {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 20px;
+  margin: 0 auto;
+}
+
+/* ---- Domino Tile styling ---- */
+.domino-tile {
+  background: radial-gradient(circle at 30% 30%, #F5F5F5 0%, #EFEBE9 80%, #D7CCC8 100%);
+  border: 2px solid #CAC4D0;
+  border-radius: var(--md-radius-sm);
+  display: flex;
+  align-items: center;
+  position: relative;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3), inset 0 -3px 0 rgba(0,0,0,0.15);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+  flex-shrink: 0;
+}
+
+/* Default vertical domino (hand, opponent) */
+.domino-tile.hand-tile {
+  width: 48px;
+  height: 96px;
+  flex-direction: column;
+  padding: 4px 0;
+  cursor: pointer;
+  border-color: var(--md-outline-variant);
+}
+
+.domino-tile.hand-tile:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.domino-tile.hand-tile.playable:not(:disabled) {
+  border-color: var(--md-primary);
+  box-shadow: 0 0 10px var(--md-primary), 0 4px 8px rgba(0,0,0,0.4);
+}
+
+.domino-tile.hand-tile.playable:not(:disabled):hover {
+  transform: translateY(-8px) scale(1.05);
+  box-shadow: 0 0 16px var(--md-primary), 0 8px 12px rgba(0,0,0,0.5);
+}
+
+.domino-tile.hand-tile.selected {
+  transform: translateY(-12px) scale(1.08);
+  border-color: #fbbf24;
+  box-shadow: 0 0 20px #fbbf24, 0 10px 16px rgba(0,0,0,0.6);
+  animation: selectedPulse 1.5s infinite ease-in-out;
+}
+
+@keyframes selectedPulse {
+  0%, 100% { box-shadow: 0 0 12px #fbbf24; }
+  50% { box-shadow: 0 0 24px #fbbf24; }
+}
+
+/* Placed horizontal dominos on board */
+.domino-tile.placed-tile {
+  width: 80px;
+  height: 44px;
+  flex-direction: row;
+  padding: 0 4px;
+}
+
+.domino-tile.placed-tile .domino-divider {
+  width: 2px;
+  height: 32px;
+  background-color: #5D4037;
+  margin: 0 2px;
+  opacity: 0.7;
+}
+
+.domino-tile.hand-tile .domino-divider {
+  width: 36px;
+  height: 2px;
+  background-color: #5D4037;
+  margin: 2px 0;
+  opacity: 0.7;
+}
+
+.domino-half {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.domino-half-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  width: 24px;
+  height: 24px;
+  gap: 2px;
+  padding: 1px;
+  box-sizing: border-box;
+}
+
+.domino-dot {
+  background-color: #3E2723;
+  border-radius: 50%;
+  width: 5px;
+  height: 5px;
+  margin: auto;
+  box-shadow: inset 0 1px 1px rgba(0,0,0,0.5);
+  animation: dotFadeIn 0.3s ease-out forwards;
+}
+
+@keyframes dotFadeIn {
+  from { opacity: 0; transform: scale(0.3); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ---- Side Play placement overlay buttons ---- */
+.side-play-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #fbbf24;
+  color: #1E1B23;
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 50;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4), 0 2px 4px rgba(0,0,0,0.3);
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.side-play-btn:hover {
+  background: #f59e0b;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.side-play-btn:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.side-play-btn.left-play {
+  left: 12px;
+}
+
+.side-play-btn.right-play {
+  right: 12px;
+}
+
+/* ---- Turn actions (Piocher / Passer) ---- */
+.turn-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.boneyard-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--md-on-surface-variant);
+  background: var(--md-surface-container-high);
+  border: 1px solid var(--md-outline-variant);
+  padding: 6px 14px;
+  border-radius: var(--md-radius-full);
+}
+
+.boneyard-info.empty {
+  color: var(--md-error);
+  border-color: rgba(242, 184, 181, 0.2);
+  background: rgba(242, 184, 181, 0.05);
+}
+
+.boneyard-icon {
+  font-size: 18px !important;
+}
+
+.pulse-action {
+  animation: actionPulse 1.8s infinite ease-in-out;
+}
+
+@keyframes actionPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(215, 204, 200, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(215, 204, 200, 0); }
+}
+
+/* ---- Hand container ---- */
+.my-hand-container {
+  width: 100%;
+  background: rgba(28, 27, 31, 0.4);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hand-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.hand-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--md-on-surface);
+}
+
+.hand-title .material-symbols {
+  font-size: 18px;
+  color: var(--md-primary);
+}
+
+.no-moves-alert {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--md-error);
+  background: rgba(242, 184, 181, 0.1);
+  padding: 4px 10px;
+  border-radius: var(--md-radius-full);
+  border: 1px solid rgba(242, 184, 181, 0.2);
+}
+
+.my-tiles-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.my-tiles {
+  display: flex;
+  gap: 10px;
+  padding: 4px 6px;
+  width: max-content;
+  margin: 0 auto;
+}
+
+/* ---- Responsive breaks ---- */
+@media (max-width: 600px) {
+  .board-chain-wrapper {
+    height: 140px;
+  }
+  .domino-tile.placed-tile {
+    width: 64px;
+    height: 36px;
+    padding: 0 2px;
+  }
+  .domino-tile.placed-tile .domino-divider {
+    height: 24px;
+  }
+  .domino-tile.placed-tile .domino-half-grid {
+    width: 18px;
+    height: 18px;
+    gap: 1.5px;
+  }
+  .domino-tile.placed-tile .domino-dot {
+    width: 3.5px;
+    height: 3.5px;
+  }
+  .domino-tile.hand-tile {
+    width: 38px;
+    height: 76px;
+    padding: 2px 0;
+  }
+  .domino-tile.hand-tile .domino-divider {
+    width: 28px;
+  }
+  .domino-tile.hand-tile .domino-half-grid {
+    width: 18px;
+    height: 18px;
+    gap: 1.5px;
+  }
+  .domino-tile.hand-tile .domino-dot {
+    width: 3.5px;
+    height: 3.5px;
+  }
+  .turn-actions {
+    gap: 12px;
+  }
+}

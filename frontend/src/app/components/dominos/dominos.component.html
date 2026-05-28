@@ -1,0 +1,173 @@
+<app-game-layout
+  gameTitle="Dominos"
+  [rules]="rules"
+  [room]="room()"
+  [isPlaying]="isPlaying()"
+  [isMyTurn]="isMyTurn()"
+  turnAlertText="C'est votre tour ! Jouez une tuile."
+  opponentTurnText="L'adversaire réfléchit..."
+  [winnerLabel]="winnerLabel()"
+  [isWinner]="isWinner()"
+  [isLoser]="isLoser()"
+  [hasVotedRematch]="hasVotedRematch()"
+  [disconnectedPlayerName]="disconnectedPlayerName()"
+  [player1Name]="player1Name()"
+  [player2Name]="player2Name()"
+  [player1Active]="currentPlayerNum() === 1 && isPlaying()"
+  [player2Active]="currentPlayerNum() === 2 && isPlaying()"
+  [player1IndicatorSymbol]="scoreP1Label()"
+  [player2IndicatorSymbol]="scoreP2Label()"
+  (leaveRoom)="leaveRoom()"
+  (requestRematch)="requestRematch()"
+  (sendEmoji)="sendEmoji($event)"
+  (forceEnd)="forceEnd()"
+  (shareInvitation)="shareInvitationLink()"
+>
+  <div game-board class="dominos-board-container">
+    <app-floating-emojis [emojis]="floatingEmojis()"></app-floating-emojis>
+
+    <div class="game-area">
+      <!-- Opponent hand tracker (online mode only) -->
+      @if (room() && !room()?.isLocal) {
+        <div class="opponent-hand-tracker">
+          <div class="opponent-label">Adversaire ({{ opponentHandCount() }} tuiles)</div>
+          <div class="opponent-tiles">
+            @for (i of opponentHandArray(); track $index) {
+              <div class="domino-tile opponent-tile-back">
+                <span class="material-symbols tile-back-icon">sports_esports</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Center Board: Chain of played Dominos -->
+      <div class="board-chain-wrapper glass-card">
+        @if (board().length === 0) {
+          <div class="empty-board-message">
+            <span class="material-symbols board-empty-icon">grid_view</span>
+            <p>Le plateau est vide. Jouez n'importe quelle tuile pour commencer !</p>
+          </div>
+        } @else {
+          <!-- Left side play indicator button -->
+          @if (selectedTileIndex() !== null && selectedTileSides().left) {
+            <button class="side-play-btn left-play" (click)="playSelectedTile('left')" title="Placer à gauche">
+              <span class="material-symbols">arrow_back</span>
+            </button>
+          }
+
+          <div class="board-scroll-area">
+            <div class="board-chain">
+              @for (tile of board(); track $index) {
+                <div class="domino-tile placed-tile">
+                  <div class="domino-half">
+                    <div class="domino-half-grid">
+                      @for (dot of getDots(tile[0]); track $index) {
+                        <div [class.domino-dot]="dot"></div>
+                      }
+                    </div>
+                  </div>
+                  <div class="domino-divider"></div>
+                  <div class="domino-half">
+                    <div class="domino-half-grid">
+                      @for (dot of getDots(tile[1]); track $index) {
+                        <div [class.domino-dot]="dot"></div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Right side play indicator button -->
+          @if (selectedTileIndex() !== null && selectedTileSides().right) {
+            <button class="side-play-btn right-play" (click)="playSelectedTile('right')" title="Placer à droite">
+              <span class="material-symbols">arrow_forward</span>
+            </button>
+          }
+        }
+      </div>
+
+      <!-- Turn actions: draw from boneyard or pass -->
+      @if (isPlaying()) {
+        <div class="turn-actions">
+          @if (boneyard().length > 0) {
+            <div class="boneyard-info">
+              <span class="material-symbols boneyard-icon">layers</span>
+              <span>Pioche ({{ boneyard().length }})</span>
+            </div>
+          } @else {
+            <div class="boneyard-info empty">
+              <span class="material-symbols boneyard-icon">layers_clear</span>
+              <span>Pioche vide</span>
+            </div>
+          }
+
+          @if (canDraw()) {
+            <button class="primary-btn draw-btn pulse-action" (click)="drawTile()">
+              <span class="material-symbols">download</span>
+              <span>Piocher une tuile</span>
+            </button>
+          } @else if (canPass()) {
+            <button class="primary-btn pass-btn pulse-action" (click)="passTurn()">
+              <span class="material-symbols">skip_next</span>
+              <span>Passer mon tour</span>
+            </button>
+          }
+        </div>
+      }
+
+      <!-- My hand container -->
+      <div class="my-hand-container glass-card">
+        <div class="hand-header">
+          <span class="hand-title">
+            <span class="material-symbols">style</span>
+            @if (room()?.isLocal) {
+              Jeu de <strong>{{ currentPlayerNum() === 1 ? player1Name() : player2Name() }}</strong>
+            } @else {
+              Votre jeu ({{ myHand().length }} tuiles)
+            }
+          </span>
+          @if (isMyTurn() && !hasAnyPlayableTile()) {
+            <span class="no-moves-alert">
+              <span class="material-symbols" style="font-size: 14px;">info</span>
+              Aucun coup possible !
+            </span>
+          }
+        </div>
+
+        <div class="my-tiles-scroll">
+          <div class="my-tiles">
+            @for (tile of myHand(); track $index) {
+              <button 
+                class="domino-tile hand-tile" 
+                [class.playable]="isTilePlayable(tile)"
+                [class.selected]="selectedTileIndex() === $index"
+                [disabled]="!isTilePlayable(tile) || !isMyTurn()"
+                (click)="selectTile($index)"
+              >
+                <div class="domino-half">
+                  <div class="domino-half-grid">
+                    @for (dot of getDots(tile[0]); track $index) {
+                      <div [class.domino-dot]="dot"></div>
+                    }
+                  </div>
+                </div>
+                <div class="domino-divider"></div>
+                <div class="domino-half">
+                  <div class="domino-half-grid">
+                    @for (dot of getDots(tile[1]); track $index) {
+                      <div [class.domino-dot]="dot"></div>
+                    }
+                  </div>
+                </div>
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</app-game-layout>

@@ -15,6 +15,7 @@ import { GomokuComponent } from './components/gomoku/gomoku.component';
 import { OthelloComponent } from './components/othello/othello.component';
 import { PongComponent } from './components/pong/pong.component';
 import { PenduComponent } from './components/pendu/pendu.component';
+import { DominosComponent } from './components/dominos/dominos.component';
 import { gameLabel } from './constants/game-labels';
 
 @Component({
@@ -34,7 +35,8 @@ import { gameLabel } from './constants/game-labels';
     GomokuComponent,
     OthelloComponent,
     PongComponent,
-    PenduComponent
+    PenduComponent,
+    DominosComponent
   ],
   templateUrl: './app.html',
   styleUrl: './app.css'
@@ -71,6 +73,7 @@ export class App {
       { name: 'Othello',        color: '#00B0FF', wins: read('stats_othello_wins'),    losses: read('stats_othello_losses'),    draws: read('stats_othello_draws')    },
       { name: 'Pong',           color: '#00E676', wins: read('stats_pong_wins'),       losses: read('stats_pong_losses'),       draws: read('stats_pong_draws')       },
       { name: 'Pendu',          color: '#FFEA00', wins: read('stats_pendu_wins'),      losses: read('stats_pendu_losses'),      draws: read('stats_pendu_draws')      },
+      { name: 'Dominos',        color: '#D7CCC8', wins: read('stats_dominos_wins'),    losses: read('stats_dominos_losses'),    draws: read('stats_dominos_draws')    },
     ];
   });
 
@@ -105,7 +108,7 @@ export class App {
       const active = this.activeGame() || this.currentRoom()?.gameType;
       document.body.classList.remove(
         'theme-connect4', 'theme-battleship', 'theme-chess', 'theme-checkers',
-        'theme-tictactoe', 'theme-gomoku', 'theme-othello', 'theme-pong', 'theme-pendu'
+        'theme-tictactoe', 'theme-gomoku', 'theme-othello', 'theme-pong', 'theme-pendu', 'theme-dominos'
       );
       if (active) document.body.classList.add(`theme-${active}`);
     });

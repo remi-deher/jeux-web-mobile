@@ -1,4 +1,4 @@
-﻿import { Component, signal, computed } from '@angular/core';
+import { Component, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { GameService } from '../../services/game.service';
 import { gameLabel } from '../../constants/game-labels';
@@ -200,6 +200,29 @@ import { gameLabel } from '../../constants/game-labels';
               <div class="game-card-info">
                 <span class="game-name">Le Pendu</span>
                 <span class="game-tag">Mots</span>
+              </div>
+            </button>
+
+            <button class="game-card" (click)="selectGame('dominos')">
+              <div class="game-card-image">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="100" height="100" rx="24" fill="#3E2723"/>
+                  <rect x="25" y="35" width="50" height="30" rx="6" fill="#EFEBE9" stroke="#D7CCC8" stroke-width="2"/>
+                  <line x1="50" y1="35" x2="50" y2="65" stroke="#D7CCC8" stroke-width="2"/>
+                  <!-- left: 3 dots -->
+                  <circle cx="35" cy="42" r="3" fill="#3E2723"/>
+                  <circle cx="44" cy="58" r="3" fill="#3E2723"/>
+                  <circle cx="39.5" cy="50" r="3" fill="#3E2723"/>
+                  <!-- right: 4 dots -->
+                  <circle cx="57" cy="42" r="3" fill="#3E2723"/>
+                  <circle cx="66" cy="42" r="3" fill="#3E2723"/>
+                  <circle cx="57" cy="58" r="3" fill="#3E2723"/>
+                  <circle cx="66" cy="58" r="3" fill="#3E2723"/>
+                </svg>
+              </div>
+              <div class="game-card-info">
+                <span class="game-name">Dominos</span>
+                <span class="game-tag">Classique</span>
               </div>
             </button>
           </div>
@@ -407,6 +430,21 @@ import { gameLabel } from '../../constants/game-labels';
                       <li>Les lettres trouvées apparaissent dans le mot en vert. Les erreurs s'affichent en rouge et complètent le dessin du pendu.</li>
                     </ul>
                   </div>
+                } @else if (selectedGame() === 'dominos') {
+                  <div class="rules-section">
+                    <h4>Règles du jeu</h4>
+                    <p>Le jeu se joue avec un jeu de 28 dominos (double-six). Chaque joueur reçoit 7 dominos au début de la partie. Le reste constitue la pioche (le talon ou <i>boneyard</i>). À tour de rôle, chaque joueur pose un domino de sa main à l'une des deux extrémités de la chaîne sur le plateau en faisant correspondre le nombre de points.</p>
+                    <h4>Pioche & Passer</h4>
+                    <ul>
+                      <li>Si vous n'avez pas de domino jouable dans votre main, vous devez piocher dans le talon (boneyard) jusqu'à ce que vous puissiez jouer ou que le talon soit vide.</li>
+                      <li>Si le talon est vide et que vous n'avez aucun coup possible, vous devez passer votre tour.</li>
+                    </ul>
+                    <h4>Fin de partie</h4>
+                    <ul>
+                      <li>La partie se termine lorsqu'un joueur a posé tous ses dominos (victoire immédiate).</li>
+                      <li>Elle se termine aussi si le jeu est bloqué (plus aucun joueur ne peut poser et le talon est vide). Le joueur ayant le moins de points (somme des points de ses dominos restants) gagne alors la partie. En cas d'égalité parfaite de points, la partie est nulle.</li>
+                    </ul>
+                  </div>
                 }
               </div>
             }
@@ -539,7 +577,7 @@ export class LobbyComponent {
     }
   }
 
-  selectGame(game: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | null) {
+  selectGame(game: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | null) {
     this.selectedGame.set(game);
     this.showRules.set(false);
   }

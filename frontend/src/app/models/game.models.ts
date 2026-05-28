@@ -22,7 +22,7 @@ export interface Player {
 
 export interface RoomListEntry {
   id: string;
-  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu';
+  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos';
   playersCount: number;
   status: 'waiting' | 'playing' | 'finished';
 }
@@ -54,11 +54,26 @@ export interface BattleshipGameState {
 
 export interface Room<T = any> {
   id: string;
-  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu';
+  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos';
   players: Player[];
   status: 'waiting' | 'playing' | 'finished';
   gameState: T;
   chatMessages: ChatMessage[];
   rematchVotes?: string[];
   isLocal?: boolean;
+}
+
+export interface DominosGameState {
+  board: [number, number][];
+  handP1: [number, number][];
+  handP2: [number, number][];
+  boneyard: [number, number][];
+  currentPlayer: number;
+  winner: number | 'draw' | null;
+  winnerReason?: string;
+  lastMove: {
+    player: number;
+    domino: [number, number];
+    side: 'left' | 'right';
+  } | null;
 }

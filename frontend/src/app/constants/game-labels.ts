@@ -12,6 +12,7 @@ export const GAME_LABELS: Record<string, string> = {
   othello:    'Othello',
   pong:       'Pong',
   pendu:      'Le Pendu',
+  dominos:    'Dominos',
 };
 
 export function gameLabel(gameType: string): string {

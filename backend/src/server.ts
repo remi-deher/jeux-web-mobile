@@ -18,6 +18,7 @@ import { GomokuState, createInitialGomokuState, makeGomokuMove } from './games/g
 import { OthelloState, createInitialOthelloState, makeOthelloMove } from './games/othello';
 import { PongState, createInitialPongState, updatePongPhysics } from './games/pong';
 import { PenduState, createInitialPenduState, makePenduGuess } from './games/pendu';
+import { DominosState, createInitialDominosState, makeDominosMove, drawFromBoneyard, passTurn } from './games/dominos';
 
 const app = express();
 app.use(cors());
@@ -46,10 +47,10 @@ interface Player {
 
 interface Room {
   id: string;
-  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu';
+  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos';
   players: Player[];
   status: 'waiting' | 'playing' | 'finished';
-  gameState: Connect4State | BattleshipState | TicTacToeState | CheckersState | ChessState | GomokuState | OthelloState | PongState | PenduState | null;
+  gameState: Connect4State | BattleshipState | TicTacToeState | CheckersState | ChessState | GomokuState | OthelloState | PongState | PenduState | DominosState | null;
   chatMessages: ChatMessage[];
   isPrivate: boolean;
   rematchVotes: string[];
@@ -155,6 +156,8 @@ io.on('connection', (socket: Socket) => {
       startPongLoop(roomId);
     } else if (data.gameType === 'pendu') {
       newRoom.gameState = createInitialPenduState();
+    } else if (data.gameType === 'dominos') {
+      newRoom.gameState = createInitialDominosState();
     }
 
     rooms[roomId] = newRoom;
@@ -199,7 +202,7 @@ io.on('connection', (socket: Socket) => {
   });
 
 
-  socket.on('createRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu'; username: string; isPrivate?: boolean }, callback) => {
+  socket.on('createRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos'; username: string; isPrivate?: boolean }, callback) => {
     const roomId = generateRoomId();
     const newRoom: Room = {
       id: roomId,
@@ -221,7 +224,7 @@ io.on('connection', (socket: Socket) => {
     io.emit('roomsList', getPublicRooms());
   });
 
-  socket.on('createLocalRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu'; username: string; player1Name?: string; player2Name?: string }, callback) => {
+  socket.on('createLocalRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos'; username: string; player1Name?: string; player2Name?: string }, callback) => {
     const roomId = generateRoomId();
     const newRoom: Room = {
       id: roomId,
@@ -257,6 +260,8 @@ io.on('connection', (socket: Socket) => {
       startPongLoop(roomId);
     } else if (data.gameType === 'pendu') {
       newRoom.gameState = createInitialPenduState();
+    } else if (data.gameType === 'dominos') {
+      newRoom.gameState = createInitialDominosState();
     }
 
     rooms[roomId] = newRoom;
@@ -303,6 +308,8 @@ io.on('connection', (socket: Socket) => {
         startPongLoop(room.id);
       } else if (room.gameType === 'pendu') {
         room.gameState = createInitialPenduState();
+      } else if (room.gameType === 'dominos') {
+        room.gameState = createInitialDominosState();
       }
     }
 
@@ -516,6 +523,57 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
+  socket.on('dominosPlay', (data: { roomId: string; tileIndex: number; side: 'left' | 'right' }) => {
+    const room = rooms[data.roomId];
+    if (!room || room.gameType !== 'dominos' || !room.gameState) return;
+
+    const playerIndex = room.players.findIndex(p => p.id === socket.id);
+    if (playerIndex === -1) return;
+
+    const playerNum = room.isLocal ? (room.gameState as DominosState).currentPlayer : (playerIndex + 1);
+    const success = makeDominosMove(room.gameState as DominosState, data.tileIndex, data.side, playerNum);
+
+    if (success) {
+      if ((room.gameState as DominosState).winner !== null) {
+        room.status = 'finished';
+      }
+      broadcastRoomUpdate(room);
+    }
+  });
+
+  socket.on('dominosDraw', (data: { roomId: string }) => {
+    const room = rooms[data.roomId];
+    if (!room || room.gameType !== 'dominos' || !room.gameState) return;
+
+    const playerIndex = room.players.findIndex(p => p.id === socket.id);
+    if (playerIndex === -1) return;
+
+    const playerNum = room.isLocal ? (room.gameState as DominosState).currentPlayer : (playerIndex + 1);
+    const success = drawFromBoneyard(room.gameState as DominosState, playerNum);
+
+    if (success) {
+      broadcastRoomUpdate(room);
+    }
+  });
+
+  socket.on('dominosPass', (data: { roomId: string }) => {
+    const room = rooms[data.roomId];
+    if (!room || room.gameType !== 'dominos' || !room.gameState) return;
+
+    const playerIndex = room.players.findIndex(p => p.id === socket.id);
+    if (playerIndex === -1) return;
+
+    const playerNum = room.isLocal ? (room.gameState as DominosState).currentPlayer : (playerIndex + 1);
+    const success = passTurn(room.gameState as DominosState, playerNum);
+
+    if (success) {
+      if ((room.gameState as DominosState).winner !== null) {
+        room.status = 'finished';
+      }
+      broadcastRoomUpdate(room);
+    }
+  });
+
   socket.on('sendEmoji', (data: { roomId: string; emoji: string }) => {
     const room = rooms[data.roomId];
     if (!room) return;
@@ -549,6 +607,8 @@ io.on('connection', (socket: Socket) => {
         startPongLoop(room.id);
       } else if (room.gameType === 'pendu') {
         room.gameState = createInitialPenduState();
+      } else if (room.gameType === 'dominos') {
+        room.gameState = createInitialDominosState();
       }
     } else {
       if (!room.rematchVotes) room.rematchVotes = [];
@@ -578,6 +638,8 @@ io.on('connection', (socket: Socket) => {
           startPongLoop(room.id);
         } else if (room.gameType === 'pendu') {
           room.gameState = createInitialPenduState();
+        } else if (room.gameType === 'dominos') {
+          room.gameState = createInitialDominosState();
         }
       }
     }
@@ -685,6 +747,13 @@ io.on('connection', (socket: Socket) => {
         const playerIndex = room.players.findIndex(p => p.id === winner.id);
         state.winner = playerIndex !== -1 ? playerIndex + 1 : 1;
       }
+    } else if (room.gameType === 'dominos') {
+      const state = room.gameState as DominosState;
+      if (state) {
+        const playerIndex = room.players.findIndex(p => p.id === winner.id);
+        state.winner = playerIndex !== -1 ? playerIndex + 1 : 1;
+        state.winnerReason = "abandon de l'adversaire";
+      }
     }
 
     broadcastRoomUpdate(room);
@@ -786,6 +855,12 @@ function handlePlayerLeave(socket: Socket, roomId: string) {
       const state = room.gameState as PenduState;
       if (state) {
         state.winner = leavingPlayerIndex === 0 ? 2 : 1;
+      }
+    } else if (room.gameType === 'dominos') {
+      const state = room.gameState as DominosState;
+      if (state) {
+        state.winner = leavingPlayerIndex === 0 ? 2 : 1;
+        state.winnerReason = "forfait (déconnexion)";
       }
     }
     broadcastRoomUpdate(room);
