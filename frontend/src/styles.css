@@ -99,12 +99,23 @@ body.light-theme {
 html, body {
   margin: 0;
   font-family: 'Outfit', sans-serif;
-  min-height: 100vh;
+  min-height: 100dvh;
   background: var(--md-background);
   color: var(--md-on-surface);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Prevent double-tap zoom & 300ms delay on all interactive elements */
+button, input, select, textarea, a, [role="button"] {
+  touch-action: manipulation;
+}
+
+/* Prevent accidental text selection on buttons / UI chrome */
+button, label, .material-symbols {
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -146,7 +157,7 @@ select:focus,
 .app-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* =========================================================
@@ -156,57 +167,117 @@ select:focus,
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 32px;
-  height: 64px;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  padding-bottom: 10px;
+  padding-left: calc(20px + env(safe-area-inset-left, 0px));
+  padding-right: calc(20px + env(safe-area-inset-right, 0px));
+  min-height: calc(64px + env(safe-area-inset-top, 0px));
+  height: auto;
   background: var(--md-surface-container-low);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--md-outline-variant);
   position: sticky;
   top: 0;
   z-index: 100;
+  box-sizing: border-box;
+  gap: 12px;
 }
 
+/* Thin accent gradient line at the very bottom */
+.app-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--md-primary) 40%, var(--md-primary) 60%, transparent 100%);
+  opacity: 0.25;
+  transition: opacity 0.3s ease;
+}
+
+/* ---- Logo ---- */
 .header-logo {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .logo-icon {
   font-size: 28px;
   color: var(--md-primary);
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--md-primary) 50%, transparent));
+  transition: filter 0.3s ease;
+}
+
+.header-logo:hover .logo-icon {
+  filter: drop-shadow(0 0 16px color-mix(in srgb, var(--md-primary) 80%, transparent));
 }
 
 .header-logo h1 {
   margin: 0;
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 19px;
+  font-weight: 700;
   color: var(--md-on-surface);
-  letter-spacing: -0.3px;
+  letter-spacing: -0.5px;
 }
 
-.header-user {
+/* ---- Right-side actions cluster ---- */
+.header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
+/* ---- User badge ---- */
 .user-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   background: var(--md-surface-container-high);
-  padding: 6px 14px 6px 10px;
+  border: 1px solid var(--md-outline-variant);
+  padding: 5px 14px 5px 8px;
   border-radius: var(--md-radius-full);
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--md-on-surface-variant);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--md-on-surface);
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.user-badge:hover {
+  background: var(--md-surface-container-highest);
+  border-color: var(--md-primary);
+  transform: translateY(-1px);
 }
 
 .badge-icon {
-  font-size: 18px;
+  font-size: 20px;
   color: var(--md-primary);
 }
 
+/* shrink username on small tablets */
+.user-badge-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Chat sidebar toggle (desktop only) ---- */
+.chat-sidebar-toggle-btn {
+  display: none; /* shown only on desktop via media query below */
+}
+
+@media (min-width: 1200px) {
+  .chat-sidebar-toggle-btn {
+    display: flex;
+  }
+}
+
+/* ---- Legacy / unused ---- */
 .logout-btn {
   background: transparent;
   border: none;
@@ -220,9 +291,7 @@ select:focus,
   transition: background 0.15s ease, color 0.15s ease;
 }
 
-.logout-btn .material-symbols {
-  font-size: 20px;
-}
+.logout-btn .material-symbols { font-size: 20px; }
 
 .logout-btn:hover {
   background: var(--md-surface-container-highest);
@@ -358,15 +427,120 @@ select:focus,
 }
 
 /* =========================================================
+   Header Navigation Tabs (desktop)
+   ========================================================= */
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--md-surface-container-high);
+  border-radius: var(--md-radius-full);
+  padding: 4px;
+  flex: 1;
+  max-width: 280px;
+}
+
+.header-nav-btn {
+  background: none;
+  border: none;
+  color: var(--md-on-surface-variant);
+  padding: 7px 20px;
+  border-radius: var(--md-radius-full);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.15s;
+  white-space: nowrap;
+  flex: 1;
+  justify-content: center;
+}
+
+.header-nav-btn .material-symbols {
+  font-size: 18px;
+  transition: font-variation-settings 0.2s;
+}
+
+.header-nav-btn:hover {
+  background: var(--md-surface-container-highest);
+  color: var(--md-on-surface);
+}
+
+.header-nav-btn.active {
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+.header-nav-btn.active .material-symbols {
+  font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Hide desktop nav on mobile — bottom-nav is used there */
+@media (max-width: 767px) {
+  .header-nav {
+    display: none;
+  }
+}
+
+/* =========================================================
+   Desktop: chat sidebar visibility toggle
+   ========================================================= */
+@media (min-width: 1200px) {
+  .app-container.chat-hidden {
+    padding-right: 0;
+  }
+}
+
+/* =========================================================
+   View Enter Animation (fade + slide-up)
+   ========================================================= */
+@keyframes viewFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.view-enter {
+  animation: viewFadeIn 0.22s ease-out forwards;
+  width: 100%;
+}
+
+/* =========================================================
+   Desktop: make room for the persistent chat sidebar
+   ========================================================= */
+@media (min-width: 1200px) {
+  .app-container {
+    padding-right: 320px;
+  }
+}
+
+/* =========================================================
    Responsive Header
    ========================================================= */
 @media (max-width: 640px) {
   .app-header {
-    padding: 0 16px;
-    height: 56px;
+    padding-left: calc(14px + env(safe-area-inset-left, 0px));
+    padding-right: calc(14px + env(safe-area-inset-right, 0px));
+    min-height: calc(56px + env(safe-area-inset-top, 0px));
+    gap: 8px;
   }
   .header-logo h1 {
-    font-size: 17px;
+    font-size: 16px;
+  }
+  .user-badge-name {
+    display: none; /* icône seule sur mobile */
+  }
+  .user-badge {
+    padding: 5px 8px;
   }
 }
 
@@ -403,7 +577,11 @@ select:focus,
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  /* Safe area insets: modal content never hides behind notch/home indicator */
+  padding: calc(16px + env(safe-area-inset-top, 0px))
+           calc(16px + env(safe-area-inset-right, 0px))
+           calc(16px + env(safe-area-inset-bottom, 0px))
+           calc(16px + env(safe-area-inset-left, 0px));
   backdrop-filter: blur(4px);
   animation: modalOverlayFadeIn 0.3s ease-out forwards;
 }

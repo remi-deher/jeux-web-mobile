@@ -247,7 +247,11 @@ import { GameHelpersService } from '../../services/game-helpers.service';
       flex-direction: column;
       overflow: hidden;
       box-sizing: border-box;
-      padding: 10px 15px;
+      /* Account for notch (top), home indicator (bottom), and rounded bezels (sides) */
+      padding-top:    calc(10px + env(safe-area-inset-top,    0px));
+      padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+      padding-left:   calc(15px + env(safe-area-inset-left,   0px));
+      padding-right:  calc(15px + env(safe-area-inset-right,  0px));
       width: 100%;
     }
 
@@ -575,17 +579,18 @@ import { GameHelpersService } from '../../services/game-helpers.service';
 
     .rules-modal-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      inset: 0;
       background: rgba(0, 0, 0, 0.6);
       backdrop-filter: blur(4px);
       display: flex;
       justify-content: center;
       align-items: center;
       z-index: 10000;
-      padding: 20px;
+      padding: calc(20px + env(safe-area-inset-top,    0px))
+               calc(20px + env(safe-area-inset-right,  0px))
+               calc(20px + env(safe-area-inset-bottom, 0px))
+               calc(20px + env(safe-area-inset-left,   0px));
+      box-sizing: border-box;
       animation: modalOverlayFadeIn 0.3s ease-out forwards;
     }
     .rules-modal-card {
@@ -752,7 +757,10 @@ import { GameHelpersService } from '../../services/game-helpers.service';
 
     @media (max-width: 480px) {
       .layout-container {
-        padding: 6px 10px;
+        padding-top:    calc(6px + env(safe-area-inset-top,    0px));
+        padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+        padding-left:   calc(10px + env(safe-area-inset-left,  0px));
+        padding-right:  calc(10px + env(safe-area-inset-right, 0px));
       }
       .game-header {
         margin-bottom: 8px;
@@ -792,7 +800,8 @@ import { GameHelpersService } from '../../services/game-helpers.service';
       }
       .emoji-bar {
         position: absolute;
-        bottom: 8px;
+        /* Push above home indicator on iPhone */
+        bottom: calc(8px + env(safe-area-inset-bottom, 0px));
         left: 50%;
         transform: translateX(-50%);
         z-index: 100;
@@ -819,6 +828,29 @@ import { GameHelpersService } from '../../services/game-helpers.service';
       .status-message {
         font-size: 12px;
         margin-top: 4px;
+      }
+    }
+
+    /* ── Large desktop (≥ 1280 px) ────────────────────────────────────────── */
+    @media (min-width: 1280px) {
+      .layout-container {
+        padding-left:  calc(32px + env(safe-area-inset-left,  0px));
+        padding-right: calc(32px + env(safe-area-inset-right, 0px));
+      }
+      .game-header {
+        margin-bottom: 20px;
+      }
+      .back-btn {
+        padding: 10px 20px;
+        font-size: 15px;
+      }
+      .room-badge {
+        font-size: 15px;
+      }
+      .status-panel {
+        max-width: 640px;
+        margin-left: auto;
+        margin-right: auto;
       }
     }
 

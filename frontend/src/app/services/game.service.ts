@@ -27,6 +27,8 @@ export class GameService {
   // Navigation signals
   public activeView = signal<string>('games');
   public activeGame = signal<'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | null>(null);
+
+  private prevPongVx: number | null = null;
   
   constructor() {
     // In dev mode (ng serve on port 4200), connect directly to backend on port 3001.
@@ -91,20 +93,22 @@ export class GameService {
     this.socket.on('pongUpdate', (pongState: any) => {
       const room = this.currentRoom();
       if (room && room.gameType === 'pong') {
-        const prevScores = (room.gameState as any)?.scoreP1 !== undefined ? 
+        const prevScores = (room.gameState as any)?.scoreP1 !== undefined ?
           { p1: (room.gameState as any).scoreP1, p2: (room.gameState as any).scoreP2 } : null;
+        const prevVx = this.prevPongVx;
+        this.prevPongVx = pongState.ball?.vx ?? null;
 
-        this.currentRoom.set({
-          ...room,
-          gameState: pongState
-        });
+        this.currentRoom.set({ ...room, gameState: pongState });
 
-        // Play point score sound
         if (prevScores && (pongState.scoreP1 !== prevScores.p1 || pongState.scoreP2 !== prevScores.p2)) {
           this.soundService.playSound('success', 'pong');
-        } else {
-          // Play paddle bounce sound on state updates where score is the same
-          this.soundService.playSound('click', 'pong');
+          this.prevPongVx = null;
+        } else if (prevVx !== null && pongState.ball?.vx !== undefined) {
+          // Only play bounce when the ball's horizontal direction actually reverses
+          const bounced = (prevVx > 0) !== (pongState.ball.vx > 0);
+          if (bounced) {
+            this.soundService.playSound('click', 'pong');
+          }
         }
       }
     });

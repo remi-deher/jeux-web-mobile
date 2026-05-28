@@ -1,15 +1,21 @@
 /* src/app/components/bottom-navbar/bottom-navbar.component.css */
 .bottom-nav {
   position: fixed;
-  inset: auto 0 0 0; /* sticky at bottom */
-  height: 56px;
+  inset: auto 0 0 0;
+  /* Taller to absorb the home-indicator / gesture-bar on iPhone */
+  height: calc(56px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
   background: var(--md-surface-container);
   display: flex;
   justify-content: space-around;
-  align-items: center;
+  align-items: flex-start; /* align tabs at top; padding-bottom handles the gap */
+  padding-top: 0;
   box-shadow: 0 -2px 8px rgba(0,0,0,.15);
   border-top: 1px solid var(--md-outline-variant);
   z-index: 1000;
+  box-sizing: border-box;
 }
 .bottom-nav button {
   background: none;
@@ -20,7 +26,29 @@
   flex-direction: column;
   align-items: center;
   gap: 2px;
+  padding-top: 8px;
+  min-height: 56px;
+  flex: 1;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .bottom-nav button:hover {
   color: var(--md-primary);
+}
+
+/* Active tab indicator */
+.bottom-nav button.active {
+  color: var(--md-primary);
+}
+
+.bottom-nav button.active .material-symbols {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Hide bottom-nav on desktop — header nav takes over */
+@media (min-width: 768px) {
+  .bottom-nav {
+    display: none;
+  }
 }

@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, computed, effect, signal } from '@angular/core';
+import { Component, ElementRef, Input, ViewChild, computed, effect, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { GameService } from '../../services/game.service';
@@ -9,7 +9,7 @@ import { GameChatComponent } from './game-chat.component';
   standalone: true,
   imports: [FormsModule, DatePipe, GameChatComponent],
   template: `
-    <div class="chat-wrapper" [class.open]="isOpen">
+    <div class="chat-wrapper" [class.open]="isOpen" [class.desktop-hidden]="!desktopVisible">
       <!-- Toggle Button -->
       <button class="chat-toggle" (click)="toggleChat()" [class.has-unread]="hasUnread && !isOpen">
         <span class="material-symbols">chat_bubble</span>
@@ -225,8 +225,9 @@ import { GameChatComponent } from './game-chat.component';
     /* ---- Toggle FAB Button ---- */
     .chat-toggle {
       position: fixed;
-      bottom: 24px;
-      right: 24px;
+      /* Push above home-indicator (bottom) and away from rounded corner (right) */
+      bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+      right: calc(24px + env(safe-area-inset-right, 0px));
       width: 56px;
       height: 56px;
       border-radius: var(--md-radius-xl);
@@ -510,26 +511,53 @@ import { GameChatComponent } from './game-chat.component';
       background: var(--md-secondary-container);
     }
 
-    /* ---- Mobile ---- */
-    @media (max-width: 480px) {
-      .chat-container {
-        width: 100%;
-        left: 0;
-        transform: translateX(100%);
-      }
-      .chat-container.open {
-        transform: translateX(0);
-      }
+    /* ---- Mobile (≤ 640 px) ---- */
+    @media (max-width: 640px) {
+      /* FAB: stay above the bottom nav bar (≈ 56px) + home indicator */
       .chat-toggle {
-        left: auto;
-        right: 15px;
-        top: 15px;
-        border-radius: 50%;
-        position: fixed;
-        z-index: 1010;
+        bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+        right: calc(16px + env(safe-area-inset-right, 0px));
       }
-      .chat-container.open .chat-toggle {
+
+      /* Panel: full-width slide-over */
+      .chat-panel {
+        width: 100%;
+        /* Leave room at the bottom for home indicator */
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+
+      /* Input row: also breathe above the home indicator */
+      .chat-input-form {
+        padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+      }
+    }
+
+    /* ---- Desktop: always-visible sidebar (≥ 1200px) ---- */
+    @media (min-width: 1200px) {
+      /* Hide the FAB — no need to toggle */
+      .chat-toggle {
+        display: none !important;
+      }
+
+      /* Always show the panel — override the translateX transform */
+      .chat-panel {
+        transform: none !important;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* Hide the close button inside the panel header */
+      .chat-header .icon-btn {
         display: none;
+      }
+
+      /* When parent toggles visibility off → slide panel out */
+      .chat-wrapper.desktop-hidden .chat-panel {
+        transform: translateX(100%) !important;
+      }
+
+      /* Also hide the FAB when explicitly hidden (shouldn't matter, but safety) */
+      .chat-wrapper.desktop-hidden .chat-toggle {
+        display: none !important;
       }
     }
 
@@ -741,6 +769,8 @@ import { GameChatComponent } from './game-chat.component';
   `]
 })
 export class ChatSidebarComponent {
+  @Input() desktopVisible: boolean = true;
+
   @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
   @ViewChild('dmScrollContainer') private dmScrollContainer!: ElementRef;
 

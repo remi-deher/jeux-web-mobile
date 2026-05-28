@@ -206,20 +206,15 @@ import { GameService } from '../../services/game.service';
         <!-- Step 2: Game Lobby View -->
         <div class="game-lobby-view">
           <div class="lobby-topbar">
-            <button class="icon-btn" (click)="selectGame(null)">
+            <button class="icon-btn" (click)="selectGame(null)" title="Retour à la sélection des jeux">
               <span class="material-symbols">arrow_back</span>
             </button>
-            <h2 class="lobby-title">
-              @if (selectedGame() === 'connect4') { Puissance 4 }
-              @else if (selectedGame() === 'battleship') { Bataille Navale }
-              @else if (selectedGame() === 'tictactoe') { Morpion }
-              @else if (selectedGame() === 'checkers') { Jeu de Dames }
-              @else if (selectedGame() === 'chess') { Échecs }
-              @else if (selectedGame() === 'gomoku') { Gomoku }
-              @else if (selectedGame() === 'othello') { Othello }
-              @else if (selectedGame() === 'pong') { Pong }
-              @else if (selectedGame() === 'pendu') { Le Pendu }
-            </h2>
+            <nav class="lobby-breadcrumb" aria-label="Fil d'Ariane">
+              <span class="breadcrumb-home" (click)="selectGame(null)" role="button" tabindex="0"
+                    (keydown.enter)="selectGame(null)" (keydown.space)="selectGame(null)">Jeux</span>
+              <span class="material-symbols breadcrumb-sep" aria-hidden="true">chevron_right</span>
+              <span class="breadcrumb-current">{{ gameName() }}</span>
+            </nav>
           </div>
 
           <div class="lobby-content-grid">
@@ -737,9 +732,34 @@ import { GameService } from '../../services/game.service';
       font-size: 22px;
     }
 
-    .lobby-title {
-      margin: 0;
-      font-size: 22px;
+    /* -------- Breadcrumb -------- */
+    .lobby-breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .breadcrumb-home {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--md-on-surface-variant);
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: var(--md-radius-xs);
+      transition: color 0.15s;
+    }
+
+    .breadcrumb-home:hover {
+      color: var(--md-primary);
+    }
+
+    .breadcrumb-sep {
+      font-size: 18px;
+      color: var(--md-outline);
+    }
+
+    .breadcrumb-current {
+      font-size: 20px;
       font-weight: 700;
       color: var(--md-on-surface);
     }
@@ -1148,6 +1168,29 @@ import { GameService } from '../../services/game.service';
         grid-template-columns: 1fr 1fr;
         gap: 10px;
       }
+
+      /* Compact game cards on small screens */
+      .game-card-image {
+        padding: 12px;
+      }
+
+      .game-card-info {
+        padding: 8px 12px;
+      }
+
+      .game-name {
+        font-size: 12px;
+      }
+
+      .game-tag {
+        font-size: 10px;
+        padding: 2px 7px;
+      }
+
+      /* Compact breadcrumb on mobile */
+      .breadcrumb-current {
+        font-size: 17px;
+      }
     }
   `]
 })
@@ -1198,6 +1241,15 @@ export class LobbyComponent {
 
   filteredRooms = computed(() => {
     return this.roomsList().filter(r => r.gameType === this.selectedGame());
+  });
+
+  gameName = computed(() => {
+    const names: Record<string, string> = {
+      connect4: 'Puissance 4', battleship: 'Bataille Navale', tictactoe: 'Morpion',
+      checkers: 'Jeu de Dames', chess: 'Échecs', gomoku: 'Gomoku',
+      othello: 'Othello', pong: 'Pong', pendu: 'Le Pendu'
+    };
+    return names[this.selectedGame() ?? ''] ?? '';
   });
 
   constructor(private gameService: GameService) {

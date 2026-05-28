@@ -6,6 +6,22 @@ import { Injectable, signal } from '@angular/core';
 export class SoundService {
   soundEnabled = signal<boolean>(localStorage.getItem('soundEnabled') !== 'false');
 
+  private audioCtx: AudioContext | null = null;
+
+  private getCtx(): AudioContext | null {
+    try {
+      if (!this.audioCtx || this.audioCtx.state === 'closed') {
+        this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      if (this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume();
+      }
+      return this.audioCtx;
+    } catch {
+      return null;
+    }
+  }
+
   toggleSound() {
     const val = !this.soundEnabled();
     this.soundEnabled.set(val);
@@ -17,7 +33,8 @@ export class SoundService {
     if (!this.soundEnabled()) return;
 
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioCtx = this.getCtx();
+      if (!audioCtx) return;
       if (audioCtx.state === 'suspended') {
         audioCtx.resume();
       }

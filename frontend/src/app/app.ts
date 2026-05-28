@@ -51,6 +51,7 @@ export class App {
   showProfileModal = signal<boolean>(false);
   newUsername = '';
   theme = signal<'dark' | 'light'>('dark');
+  chatVisible = signal<boolean>(true);
 
   constructor(private gameService: GameService, private router: Router) {
     this.username = this.gameService.username;
@@ -145,6 +146,10 @@ export class App {
 
   toggleTheme() {
     this.theme.set(this.theme() === 'dark' ? 'light' : 'dark');
+  }
+
+  toggleChatSidebar() {
+    this.chatVisible.set(!this.chatVisible());
   }
 
   resetUsername() {

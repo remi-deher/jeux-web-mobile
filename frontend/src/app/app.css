@@ -1,6 +1,7 @@
 .challenge-toast-banner {
   position: fixed;
-  top: 24px;
+  /* Push below the Dynamic Island / notch on iPhone */
+  top: calc(24px + env(safe-area-inset-top, 0px));
   left: 50%;
   transform: translateX(-50%);
   z-index: 10000;

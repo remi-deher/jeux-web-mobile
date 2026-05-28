@@ -1,4 +1,4 @@
-<div class="app-container">
+<div class="app-container" [class.chat-hidden]="!chatVisible()">
   <!-- Incoming Challenge Banner -->
   @if (incomingChallenges().length > 0) {
     @for (challenge of incomingChallenges(); track challenge.challengerSocketId) {
@@ -27,20 +27,39 @@
         <span class="material-symbols logo-icon">sports_esports</span>
         <h1>Playbox</h1>
       </div>
-      
-      @if (username()) {
-        <div class="header-user">
+
+      <!-- Desktop navigation tabs (hidden on mobile, bottom-nav used instead) -->
+      <nav class="header-nav">
+        <button class="header-nav-btn" [class.active]="activeView() === 'games'" (click)="navigate('games')">
+          <span class="material-symbols">sports_esports</span>
+          <span>Jeux</span>
+        </button>
+        <button class="header-nav-btn" [class.active]="activeView() === 'friends'" (click)="navigate('friends')">
+          <span class="material-symbols">people</span>
+          <span>Amis</span>
+        </button>
+      </nav>
+
+      <div class="header-actions">
+        @if (username()) {
           <span class="user-badge clickable-badge" (click)="openProfileModal()" title="Voir le profil & statistiques">
             <span class="material-symbols badge-icon">account_circle</span>
-            <span>{{ username() }}</span>
+            <span class="user-badge-name">{{ username() }}</span>
           </span>
-          <button class="icon-btn theme-toggle-btn" (click)="toggleTheme()" title="Changer de thème">
-            <span class="material-symbols">
-              {{ theme() === 'dark' ? 'light_mode' : 'dark_mode' }}
-            </span>
-          </button>
-        </div>
-      }
+        }
+
+        <button class="icon-btn theme-toggle-btn" (click)="toggleTheme()" title="Changer de thème">
+          <span class="material-symbols">
+            {{ theme() === 'dark' ? 'light_mode' : 'dark_mode' }}
+          </span>
+        </button>
+
+        <!-- Toggle chat sidebar — desktop only -->
+        <button class="icon-btn chat-sidebar-toggle-btn" (click)="toggleChatSidebar()"
+                [title]="chatVisible() ? 'Masquer le chat' : 'Afficher le chat'">
+          <span class="material-symbols">{{ chatVisible() ? 'right_panel_close' : 'right_panel_open' }}</span>
+        </button>
+      </div>
     </header>
   }
 
@@ -48,9 +67,13 @@
   <main class="app-main">
     @if (!currentRoom()) {
       @if (activeView() === 'friends') {
-        <app-friends-page></app-friends-page>
+        <div class="view-enter">
+          <app-friends-page></app-friends-page>
+        </div>
       } @else {
-        <app-lobby></app-lobby>
+        <div class="view-enter">
+          <app-lobby></app-lobby>
+        </div>
       }
     } @else if (getGameType() === 'connect4') {
       <app-connect4></app-connect4>
@@ -75,11 +98,11 @@
 
   <!-- Bottom Navbar (hidden during a game) -->
   @if (!currentRoom()) {
-    <app-bottom-navbar (nav)="navigate($event)"></app-bottom-navbar>
+    <app-bottom-navbar [activeView]="activeView()" (nav)="navigate($event)"></app-bottom-navbar>
   }
 
   <!-- Chat Sidebar (always visible) -->
-  <app-chat-sidebar></app-chat-sidebar>
+  <app-chat-sidebar [desktopVisible]="chatVisible()"></app-chat-sidebar>
 
   <!-- Profile & Stats Modal -->
   @if (showProfileModal()) {
