@@ -60,12 +60,11 @@
       </div>
 
       <div class="setup-controls">
-        <button class="orient-btn" (click)="toggleOrientation()">
-          <span class="material-symbols">rotate_right</span>
+        <app-btn variant="secondary" icon="rotate_right" (btnClick)="toggleOrientation()">
           <span>Pivoter (Espace / R)</span>
-        </button>
+        </app-btn>
         @if (allShipsPlaced()) {
-          <button class="ready-btn pulse-glow" (click)="setReady()">LANCER LE COMBAT</button>
+          <app-btn variant="primary" class="ready-btn pulse-glow" (btnClick)="setReady()">LANCER LE COMBAT</app-btn>
         }
       </div>
     </div>
@@ -82,49 +81,29 @@
       <!-- My Fleet Board (Left / Owner) -->
       <div class="board-column player-fleet">
         <h3>⚓ Mon plateau</h3>
-        <div class="board-mesh cyber-grid">
-          <div class="sonar-sweep"></div>
-          @for (row of [0,1,2,3,4,5,6,7,8,9]; track row) {
-            @for (col of [0,1,2,3,4,5,6,7,8,9]; track col) {
-              <div 
-                class="cell" 
-                [class.ship]="myBoard()[row][col] === 'ship'"
-                [class.hit]="myBoard()[row][col] === 'hit'"
-                [class.miss]="myBoard()[row][col] === 'miss'"
-                [class.preview-active]="isInPreview(row, col)"
-                [class.preview-invalid]="isInPreview(row, col) && !isPreviewValid()"
-                [ngClass]="getShipSegmentClass(row, col)"
-                (mouseenter)="cellMouseEnter(row, col)"
-                (click)="cellClickMyBoard(row, col)"
-              >
-                @if (myBoard()[row][col] === 'hit') { <span class="hit-indicator">💥</span> }
-                @if (myBoard()[row][col] === 'miss') { <span class="miss-indicator">💧</span> }
-              </div>
-            }
-          }
-        </div>
+        <app-battleship-grid
+          [board]="myBoard()"
+          mode="fleet"
+          [previewCells]="previewCells()"
+          [previewValid]="isPreviewValid()"
+          [myShips]="myState()?.ships || []"
+          [isHorizontal]="isHorizontal()"
+          (cellClick)="cellClickMyBoard($event.r, $event.c)"
+          (cellMouseEnter)="cellMouseEnter($event.r, $event.c)"
+        ></app-battleship-grid>
       </div>
 
       <!-- Opponent Firing Board (Right) -->
       @if (phase() === 'playing' || phase() === 'finished') {
         <div class="board-column enemy-radar">
           <h3>🎯 Plateau de {{ opponentName() }}</h3>
-          <div class="board-mesh firing-mesh cyber-grid red-radar" [class.disabled]="!isMyTurn()">
-            <div class="sonar-sweep"></div>
-            @for (row of [0,1,2,3,4,5,6,7,8,9]; track row) {
-              @for (col of [0,1,2,3,4,5,6,7,8,9]; track col) {
-                <div 
-                  class="cell target-cell"
-                  [class.hit]="opponentBoard()[row][col] === 'hit'"
-                  [class.miss]="opponentBoard()[row][col] === 'miss'"
-                  (click)="fireShot(row, col)"
-                >
-                  @if (opponentBoard()[row][col] === 'hit') { <span class="hit-indicator target-hit">💥</span> }
-                  @if (opponentBoard()[row][col] === 'miss') { <span class="miss-indicator target-miss">💧</span> }
-                </div>
-              }
-            }
-          </div>
+          <app-battleship-grid
+            [board]="opponentBoard()"
+            mode="radar"
+            theme="red"
+            [disabled]="!isMyTurn()"
+            (cellClick)="fireShot($event.r, $event.c)"
+          ></app-battleship-grid>
         </div>
       }
     </div>
@@ -138,10 +117,10 @@
       <span class="material-symbols device-icon">swap_horiz</span>
       <h2>Passez l'appareil</h2>
       <p>C'est au tour de <strong>{{ passToPlayerName() }}</strong>.</p>
-      <button class="primary-btn confirm-btn" (click)="passToPlayerNameConfirm()">
+      <app-btn variant="primary" class="confirm-btn" (btnClick)="passToPlayerNameConfirm()">
         <span>Transférer le commandement</span>
         <span class="material-symbols">arrow_forward</span>
-      </button>
+      </app-btn>
     </div>
   </div>
 }

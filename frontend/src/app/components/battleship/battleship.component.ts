@@ -4,10 +4,13 @@ import { GameService } from '../../services/game.service';
 import { GameLayoutComponent } from '../game-layout/game-layout.component';
 import { Room, BattleshipGameState, BattleshipPlayerState, BattleshipShip } from '../../models/game.models';
 import { GameHelpersService } from '../../services/game-helpers.service';
+import { BtnComponent } from '../btn/btn.component';
+import { BattleshipGridComponent } from './battleship-grid.component';
+
 @Component({
   selector: 'app-battleship',
   standalone: true,
-  imports: [CommonModule, GameLayoutComponent],
+  imports: [CommonModule, GameLayoutComponent, BtnComponent, BattleshipGridComponent],
   templateUrl: './battleship.component.html',
   styleUrls: ['./battleship.component.css']
 })

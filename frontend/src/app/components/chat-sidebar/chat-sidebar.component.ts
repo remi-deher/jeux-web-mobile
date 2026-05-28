@@ -2,11 +2,12 @@ import { Component, ElementRef, ViewChild, computed, effect, signal } from '@ang
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { GameService } from '../../services/game.service';
+import { GameChatComponent } from './game-chat.component';
 
 @Component({
   selector: 'app-chat-sidebar',
   standalone: true,
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule, DatePipe, GameChatComponent],
   template: `
     <div class="chat-wrapper" [class.open]="isOpen">
       <!-- Toggle Button -->
@@ -43,52 +44,12 @@ import { GameService } from '../../services/game.service';
               </div>
             }
   
-            <!-- Message List -->
-            <div class="chat-messages" #scrollContainer>
-              @for (msg of currentMessages(); track msg.id) {
-                <div class="message-wrapper" [class.self]="msg.username === username()">
-                  @if (msg.username !== username()) {
-                    <div class="msg-avatar" [style.background-color]="getAvatarColor(msg.username)">
-                      {{ msg.username.charAt(0).toUpperCase() }}
-                    </div>
-                  }
-                  <div class="msg-body-wrapper">
-                    <div class="message-meta">
-                      <span class="msg-author">{{ msg.username }}</span>
-                      <span class="msg-time">{{ msg.timestamp | date:'HH:mm' }}</span>
-                    </div>
-                    <div class="message-bubble">
-                      {{ msg.text }}
-                    </div>
-                  </div>
-                  @if (msg.username === username()) {
-                    <div class="msg-avatar self-avatar" [style.background-color]="getAvatarColor(msg.username)">
-                      {{ msg.username.charAt(0).toUpperCase() }}
-                    </div>
-                  }
-                </div>
-              } @empty {
-                <div class="empty-chat">
-                  <span class="material-symbols">forum</span>
-                  <p>Aucun message pour l'instant.</p>
-                </div>
-              }
-            </div>
-  
-            <!-- Message Input -->
-            <form class="chat-input-form" (submit)="sendMessage(); $event.preventDefault()">
-              <input
-                type="text"
-                [(ngModel)]="newMessage"
-                name="message"
-                placeholder="Écrire un message..."
-                autocomplete="off"
-                required
-              />
-              <button type="submit" title="Envoyer" class="send-btn">
-                <span class="material-symbols">send</span>
-              </button>
-            </form>
+            <!-- Unified Chat Component -->
+            <app-game-chat
+              [messages]="currentMessages()"
+              [currentUser]="username()"
+              (sendMessage)="onGameChatMessageSent($event)"
+            ></app-game-chat>
           } @else {
             <!-- Social / Amis View -->
             @if (selectedFriendForChat()) {
@@ -858,14 +819,12 @@ export class ChatSidebarComponent {
     }
   }
 
-  sendMessage() {
-    if (!this.newMessage.trim()) return;
+  onGameChatMessageSent(text: string) {
     if (this.activeTab === 'room' && this.currentRoom()) {
-      this.gameService.sendRoomMessage(this.newMessage);
+      this.gameService.sendRoomMessage(text);
     } else {
-      this.gameService.sendGlobalMessage(this.newMessage);
+      this.gameService.sendGlobalMessage(text);
     }
-    this.newMessage = '';
   }
 
   sendPrivateMessage() {

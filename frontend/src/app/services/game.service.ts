@@ -1,5 +1,6 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
+import { SoundService } from './sound.service';
 
 import { ChatMessage, PrivateMessage, Player, Room, RoomListEntry } from '../models/game.models';
 
@@ -8,6 +9,7 @@ import { ChatMessage, PrivateMessage, Player, Room, RoomListEntry } from '../mod
 })
 export class GameService {
   private socket: Socket;
+  private soundService = inject(SoundService);
   
   // App signals
   public username = signal<string>(localStorage.getItem('username') || '');
@@ -69,7 +71,21 @@ export class GameService {
     });
 
     this.socket.on('roomUpdate', (room: Room) => {
+      const prevRoom = this.currentRoom();
       this.currentRoom.set(room);
+
+      // Trigger board move sounds by comparing board states
+      try {
+        if (room && room.status === 'playing' && prevRoom && prevRoom.status === 'playing') {
+          const prevBoard = prevRoom.gameState?.board;
+          const newBoard = room.gameState?.board;
+          if (prevBoard && newBoard && JSON.stringify(prevBoard) !== JSON.stringify(newBoard)) {
+            this.soundService.playSound('click', room.gameType);
+          }
+        }
+      } catch (err) {
+        console.error('Error auto-playing game move sound:', err);
+      }
     });
 
     this.socket.on('roomMessage', (msg: ChatMessage) => {
