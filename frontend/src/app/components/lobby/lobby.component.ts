@@ -407,6 +407,12 @@ import { GameService } from '../../services/game.service';
       box-sizing: border-box;
     }
 
+    /* -------- Animations & Transitions -------- */
+    @keyframes slideFadeIn {
+      0% { opacity: 0; transform: translateY(14px) scale(0.98); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
     /* -------- Username Card -------- */
     .username-card {
       max-width: 420px;
@@ -416,6 +422,7 @@ import { GameService } from '../../services/game.service';
       gap: 20px;
       text-align: center;
       margin-top: 40px;
+      animation: slideFadeIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
 
     .user-hero {
@@ -483,6 +490,7 @@ import { GameService } from '../../services/game.service';
       display: flex;
       flex-direction: column;
       gap: 24px;
+      animation: slideFadeIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
 
     .welcome-header h2 {
@@ -576,6 +584,7 @@ import { GameService } from '../../services/game.service';
       display: flex;
       flex-direction: column;
       gap: 20px;
+      animation: slideFadeIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
 
     .lobby-topbar {
@@ -811,6 +820,8 @@ import { GameService } from '../../services/game.service';
       align-items: center;
       justify-content: center;
       padding: 16px;
+      backdrop-filter: blur(4px);
+      animation: modalOverlayFadeIn 0.3s ease-out forwards;
     }
 
     .modal-card {
@@ -823,6 +834,7 @@ import { GameService } from '../../services/game.service';
       flex-direction: column;
       gap: 16px;
       box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      animation: modalZoomIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
 
     .modal-header {

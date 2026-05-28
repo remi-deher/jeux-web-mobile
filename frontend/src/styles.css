@@ -373,6 +373,28 @@ select:focus,
 /* =========================================================
    Modals (Global)
    ========================================================= */
+@keyframes modalOverlayFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
+}
+
+@keyframes modalZoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -382,6 +404,8 @@ select:focus,
   align-items: center;
   justify-content: center;
   padding: 16px;
+  backdrop-filter: blur(4px);
+  animation: modalOverlayFadeIn 0.3s ease-out forwards;
 }
 
 .modal-card {
@@ -394,6 +418,7 @@ select:focus,
   flex-direction: column;
   gap: 16px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  animation: modalZoomIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .modal-header {
@@ -617,11 +642,23 @@ body.light-theme.theme-tictactoe {
 /* =========================================================
    Micro-interactions Spring Physics & Safe Areas
    ========================================================= */
+@keyframes gameLaunchSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(32px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .layout-container {
   padding-top: calc(10px + env(safe-area-inset-top));
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
   padding-left: calc(15px + env(safe-area-inset-left));
   padding-right: calc(15px + env(safe-area-inset-right));
+  animation: gameLaunchSlideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 /* Spring scaling effect for interactive elements */

@@ -569,6 +569,7 @@ import { GameHelpersService } from '../../services/game-helpers.service';
       align-items: center;
       z-index: 10000;
       padding: 20px;
+      animation: modalOverlayFadeIn 0.3s ease-out forwards;
     }
     .rules-modal-card {
       max-width: 500px;
@@ -579,6 +580,7 @@ import { GameHelpersService } from '../../services/game-helpers.service';
       border-radius: var(--md-radius-xl);
       color: var(--md-on-surface);
       box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      animation: modalZoomIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
     .rules-modal-header {
       display: flex;
