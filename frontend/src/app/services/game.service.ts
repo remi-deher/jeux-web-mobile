@@ -27,7 +27,7 @@ export class GameService {
   
   // Navigation signals
   public activeView = signal<string>('games');
-  public activeGame = signal<'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'snake' | null>(null);
+  public activeGame = signal<'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'snake' | null>(null);
 
   private prevPongVx: number | null = null;
 
@@ -129,6 +129,13 @@ export class GameService {
     this.socket.on('rtcAnswer', (d: any) => this.rtcSignal.set({ type: 'answer', answer:    d.answer    }));
     this.socket.on('rtcIce',    (d: any) => this.rtcSignal.set({ type: 'ice',    candidate: d.candidate }));
 
+    this.socket.on('tetrisUpdate', (tetrisState: any) => {
+      const room = this.currentRoom();
+      if (room && room.gameType === 'tetris') {
+        this.currentRoom.set({ ...room, gameState: tetrisState });
+      }
+    });
+
     this.socket.on('snakeUpdate', (snakeState: any) => {
       const room = this.currentRoom();
       if (room && room.gameType === 'snake') {
@@ -220,7 +227,7 @@ export class GameService {
     this.socket.emit('globalMessage', { username: this.username(), text });
   }
 
-  createRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake', isPrivate: boolean = false, variant?: 'classic' | 'branches' | 'grid') {
+  createRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris', isPrivate: boolean = false, variant?: 'classic' | 'branches' | 'grid') {
     this.socket.emit('createRoom', { gameType, username: this.username(), isPrivate, variant }, (res: any) => {
       if (res.success) {
         this.currentRoom.set(res.room);
@@ -231,7 +238,7 @@ export class GameService {
     });
   }
 
-  createLocalRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake', player1Name?: string, player2Name?: string, variant?: 'classic' | 'branches' | 'grid') {
+  createLocalRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris', player1Name?: string, player2Name?: string, variant?: 'classic' | 'branches' | 'grid') {
     this.socket.emit('createLocalRoom', { gameType, username: this.username() || 'Joueur 1', player1Name, player2Name, variant }, (res: any) => {
       if (res.success) {
         this.currentRoom.set(res.room);
@@ -352,6 +359,12 @@ export class GameService {
     if (room) {
       this.socket.emit('othelloMove', { roomId: room.id, row, col });
     }
+  }
+
+  // Tetris Actions
+  sendTetrisInput(action: string, playerId?: string) {
+    const room = this.currentRoom();
+    if (room) this.socket.emit('tetrisInput', { roomId: room.id, action, playerId });
   }
 
   // Snake Actions

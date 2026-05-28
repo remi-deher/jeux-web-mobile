@@ -21,6 +21,7 @@ import { PongState, createInitialPongState, updatePongPhysics } from './games/po
 import { PenduState, createInitialPenduState, makePenduGuess } from './games/pendu';
 import { DominosState, createInitialDominosState, makeDominosMove, drawFromBoneyard, passTurn } from './games/dominos';
 import { SnakeState, createInitialSnakeState, updateSnakePhysics, setSnakeDirection, Direction as SnakeDirection } from './games/snake';
+import { TetrisState, createInitialTetrisState, updateTetrisPhysics, TetrisAction } from './games/tetris';
 
 const app = express();
 app.use(cors());
@@ -102,10 +103,10 @@ interface Player {
 
 interface Room {
   id: string;
-  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'snake';
+  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'snake';
   players: Player[];
   status: 'waiting' | 'playing' | 'finished';
-  gameState: Connect4State | BattleshipState | TicTacToeState | CheckersState | ChessState | GomokuState | OthelloState | PongState | PenduState | DominosState | SnakeState | null;
+  gameState: Connect4State | BattleshipState | TicTacToeState | CheckersState | ChessState | GomokuState | OthelloState | PongState | PenduState | DominosState | SnakeState | TetrisState | null;
   chatMessages: ChatMessage[];
   isPrivate: boolean;
   rematchVotes: string[];
@@ -169,7 +170,7 @@ io.on('connection', (socket: Socket) => {
     io.to(data.challengerSocketId).emit('challengeDeclined', { opponentUsername });
   });
 
-  socket.on('acceptChallenge', (data: { challengerSocketId: string; gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake'; variant?: 'classic' | 'branches' | 'grid' }) => {
+  socket.on('acceptChallenge', (data: { challengerSocketId: string; gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris'; variant?: 'classic' | 'branches' | 'grid' }) => {
     const challengerUsername = onlineUsers[data.challengerSocketId] || 'Challenger';
     const opponentUsername = onlineUsers[socket.id] || 'Opponent';
     const challengerSocket = io.sockets.sockets.get(data.challengerSocketId);
@@ -216,6 +217,9 @@ io.on('connection', (socket: Socket) => {
     } else if (data.gameType === 'snake') {
       newRoom.gameState = createInitialSnakeState([data.challengerSocketId, socket.id]);
       startSnakeLoop(roomId);
+    } else if (data.gameType === 'tetris') {
+      newRoom.gameState = createInitialTetrisState([data.challengerSocketId, socket.id]);
+      startTetrisLoop(roomId);
     }
 
     rooms[roomId] = newRoom;
@@ -260,7 +264,7 @@ io.on('connection', (socket: Socket) => {
   });
 
 
-  socket.on('createRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake'; username: string; isPrivate?: boolean; variant?: 'classic' | 'branches' | 'grid' }, callback) => {
+  socket.on('createRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris'; username: string; isPrivate?: boolean; variant?: 'classic' | 'branches' | 'grid' }, callback) => {
     const roomId = generateRoomId();
     const newRoom: Room = {
       id: roomId,
@@ -283,7 +287,7 @@ io.on('connection', (socket: Socket) => {
     io.emit('roomsList', getPublicRooms());
   });
 
-  socket.on('createLocalRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake'; username: string; player1Name?: string; player2Name?: string; variant?: 'classic' | 'branches' | 'grid' }, callback) => {
+  socket.on('createLocalRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris'; username: string; player1Name?: string; player2Name?: string; variant?: 'classic' | 'branches' | 'grid' }, callback) => {
     const roomId = generateRoomId();
     const newRoom: Room = {
       id: roomId,
@@ -325,6 +329,9 @@ io.on('connection', (socket: Socket) => {
     } else if (data.gameType === 'snake') {
       newRoom.gameState = createInitialSnakeState([socket.id, 'local-player-2']);
       startSnakeLoop(roomId);
+    } else if (data.gameType === 'tetris') {
+      newRoom.gameState = createInitialTetrisState([socket.id, 'local-player-2']);
+      startTetrisLoop(roomId);
     }
 
     rooms[roomId] = newRoom;
@@ -376,6 +383,9 @@ io.on('connection', (socket: Socket) => {
       } else if (room.gameType === 'snake') {
         room.gameState = createInitialSnakeState(room.players.map(p => p.id) as [string, string]);
         startSnakeLoop(room.id);
+      } else if (room.gameType === 'tetris') {
+        room.gameState = createInitialTetrisState(room.players.map(p => p.id) as [string, string]);
+        startTetrisLoop(room.id);
       }
     }
 
@@ -678,6 +688,9 @@ io.on('connection', (socket: Socket) => {
       } else if (room.gameType === 'snake') {
         room.gameState = createInitialSnakeState(room.players.map(p => p.id) as [string, string]);
         startSnakeLoop(room.id);
+      } else if (room.gameType === 'tetris') {
+        room.gameState = createInitialTetrisState(room.players.map(p => p.id) as [string, string]);
+        startTetrisLoop(room.id);
       }
     } else {
       if (!room.rematchVotes) room.rematchVotes = [];
@@ -712,6 +725,9 @@ io.on('connection', (socket: Socket) => {
         } else if (room.gameType === 'snake') {
           room.gameState = createInitialSnakeState(room.players.map(p => p.id) as [string, string]);
           startSnakeLoop(room.id);
+        } else if (room.gameType === 'tetris') {
+          room.gameState = createInitialTetrisState(room.players.map(p => p.id) as [string, string]);
+          startTetrisLoop(room.id);
         }
       }
     }
@@ -836,6 +852,16 @@ io.on('connection', (socket: Socket) => {
         clearInterval(snakeIntervals[room.id]);
         delete snakeIntervals[room.id];
       }
+    } else if (room.gameType === 'tetris') {
+      const state = room.gameState as TetrisState;
+      if (state) {
+        const playerIndex = room.players.findIndex(p => p.id === winner.id);
+        state.winner = playerIndex !== -1 ? playerIndex + 1 : 1;
+      }
+      if (tetrisIntervals[room.id]) {
+        clearInterval(tetrisIntervals[room.id]);
+        delete tetrisIntervals[room.id];
+      }
     }
 
     broadcastRoomUpdate(room);
@@ -844,6 +870,34 @@ io.on('connection', (socket: Socket) => {
 
   socket.on('leaveRoom', (data: { roomId: string }) => {
     handlePlayerLeave(socket, data.roomId);
+  });
+
+  // ── Tetris input ───────────────────────────────────────────────────────────
+  socket.on('tetrisInput', (data: { roomId: string; action: TetrisAction; playerId?: string }) => {
+    const room = rooms[data.roomId];
+    if (!room || room.gameType !== 'tetris' || !room.gameState) return;
+    const state = room.gameState as TetrisState;
+    if (state.winner !== null) return;
+
+    // Determine which player sent the action
+    let pid: string;
+    if (room.isLocal && data.playerId) {
+      pid = data.playerId;
+    } else {
+      pid = socket.id;
+    }
+
+    updateTetrisPhysics(state, pid, data.action);
+    io.to(data.roomId).emit('tetrisUpdate', state);
+
+    if (state.winner !== null) {
+      room.status = 'finished';
+      broadcastRoomUpdate(room);
+      if (tetrisIntervals[data.roomId]) {
+        clearInterval(tetrisIntervals[data.roomId]);
+        delete tetrisIntervals[data.roomId];
+      }
+    }
   });
 
   // ── Snake direction input ──────────────────────────────────────────────────
@@ -983,10 +1037,51 @@ function handlePlayerLeave(socket: Socket, roomId: string) {
         clearInterval(snakeIntervals[room.id]);
         delete snakeIntervals[room.id];
       }
+    } else if (room.gameType === 'tetris') {
+      const state = room.gameState as TetrisState;
+      if (state) {
+        state.winner = leavingPlayerIndex === 0 ? 2 : 1;
+      }
+      if (tetrisIntervals[room.id]) {
+        clearInterval(tetrisIntervals[room.id]);
+        delete tetrisIntervals[room.id];
+      }
     }
     broadcastRoomUpdate(room);
   }
   io.emit('roomsList', getPublicRooms());
+}
+
+// ── Tetris loop (60 Hz) ───────────────────────────────────────────────────────
+
+const tetrisIntervals: { [roomId: string]: NodeJS.Timeout } = {};
+
+function startTetrisLoop(roomId: string) {
+  if (tetrisIntervals[roomId]) return;
+  console.log(`Starting Tetris loop for room ${roomId}`);
+  tetrisIntervals[roomId] = setInterval(() => {
+    const room = rooms[roomId];
+    if (!room || room.status !== 'playing' || room.gameType !== 'tetris' || !room.gameState) {
+      clearInterval(tetrisIntervals[roomId]);
+      delete tetrisIntervals[roomId];
+      return;
+    }
+
+    const anyDisconnected = room.players.some(p => p.disconnected);
+    if (anyDisconnected) return;
+
+    const state = room.gameState as TetrisState;
+    // Gravity-only tick (no action)
+    updateTetrisPhysics(state, null, null);
+    io.to(roomId).emit('tetrisUpdate', state);
+
+    if (state.winner !== null) {
+      room.status = 'finished';
+      broadcastRoomUpdate(room);
+      clearInterval(tetrisIntervals[roomId]);
+      delete tetrisIntervals[roomId];
+    }
+  }, Math.round(1000 / 60)); // 60 Hz
 }
 
 // ── Snake loop (15 Hz) ────────────────────────────────────────────────────────

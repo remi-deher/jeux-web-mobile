@@ -226,6 +226,34 @@ import { gameLabel } from '../../constants/game-labels';
               </div>
             </button>
 
+            <button class="game-card" (click)="selectGame('tetris')">
+              <div class="game-card-image">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="100" height="100" rx="24" fill="#0d0d1a"/>
+                  <rect x="10" y="44" width="10" height="10" rx="2" fill="#00E5FF"/>
+                  <rect x="22" y="44" width="10" height="10" rx="2" fill="#00E5FF"/>
+                  <rect x="34" y="44" width="10" height="10" rx="2" fill="#00E5FF"/>
+                  <rect x="46" y="44" width="10" height="10" rx="2" fill="#00E5FF"/>
+                  <rect x="58" y="34" width="10" height="10" rx="2" fill="#E040FB"/>
+                  <rect x="58" y="46" width="10" height="10" rx="2" fill="#E040FB"/>
+                  <rect x="70" y="46" width="10" height="10" rx="2" fill="#E040FB"/>
+                  <rect x="46" y="46" width="10" height="10" rx="2" fill="#E040FB"/>
+                  <rect x="22" y="58" width="10" height="10" rx="2" fill="#FF9100"/>
+                  <rect x="22" y="70" width="10" height="10" rx="2" fill="#FF9100"/>
+                  <rect x="22" y="82" width="10" height="10" rx="2" fill="#FF9100"/>
+                  <rect x="34" y="82" width="10" height="10" rx="2" fill="#FF9100"/>
+                  <rect x="58" y="70" width="10" height="10" rx="2" fill="#69F0AE"/>
+                  <rect x="70" y="70" width="10" height="10" rx="2" fill="#69F0AE"/>
+                  <rect x="46" y="82" width="10" height="10" rx="2" fill="#69F0AE"/>
+                  <rect x="58" y="82" width="10" height="10" rx="2" fill="#69F0AE"/>
+                </svg>
+              </div>
+              <div class="game-card-info">
+                <span class="game-name">Tetris vs</span>
+                <span class="game-tag">Temps réel</span>
+              </div>
+            </button>
+
             <button class="game-card" (click)="selectGame('snake')">
               <div class="game-card-image">
                 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -459,6 +487,25 @@ import { gameLabel } from '../../constants/game-labels';
                     <ul>
                       <li>Cliquez sur une lettre du clavier virtuel pendant votre tour pour la proposer.</li>
                       <li>Les lettres trouvées apparaissent dans le mot en vert. Les erreurs s'affichent en rouge et complètent le dessin du pendu.</li>
+                    </ul>
+                  </div>
+                } @else if (selectedGame() === 'tetris') {
+                  <div class="rules-section">
+                    <h4>Règles du jeu</h4>
+                    <p>Chaque joueur a son propre plateau 10×20. Effacez des lignes pour envoyer des <em>garbage lines</em> à l'adversaire. Le premier joueur dont la pièce dépasse le sommet du plateau perd.</p>
+                    <h4>Contrôles</h4>
+                    <ul>
+                      <li>← → : déplacer (DAS/ARR auto-repeat)</li>
+                      <li>↑ / X : rotation droite | Z / Ctrl : rotation gauche</li>
+                      <li>↓ : soft drop | Espace : hard drop</li>
+                      <li>C / Shift : hold</li>
+                      <li><b>Mode local P2</b> : A/D déplacer, W rotation, S soft drop, Q rot. gauche, E hard drop, R hold</li>
+                    </ul>
+                    <h4>Garbage</h4>
+                    <ul>
+                      <li>1 ligne effacée → 0 garbage</li>
+                      <li>2 lignes → 1 garbage | 3 lignes → 2 garbage</li>
+                      <li>4 lignes (Tetris) → 4 garbage</li>
                     </ul>
                   </div>
                 } @else if (selectedGame() === 'snake') {

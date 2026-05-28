@@ -14,6 +14,7 @@ export const GAME_LABELS: Record<string, string> = {
   pendu:      'Le Pendu',
   dominos:    'Dominos',
   snake:      'Snake vs',
+  tetris:     'Tetris vs',
 };
 
 export function gameLabel(gameType: string): string {
