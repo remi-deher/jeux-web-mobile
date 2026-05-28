@@ -96,6 +96,8 @@
       @defer (on immediate) { <app-pendu></app-pendu> }
     } @else if (getGameType() === 'dominos') {
       @defer (on immediate) { <app-dominos></app-dominos> }
+    } @else if (getGameType() === 'snake') {
+      @defer (on immediate) { <app-snake></app-snake> }
     }
   </main>
 

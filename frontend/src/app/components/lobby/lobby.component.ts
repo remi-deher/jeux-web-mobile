@@ -225,6 +225,30 @@ import { gameLabel } from '../../constants/game-labels';
                 <span class="game-tag">Classique</span>
               </div>
             </button>
+
+            <button class="game-card" (click)="selectGame('snake')">
+              <div class="game-card-image">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="100" height="100" rx="24" fill="#0a1a0f"/>
+                  <!-- P1 green snake -->
+                  <rect x="15" y="45" width="12" height="12" rx="3" fill="#00E676"/>
+                  <rect x="27" y="45" width="12" height="12" rx="3" fill="#00BFA5"/>
+                  <rect x="27" y="57" width="12" height="12" rx="3" fill="#00BFA5"/>
+                  <rect x="39" y="57" width="12" height="12" rx="3" fill="#00BFA5"/>
+                  <!-- P2 cyan snake -->
+                  <rect x="73" y="45" width="12" height="12" rx="3" fill="#00E5FF"/>
+                  <rect x="61" y="45" width="12" height="12" rx="3" fill="#0097A7"/>
+                  <rect x="61" y="33" width="12" height="12" rx="3" fill="#0097A7"/>
+                  <rect x="49" y="33" width="12" height="12" rx="3" fill="#0097A7"/>
+                  <!-- Food -->
+                  <circle cx="50" cy="63" r="6" fill="#FF5252"/>
+                </svg>
+              </div>
+              <div class="game-card-info">
+                <span class="game-name">Snake vs</span>
+                <span class="game-tag">Temps réel</span>
+              </div>
+            </button>
           </div>
         </div>
       } @else {
@@ -435,6 +459,22 @@ import { gameLabel } from '../../constants/game-labels';
                     <ul>
                       <li>Cliquez sur une lettre du clavier virtuel pendant votre tour pour la proposer.</li>
                       <li>Les lettres trouvées apparaissent dans le mot en vert. Les erreurs s'affichent en rouge et complètent le dessin du pendu.</li>
+                    </ul>
+                  </div>
+                } @else if (selectedGame() === 'snake') {
+                  <div class="rules-section">
+                    <h4>Règles du jeu</h4>
+                    <p>Deux serpents s'affrontent sur une grille 25×20 en temps réel (15 mouvements/s). Mangez les pommes pour grandir et marquer des points. Évitez les murs, votre propre corps et celui de l'adversaire.</p>
+                    <h4>Contrôles</h4>
+                    <ul>
+                      <li><b>Joueur 1</b> : flèches ← → ↑ ↓</li>
+                      <li><b>Joueur 2 (mode local)</b> : touches WASD</li>
+                      <li><b>Mobile</b> : swipe pour changer de direction</li>
+                    </ul>
+                    <h4>Fin de partie</h4>
+                    <ul>
+                      <li>Un serpent meurt s'il touche un mur, lui-même ou l'adversaire.</li>
+                      <li>Si les deux serpents meurent au même tick, la partie est nulle.</li>
                     </ul>
                   </div>
                 } @else if (selectedGame() === 'dominos') {

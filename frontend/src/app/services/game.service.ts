@@ -27,7 +27,7 @@ export class GameService {
   
   // Navigation signals
   public activeView = signal<string>('games');
-  public activeGame = signal<'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | null>(null);
+  public activeGame = signal<'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'snake' | null>(null);
 
   private prevPongVx: number | null = null;
 
@@ -129,6 +129,13 @@ export class GameService {
     this.socket.on('rtcAnswer', (d: any) => this.rtcSignal.set({ type: 'answer', answer:    d.answer    }));
     this.socket.on('rtcIce',    (d: any) => this.rtcSignal.set({ type: 'ice',    candidate: d.candidate }));
 
+    this.socket.on('snakeUpdate', (snakeState: any) => {
+      const room = this.currentRoom();
+      if (room && room.gameType === 'snake') {
+        this.currentRoom.set({ ...room, gameState: snakeState });
+      }
+    });
+
     this.socket.on('pongUpdate', (pongState: any) => {
       const room = this.currentRoom();
       if (room && room.gameType === 'pong') {
@@ -213,7 +220,7 @@ export class GameService {
     this.socket.emit('globalMessage', { username: this.username(), text });
   }
 
-  createRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos', isPrivate: boolean = false, variant?: 'classic' | 'branches' | 'grid') {
+  createRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake', isPrivate: boolean = false, variant?: 'classic' | 'branches' | 'grid') {
     this.socket.emit('createRoom', { gameType, username: this.username(), isPrivate, variant }, (res: any) => {
       if (res.success) {
         this.currentRoom.set(res.room);
@@ -224,7 +231,7 @@ export class GameService {
     });
   }
 
-  createLocalRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos', player1Name?: string, player2Name?: string, variant?: 'classic' | 'branches' | 'grid') {
+  createLocalRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake', player1Name?: string, player2Name?: string, variant?: 'classic' | 'branches' | 'grid') {
     this.socket.emit('createLocalRoom', { gameType, username: this.username() || 'Joueur 1', player1Name, player2Name, variant }, (res: any) => {
       if (res.success) {
         this.currentRoom.set(res.room);
@@ -345,6 +352,12 @@ export class GameService {
     if (room) {
       this.socket.emit('othelloMove', { roomId: room.id, row, col });
     }
+  }
+
+  // Snake Actions
+  sendSnakeDirection(dir: 'up' | 'down' | 'left' | 'right', playerIndex?: number) {
+    const room = this.currentRoom();
+    if (room) this.socket.emit('snakeDirection', { roomId: room.id, dir, playerIndex });
   }
 
   // WebRTC signaling — forward SDP/ICE to the server which relays to the other player

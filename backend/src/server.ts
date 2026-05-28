@@ -20,6 +20,7 @@ import { OthelloState, createInitialOthelloState, makeOthelloMove } from './game
 import { PongState, createInitialPongState, updatePongPhysics } from './games/pong';
 import { PenduState, createInitialPenduState, makePenduGuess } from './games/pendu';
 import { DominosState, createInitialDominosState, makeDominosMove, drawFromBoneyard, passTurn } from './games/dominos';
+import { SnakeState, createInitialSnakeState, updateSnakePhysics, setSnakeDirection, Direction as SnakeDirection } from './games/snake';
 
 const app = express();
 app.use(cors());
@@ -101,10 +102,10 @@ interface Player {
 
 interface Room {
   id: string;
-  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos';
+  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'snake';
   players: Player[];
   status: 'waiting' | 'playing' | 'finished';
-  gameState: Connect4State | BattleshipState | TicTacToeState | CheckersState | ChessState | GomokuState | OthelloState | PongState | PenduState | DominosState | null;
+  gameState: Connect4State | BattleshipState | TicTacToeState | CheckersState | ChessState | GomokuState | OthelloState | PongState | PenduState | DominosState | SnakeState | null;
   chatMessages: ChatMessage[];
   isPrivate: boolean;
   rematchVotes: string[];
@@ -168,7 +169,7 @@ io.on('connection', (socket: Socket) => {
     io.to(data.challengerSocketId).emit('challengeDeclined', { opponentUsername });
   });
 
-  socket.on('acceptChallenge', (data: { challengerSocketId: string; gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos'; variant?: 'classic' | 'branches' | 'grid' }) => {
+  socket.on('acceptChallenge', (data: { challengerSocketId: string; gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake'; variant?: 'classic' | 'branches' | 'grid' }) => {
     const challengerUsername = onlineUsers[data.challengerSocketId] || 'Challenger';
     const opponentUsername = onlineUsers[socket.id] || 'Opponent';
     const challengerSocket = io.sockets.sockets.get(data.challengerSocketId);
@@ -212,6 +213,9 @@ io.on('connection', (socket: Socket) => {
       newRoom.gameState = createInitialPenduState();
     } else if (data.gameType === 'dominos') {
       newRoom.gameState = createInitialDominosState(data.variant);
+    } else if (data.gameType === 'snake') {
+      newRoom.gameState = createInitialSnakeState([data.challengerSocketId, socket.id]);
+      startSnakeLoop(roomId);
     }
 
     rooms[roomId] = newRoom;
@@ -256,7 +260,7 @@ io.on('connection', (socket: Socket) => {
   });
 
 
-  socket.on('createRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos'; username: string; isPrivate?: boolean; variant?: 'classic' | 'branches' | 'grid' }, callback) => {
+  socket.on('createRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake'; username: string; isPrivate?: boolean; variant?: 'classic' | 'branches' | 'grid' }, callback) => {
     const roomId = generateRoomId();
     const newRoom: Room = {
       id: roomId,
@@ -279,7 +283,7 @@ io.on('connection', (socket: Socket) => {
     io.emit('roomsList', getPublicRooms());
   });
 
-  socket.on('createLocalRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos'; username: string; player1Name?: string; player2Name?: string; variant?: 'classic' | 'branches' | 'grid' }, callback) => {
+  socket.on('createLocalRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake'; username: string; player1Name?: string; player2Name?: string; variant?: 'classic' | 'branches' | 'grid' }, callback) => {
     const roomId = generateRoomId();
     const newRoom: Room = {
       id: roomId,
@@ -318,6 +322,9 @@ io.on('connection', (socket: Socket) => {
       newRoom.gameState = createInitialPenduState();
     } else if (data.gameType === 'dominos') {
       newRoom.gameState = createInitialDominosState(data.variant);
+    } else if (data.gameType === 'snake') {
+      newRoom.gameState = createInitialSnakeState([socket.id, 'local-player-2']);
+      startSnakeLoop(roomId);
     }
 
     rooms[roomId] = newRoom;
@@ -366,6 +373,9 @@ io.on('connection', (socket: Socket) => {
         room.gameState = createInitialPenduState();
       } else if (room.gameType === 'dominos') {
         room.gameState = createInitialDominosState(room.variant);
+      } else if (room.gameType === 'snake') {
+        room.gameState = createInitialSnakeState(room.players.map(p => p.id) as [string, string]);
+        startSnakeLoop(room.id);
       }
     }
 
@@ -665,6 +675,9 @@ io.on('connection', (socket: Socket) => {
         room.gameState = createInitialPenduState();
       } else if (room.gameType === 'dominos') {
         room.gameState = createInitialDominosState(room.variant);
+      } else if (room.gameType === 'snake') {
+        room.gameState = createInitialSnakeState(room.players.map(p => p.id) as [string, string]);
+        startSnakeLoop(room.id);
       }
     } else {
       if (!room.rematchVotes) room.rematchVotes = [];
@@ -696,6 +709,9 @@ io.on('connection', (socket: Socket) => {
           room.gameState = createInitialPenduState();
         } else if (room.gameType === 'dominos') {
           room.gameState = createInitialDominosState(room.variant);
+        } else if (room.gameType === 'snake') {
+          room.gameState = createInitialSnakeState(room.players.map(p => p.id) as [string, string]);
+          startSnakeLoop(room.id);
         }
       }
     }
@@ -810,6 +826,16 @@ io.on('connection', (socket: Socket) => {
         state.winner = playerIndex !== -1 ? playerIndex + 1 : 1;
         state.winnerReason = "abandon de l'adversaire";
       }
+    } else if (room.gameType === 'snake') {
+      const state = room.gameState as SnakeState;
+      if (state) {
+        const playerIndex = room.players.findIndex(p => p.id === winner.id);
+        state.winner = playerIndex !== -1 ? playerIndex + 1 : 1;
+      }
+      if (snakeIntervals[room.id]) {
+        clearInterval(snakeIntervals[room.id]);
+        delete snakeIntervals[room.id];
+      }
     }
 
     broadcastRoomUpdate(room);
@@ -818,6 +844,25 @@ io.on('connection', (socket: Socket) => {
 
   socket.on('leaveRoom', (data: { roomId: string }) => {
     handlePlayerLeave(socket, data.roomId);
+  });
+
+  // ── Snake direction input ──────────────────────────────────────────────────
+  socket.on('snakeDirection', (data: { roomId: string; dir: SnakeDirection; playerIndex?: number }) => {
+    const room = rooms[data.roomId];
+    if (!room || room.gameType !== 'snake' || !room.gameState) return;
+    const state = room.gameState as SnakeState;
+    if (state.winner !== null) return;
+
+    // Determine player index
+    let idx: 0 | 1;
+    if (room.isLocal && data.playerIndex !== undefined) {
+      idx = data.playerIndex === 0 ? 0 : 1;
+    } else {
+      const pi = room.players.findIndex(p => p.id === socket.id);
+      if (pi === -1) return;
+      idx = pi === 0 ? 0 : 1;
+    }
+    setSnakeDirection(state, idx, data.dir);
   });
 
   // ── WebRTC signaling (pong P2P data channel) ────────────────────────────────
@@ -929,11 +974,54 @@ function handlePlayerLeave(socket: Socket, roomId: string) {
         state.winner = leavingPlayerIndex === 0 ? 2 : 1;
         state.winnerReason = "forfait (déconnexion)";
       }
+    } else if (room.gameType === 'snake') {
+      const state = room.gameState as SnakeState;
+      if (state) {
+        state.winner = leavingPlayerIndex === 0 ? 2 : 1;
+      }
+      if (snakeIntervals[room.id]) {
+        clearInterval(snakeIntervals[room.id]);
+        delete snakeIntervals[room.id];
+      }
     }
     broadcastRoomUpdate(room);
   }
   io.emit('roomsList', getPublicRooms());
 }
+
+// ── Snake loop (15 Hz) ────────────────────────────────────────────────────────
+
+const snakeIntervals: { [roomId: string]: NodeJS.Timeout } = {};
+
+function startSnakeLoop(roomId: string) {
+  if (snakeIntervals[roomId]) return;
+  console.log(`Starting Snake physics loop for room ${roomId}`);
+  snakeIntervals[roomId] = setInterval(() => {
+    const room = rooms[roomId];
+    if (!room || room.status !== 'playing' || room.gameType !== 'snake' || !room.gameState) {
+      clearInterval(snakeIntervals[roomId]);
+      delete snakeIntervals[roomId];
+      return;
+    }
+
+    const anyDisconnected = room.players.some(p => p.disconnected);
+    if (anyDisconnected) return;
+
+    const state = room.gameState as SnakeState;
+    updateSnakePhysics(state);
+
+    io.to(roomId).emit('snakeUpdate', state);
+
+    if (state.winner !== null) {
+      room.status = 'finished';
+      broadcastRoomUpdate(room);
+      clearInterval(snakeIntervals[roomId]);
+      delete snakeIntervals[roomId];
+    }
+  }, Math.round(1000 / 15)); // 15 Hz
+}
+
+// ── Pong loop (60 Hz) ─────────────────────────────────────────────────────────
 
 const pongIntervals: { [roomId: string]: NodeJS.Timeout } = {};
 
