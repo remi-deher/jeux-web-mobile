@@ -528,6 +528,7 @@ import { GameHelpersService } from '../../services/game-helpers.service';
     }
 
     .projected-content-row {
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -730,6 +731,50 @@ import { GameHelpersService } from '../../services/game-helpers.service';
         margin-top: 10px;
         margin-bottom: 0;
         padding: 6px 12px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .layout-container {
+        padding: 6px 10px;
+      }
+      .game-header {
+        margin-bottom: 8px;
+      }
+      .status-panel {
+        padding: 8px 12px;
+        margin-bottom: 8px;
+        border-radius: var(--md-radius-lg);
+      }
+      .status-panel h2 {
+        font-size: 16px;
+        margin-bottom: 6px;
+      }
+      .players-display {
+        margin: 6px 0;
+        padding: 6px 12px;
+        border-radius: var(--md-radius-md);
+      }
+      .player-slot {
+        padding: 4px 8px;
+        gap: 6px;
+      }
+      .player-label {
+        display: none;
+      }
+      .player-name {
+        font-size: 13px;
+      }
+      .vs-divider {
+        font-size: 11px;
+      }
+      .emoji-bar {
+        padding: 6px 8px;
+        margin-top: 6px;
+      }
+      .status-message {
+        font-size: 12px;
+        margin-top: 4px;
       }
     }
 
