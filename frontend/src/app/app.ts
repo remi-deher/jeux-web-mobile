@@ -11,6 +11,8 @@ import { TicTacToeComponent } from './components/tictactoe/tictactoe.component';
 import { CheckersComponent } from './components/checkers/checkers.component';
 import { ChessComponent } from './components/chess/chess.component';
 import { FriendsPageComponent } from './components/friends-page/friends-page.component';
+import { GomokuComponent } from './components/gomoku/gomoku.component';
+import { OthelloComponent } from './components/othello/othello.component';
 
 @Component({
   selector: 'app-root',
@@ -25,7 +27,9 @@ import { FriendsPageComponent } from './components/friends-page/friends-page.com
     CheckersComponent,
     ChessComponent,
     BottomNavbarComponent,
-    FriendsPageComponent
+    FriendsPageComponent,
+    GomokuComponent,
+    OthelloComponent
   ],
   templateUrl: './app.html',
   styleUrl: './app.css'
@@ -79,7 +83,7 @@ export class App {
 
     effect(() => {
       const active = this.activeGame() || this.currentRoom()?.gameType;
-      document.body.classList.remove('theme-connect4', 'theme-battleship', 'theme-chess', 'theme-checkers', 'theme-tictactoe');
+      document.body.classList.remove('theme-connect4', 'theme-battleship', 'theme-chess', 'theme-checkers', 'theme-tictactoe', 'theme-gomoku', 'theme-othello');
       if (active) {
         document.body.classList.add(`theme-${active}`);
       }
@@ -119,7 +123,9 @@ export class App {
       battleship: 'Bataille Navale',
       tictactoe: 'Morpion',
       checkers: 'Jeu de Dames',
-      chess: 'Échecs'
+      chess: 'Échecs',
+      gomoku: 'Gomoku',
+      othello: 'Othello'
     };
     return gameNames[gameType] || gameType;
   }
@@ -188,6 +194,20 @@ export class App {
         wins: localStorage.getItem('stats_chess_wins') || '0',
         losses: localStorage.getItem('stats_chess_losses') || '0',
         draws: localStorage.getItem('stats_chess_draws') || '0'
+      },
+      {
+        name: 'Gomoku',
+        color: '#FFAB40',
+        wins: localStorage.getItem('stats_gomoku_wins') || '0',
+        losses: localStorage.getItem('stats_gomoku_losses') || '0',
+        draws: localStorage.getItem('stats_gomoku_draws') || '0'
+      },
+      {
+        name: 'Othello',
+        color: '#00B0FF',
+        wins: localStorage.getItem('stats_othello_wins') || '0',
+        losses: localStorage.getItem('stats_othello_losses') || '0',
+        draws: localStorage.getItem('stats_othello_draws') || '0'
       }
     ];
   }

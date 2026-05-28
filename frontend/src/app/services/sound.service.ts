@@ -175,7 +175,7 @@ export class SoundService {
           return;
         }
 
-        if (gameType === 'chess' || gameType === 'checkers') {
+        if (gameType === 'chess' || gameType === 'checkers' || gameType === 'gomoku' || gameType === 'othello') {
           // Wood piece landing: Triangle wave with fast decay + deep low-frequency resonator
           const duration = 0.15;
           

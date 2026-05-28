@@ -14,6 +14,8 @@ import {
 import { TicTacToeState, createInitialTicTacToeState, makeTicTacToeMove } from './games/tictactoe';
 import { CheckersState, createInitialCheckersState, makeCheckersMove } from './games/checkers';
 import { ChessState, createInitialChessState, makeChessMove } from './games/chess';
+import { GomokuState, createInitialGomokuState, makeGomokuMove } from './games/gomoku';
+import { OthelloState, createInitialOthelloState, makeOthelloMove } from './games/othello';
 
 const app = express();
 app.use(cors());
@@ -42,10 +44,10 @@ interface Player {
 
 interface Room {
   id: string;
-  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess';
+  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello';
   players: Player[];
   status: 'waiting' | 'playing' | 'finished';
-  gameState: Connect4State | BattleshipState | TicTacToeState | CheckersState | ChessState | null;
+  gameState: Connect4State | BattleshipState | TicTacToeState | CheckersState | ChessState | GomokuState | OthelloState | null;
   chatMessages: ChatMessage[];
   isPrivate: boolean;
   rematchVotes: string[];
@@ -142,6 +144,10 @@ io.on('connection', (socket: Socket) => {
       newRoom.gameState = createInitialCheckersState();
     } else if (data.gameType === 'chess') {
       newRoom.gameState = createInitialChessState();
+    } else if (data.gameType === 'gomoku') {
+      newRoom.gameState = createInitialGomokuState();
+    } else if (data.gameType === 'othello') {
+      newRoom.gameState = createInitialOthelloState();
     }
 
     rooms[roomId] = newRoom;
@@ -186,7 +192,7 @@ io.on('connection', (socket: Socket) => {
   });
 
 
-  socket.on('createRoom', (data: { gameType: 'connect4' | 'battleship'; username: string; isPrivate?: boolean }, callback) => {
+  socket.on('createRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello'; username: string; isPrivate?: boolean }, callback) => {
     const roomId = generateRoomId();
     const newRoom: Room = {
       id: roomId,
@@ -208,7 +214,7 @@ io.on('connection', (socket: Socket) => {
     io.emit('roomsList', getPublicRooms());
   });
 
-  socket.on('createLocalRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess'; username: string; player1Name?: string; player2Name?: string }, callback) => {
+  socket.on('createLocalRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello'; username: string; player1Name?: string; player2Name?: string }, callback) => {
     const roomId = generateRoomId();
     const newRoom: Room = {
       id: roomId,
@@ -235,6 +241,10 @@ io.on('connection', (socket: Socket) => {
       newRoom.gameState = createInitialCheckersState();
     } else if (data.gameType === 'chess') {
       newRoom.gameState = createInitialChessState();
+    } else if (data.gameType === 'gomoku') {
+      newRoom.gameState = createInitialGomokuState();
+    } else if (data.gameType === 'othello') {
+      newRoom.gameState = createInitialOthelloState();
     }
 
     rooms[roomId] = newRoom;
@@ -272,6 +282,10 @@ io.on('connection', (socket: Socket) => {
         room.gameState = createInitialCheckersState();
       } else if (room.gameType === 'chess') {
         room.gameState = createInitialChessState();
+      } else if (room.gameType === 'gomoku') {
+        room.gameState = createInitialGomokuState();
+      } else if (room.gameType === 'othello') {
+        room.gameState = createInitialOthelloState();
       }
     }
 
@@ -414,6 +428,42 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
+  socket.on('gomokuMove', (data: { roomId: string; row: number; col: number }) => {
+    const room = rooms[data.roomId];
+    if (!room || room.gameType !== 'gomoku' || !room.gameState) return;
+
+    const playerIndex = room.players.findIndex(p => p.id === socket.id);
+    if (playerIndex === -1) return;
+
+    const playerNum = room.isLocal ? (room.gameState as GomokuState).currentPlayer : (playerIndex + 1);
+    const success = makeGomokuMove(room.gameState as GomokuState, data.row, data.col, playerNum);
+
+    if (success) {
+      if ((room.gameState as GomokuState).winner !== null) {
+        room.status = 'finished';
+      }
+      broadcastRoomUpdate(room);
+    }
+  });
+
+  socket.on('othelloMove', (data: { roomId: string; row: number; col: number }) => {
+    const room = rooms[data.roomId];
+    if (!room || room.gameType !== 'othello' || !room.gameState) return;
+
+    const playerIndex = room.players.findIndex(p => p.id === socket.id);
+    if (playerIndex === -1) return;
+
+    const playerNum = room.isLocal ? (room.gameState as OthelloState).currentPlayer : (playerIndex + 1);
+    const success = makeOthelloMove(room.gameState as OthelloState, data.row, data.col, playerNum);
+
+    if (success) {
+      if ((room.gameState as OthelloState).winner !== null) {
+        room.status = 'finished';
+      }
+      broadcastRoomUpdate(room);
+    }
+  });
+
   socket.on('sendEmoji', (data: { roomId: string; emoji: string }) => {
     const room = rooms[data.roomId];
     if (!room) return;
@@ -438,6 +488,10 @@ io.on('connection', (socket: Socket) => {
         room.gameState = createInitialCheckersState();
       } else if (room.gameType === 'chess') {
         room.gameState = createInitialChessState();
+      } else if (room.gameType === 'gomoku') {
+        room.gameState = createInitialGomokuState();
+      } else if (room.gameType === 'othello') {
+        room.gameState = createInitialOthelloState();
       }
     } else {
       if (!room.rematchVotes) room.rematchVotes = [];
@@ -458,6 +512,10 @@ io.on('connection', (socket: Socket) => {
           room.gameState = createInitialCheckersState();
         } else if (room.gameType === 'chess') {
           room.gameState = createInitialChessState();
+        } else if (room.gameType === 'gomoku') {
+          room.gameState = createInitialGomokuState();
+        } else if (room.gameType === 'othello') {
+          room.gameState = createInitialOthelloState();
         }
       }
     }
@@ -553,6 +611,18 @@ io.on('connection', (socket: Socket) => {
         const playerIndex = room.players.findIndex(p => p.id === winner.id);
         state.winner = (playerIndex !== -1 ? playerIndex + 1 : 1) as 1 | 2;
       }
+    } else if (room.gameType === 'gomoku') {
+      const state = room.gameState as GomokuState;
+      if (state) {
+        const playerIndex = room.players.findIndex(p => p.id === winner.id);
+        state.winner = playerIndex !== -1 ? playerIndex + 1 : 1;
+      }
+    } else if (room.gameType === 'othello') {
+      const state = room.gameState as OthelloState;
+      if (state) {
+        const playerIndex = room.players.findIndex(p => p.id === winner.id);
+        state.winner = playerIndex !== -1 ? playerIndex + 1 : 1;
+      }
     }
 
     broadcastRoomUpdate(room);
@@ -628,6 +698,16 @@ function handlePlayerLeave(socket: Socket, roomId: string) {
       }
     } else if (room.gameType === 'chess') {
       const state = room.gameState as ChessState;
+      if (state) {
+        state.winner = leavingPlayerIndex === 0 ? 2 : 1;
+      }
+    } else if (room.gameType === 'gomoku') {
+      const state = room.gameState as GomokuState;
+      if (state) {
+        state.winner = leavingPlayerIndex === 0 ? 2 : 1;
+      }
+    } else if (room.gameType === 'othello') {
+      const state = room.gameState as OthelloState;
       if (state) {
         state.winner = leavingPlayerIndex === 0 ? 2 : 1;
       }

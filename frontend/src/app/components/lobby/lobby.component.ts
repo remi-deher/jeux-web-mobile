@@ -133,6 +133,37 @@ import { GameService } from '../../services/game.service';
                 <span class="game-tag">Mental</span>
               </div>
             </button>
+
+            <button class="game-card" (click)="selectGame('gomoku')">
+              <div class="game-card-image">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="100" height="100" rx="24" fill="#8D6E63"/>
+                  <line x1="20" y1="50" x2="80" y2="50" stroke="#4E342E" stroke-width="2"/>
+                  <line x1="50" y1="20" x2="50" y2="80" stroke="#4E342E" stroke-width="2"/>
+                  <circle cx="50" cy="50" r="12" fill="#141218" stroke="#CAC4D0" stroke-width="1.5"/>
+                  <circle cx="35" cy="35" r="10" fill="#FFFFFF" stroke="#141218" stroke-width="1.5"/>
+                  <circle cx="65" cy="35" r="10" fill="#141218" stroke="#CAC4D0" stroke-width="1.5"/>
+                </svg>
+              </div>
+              <div class="game-card-info">
+                <span class="game-name">Gomoku</span>
+                <span class="game-tag">5 Alignés</span>
+              </div>
+            </button>
+
+            <button class="game-card" (click)="selectGame('othello')">
+              <div class="game-card-image">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="100" height="100" rx="24" fill="#00796B"/>
+                  <circle cx="40" cy="50" r="14" fill="#FFFFFF" stroke="#004D40" stroke-width="2"/>
+                  <circle cx="60" cy="50" r="14" fill="#141218" stroke="#CAC4D0" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="game-card-info">
+                <span class="game-name">Othello</span>
+                <span class="game-tag">Reversi</span>
+              </div>
+            </button>
           </div>
         </div>
       } @else {
@@ -148,6 +179,8 @@ import { GameService } from '../../services/game.service';
               @else if (selectedGame() === 'tictactoe') { Morpion }
               @else if (selectedGame() === 'checkers') { Jeu de Dames }
               @else if (selectedGame() === 'chess') { Échecs }
+              @else if (selectedGame() === 'gomoku') { Gomoku }
+              @else if (selectedGame() === 'othello') { Othello }
             </h2>
           </div>
 
@@ -288,6 +321,27 @@ import { GameService } from '../../services/game.service';
                       <li>Cliquez sur la pièce que vous souhaitez déplacer (les pièces sélectionnables s'illuminent au survol).</li>
                       <li>Les cases autorisées pour cette pièce s'affichent en surbrillance.</li>
                       <li>Cliquez sur l'une de ces cases pour finaliser le déplacement de la pièce.</li>
+                    </ul>
+                  </div>
+                } @else if (selectedGame() === 'gomoku') {
+                  <div class="rules-section">
+                    <h4>Règles du jeu</h4>
+                    <p>Le Gomoku se joue sur une grille de 15x15. Le but est d'être le premier à aligner exactement 5 pierres de sa couleur (noire ou blanche) horizontalement, verticalement ou en diagonale.</p>
+                    <h4>Comment jouer</h4>
+                    <ul>
+                      <li>Plantez votre pierre en cliquant sur une case vide de la grille à tour de rôle.</li>
+                      <li>Surveillez les lignes adverses de 3 ou 4 pierres pour les bloquer avant qu'ils ne gagnent.</li>
+                    </ul>
+                  </div>
+                } @else if (selectedGame() === 'othello') {
+                  <div class="rules-section">
+                    <h4>Règles du jeu</h4>
+                    <p>L'Othello (Reversi) se joue sur une grille 8x8. Les joueurs placent à tour de rôle un pion de leur couleur (noir ou blanc) de sorte à piéger un ou plusieurs pions adverses en ligne droite entre le pion posé et un pion préexistant de leur propre couleur. Les pions piégés sont retournés.</p>
+                    <h4>Comment jouer</h4>
+                    <ul>
+                      <li>Les cases jouables pour votre tour s'affichent en surbrillance verte.</li>
+                      <li>Cliquez sur l'une des cases vertes pour poser un pion et retourner les pions adverses.</li>
+                      <li>Si vous n'avez aucun coup valide, votre tour est automatiquement passé. Le vainqueur est celui qui possède le plus de pions à la fin.</li>
                     </ul>
                   </div>
                 }
@@ -1068,6 +1122,14 @@ export class LobbyComponent {
   chessLosses = signal<number>(0);
   chessDraws = signal<number>(0);
 
+  gomokuWins = signal<number>(0);
+  gomokuLosses = signal<number>(0);
+  gomokuDraws = signal<number>(0);
+
+  othelloWins = signal<number>(0);
+  othelloLosses = signal<number>(0);
+  othelloDraws = signal<number>(0);
+
   filteredRooms = computed(() => {
     return this.roomsList().filter(r => r.gameType === this.selectedGame());
   });
@@ -1086,7 +1148,7 @@ export class LobbyComponent {
     }
   }
 
-  selectGame(game: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | null) {
+  selectGame(game: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | null) {
     this.selectedGame.set(game);
     this.showRules.set(false);
     this.loadStats();
@@ -1162,5 +1224,13 @@ export class LobbyComponent {
     this.chessWins.set(parseInt(localStorage.getItem('stats_chess_wins') || '0', 10));
     this.chessLosses.set(parseInt(localStorage.getItem('stats_chess_losses') || '0', 10));
     this.chessDraws.set(parseInt(localStorage.getItem('stats_chess_draws') || '0', 10));
+
+    this.gomokuWins.set(parseInt(localStorage.getItem('stats_gomoku_wins') || '0', 10));
+    this.gomokuLosses.set(parseInt(localStorage.getItem('stats_gomoku_losses') || '0', 10));
+    this.gomokuDraws.set(parseInt(localStorage.getItem('stats_gomoku_draws') || '0', 10));
+
+    this.othelloWins.set(parseInt(localStorage.getItem('stats_othello_wins') || '0', 10));
+    this.othelloLosses.set(parseInt(localStorage.getItem('stats_othello_losses') || '0', 10));
+    this.othelloDraws.set(parseInt(localStorage.getItem('stats_othello_draws') || '0', 10));
   }
 }

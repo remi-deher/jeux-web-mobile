@@ -22,7 +22,7 @@ export interface Player {
 
 export interface RoomListEntry {
   id: string;
-  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess';
+  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello';
   playersCount: number;
   status: 'waiting' | 'playing' | 'finished';
 }
@@ -55,7 +55,7 @@ export interface BattleshipGameState {
 // Global Room Interface with typed GameStates
 export interface Room<T = any> {
   id: string;
-  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess';
+  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello';
   players: Player[];
   status: 'waiting' | 'playing' | 'finished';
   gameState: T;

@@ -26,7 +26,7 @@ export class GameService {
   
   // Navigation signals
   public activeView = signal<string>('games');
-  public activeGame = signal<'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | null>(null);
+  public activeGame = signal<'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | null>(null);
   
   constructor() {
     // In dev mode (ng serve on port 4200), connect directly to backend on port 3001.
@@ -149,7 +149,7 @@ export class GameService {
     this.socket.emit('globalMessage', { username: this.username(), text });
   }
 
-  createRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess', isPrivate: boolean = false) {
+  createRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello', isPrivate: boolean = false) {
     this.socket.emit('createRoom', { gameType, username: this.username(), isPrivate }, (res: any) => {
       if (res.success) {
         this.currentRoom.set(res.room);
@@ -160,7 +160,7 @@ export class GameService {
     });
   }
 
-  createLocalRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess', player1Name?: string, player2Name?: string) {
+  createLocalRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello', player1Name?: string, player2Name?: string) {
     this.socket.emit('createLocalRoom', { gameType, username: this.username() || 'Joueur 1', player1Name, player2Name }, (res: any) => {
       if (res.success) {
         this.currentRoom.set(res.room);
@@ -269,6 +269,20 @@ export class GameService {
     }
   }
 
+  makeGomokuMove(row: number, col: number) {
+    const room = this.currentRoom();
+    if (room) {
+      this.socket.emit('gomokuMove', { roomId: room.id, row, col });
+    }
+  }
+
+  makeOthelloMove(row: number, col: number) {
+    const room = this.currentRoom();
+    if (room) {
+      this.socket.emit('othelloMove', { roomId: room.id, row, col });
+    }
+  }
+
   // Social Methods
   addFriend(name: string) {
     const trimmed = name.trim();
@@ -319,7 +333,9 @@ export class GameService {
       battleship: 'Bataille Navale',
       tictactoe: 'Morpion',
       checkers: 'Jeu de Dames',
-      chess: 'Échecs'
+      chess: 'Échecs',
+      gomoku: 'Gomoku',
+      othello: 'Othello'
     };
     const gameLabel = gameNames[room.gameType] || room.gameType;
     if (navigator.share) {
@@ -342,7 +358,9 @@ export class GameService {
         battleship: 'Bataille Navale',
         tictactoe: 'Morpion',
         checkers: 'Jeu de Dames',
-        chess: 'Échecs'
+        chess: 'Échecs',
+        gomoku: 'Gomoku',
+        othello: 'Othello'
       };
       const gameLabel = gameNames[gameType] || gameType;
       
