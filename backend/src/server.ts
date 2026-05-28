@@ -766,6 +766,16 @@ io.on('connection', (socket: Socket) => {
     handlePlayerLeave(socket, data.roomId);
   });
 
+  // ── WebRTC signaling (pong P2P data channel) ────────────────────────────────
+  // The server is just a relay for SDP + ICE messages.
+  // All actual game data flows peer-to-peer after the handshake.
+
+  // Types are 'any' because WebRTC types are browser-only (not in @types/node).
+  // The server is a transparent relay — it never inspects the SDP/ICE payloads.
+  socket.on('pongRtcOffer',  (data: { roomId: string; offer: any })     => { socket.to(data.roomId).emit('pongRtcOffer',  { offer: data.offer });     });
+  socket.on('pongRtcAnswer', (data: { roomId: string; answer: any })    => { socket.to(data.roomId).emit('pongRtcAnswer', { answer: data.answer });   });
+  socket.on('pongRtcIce',    (data: { roomId: string; candidate: any }) => { socket.to(data.roomId).emit('pongRtcIce',    { candidate: data.candidate }); });
+
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`);
     delete onlineUsers[socket.id];
@@ -898,7 +908,7 @@ function startPongLoop(roomId: string) {
       clearInterval(pongIntervals[roomId]);
       delete pongIntervals[roomId];
     }
-  }, 1000 / 30); // 30 FPS updates
+  }, 1000 / 60); // 60 Hz physics + broadcast
 }
 
 function broadcastRoomUpdate(room: Room) {

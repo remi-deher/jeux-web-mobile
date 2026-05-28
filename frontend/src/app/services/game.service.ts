@@ -30,6 +30,18 @@ export class GameService {
   public activeGame = signal<'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | null>(null);
 
   private prevPongVx: number | null = null;
+
+  /**
+   * WebRTC signaling messages relayed by the server.
+   * The pong component watches this signal to drive the RTCPeerConnection
+   * handshake without polling.
+   */
+  public pongRtcSignal = signal<
+    | { type: 'offer';  offer:     RTCSessionDescriptionInit }
+    | { type: 'answer'; answer:    RTCSessionDescriptionInit }
+    | { type: 'ice';    candidate: RTCIceCandidateInit }
+    | null
+  >(null);
   
   constructor() {
     // In dev mode (ng serve on port 4200), connect directly to backend on port 3001.
@@ -111,6 +123,11 @@ export class GameService {
         console.error('Error auto-playing game move sound:', err);
       }
     });
+
+    // WebRTC signaling relay
+    this.socket.on('pongRtcOffer',  (d: any) => this.pongRtcSignal.set({ type: 'offer',  offer:     d.offer     }));
+    this.socket.on('pongRtcAnswer', (d: any) => this.pongRtcSignal.set({ type: 'answer', answer:    d.answer    }));
+    this.socket.on('pongRtcIce',    (d: any) => this.pongRtcSignal.set({ type: 'ice',    candidate: d.candidate }));
 
     this.socket.on('pongUpdate', (pongState: any) => {
       const room = this.currentRoom();
@@ -329,6 +346,11 @@ export class GameService {
       this.socket.emit('othelloMove', { roomId: room.id, row, col });
     }
   }
+
+  // WebRTC signaling — forward SDP/ICE to the server which relays to the other player
+  sendPongRtcOffer(roomId: string, offer: RTCSessionDescriptionInit)  { this.socket.emit('pongRtcOffer',  { roomId, offer  }); }
+  sendPongRtcAnswer(roomId: string, answer: RTCSessionDescriptionInit) { this.socket.emit('pongRtcAnswer', { roomId, answer }); }
+  sendPongRtcIce(roomId: string, candidate: RTCIceCandidateInit)       { this.socket.emit('pongRtcIce',   { roomId, candidate }); }
 
   sendPongPaddle(yPercent: number, paddleIndex?: number) {
     const room = this.currentRoom();
