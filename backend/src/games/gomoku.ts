@@ -3,6 +3,7 @@ export interface GomokuState {
   currentPlayer: number; // 1 or 2
   winner: number | 'draw' | null;
   winningLine: [number, number][]; // coordinates of winning 5-in-a-row segment
+  lastMove: [number, number] | null; // last played coordinates
 }
 
 export function createInitialGomokuState(): GomokuState {
@@ -10,7 +11,8 @@ export function createInitialGomokuState(): GomokuState {
     board: Array(15).fill(null).map(() => Array(15).fill(0)),
     currentPlayer: 1,
     winner: null,
-    winningLine: []
+    winningLine: [],
+    lastMove: null
   };
 }
 
@@ -22,6 +24,7 @@ export function makeGomokuMove(state: GomokuState, row: number, col: number, pla
 
   // Make move
   state.board[row][col] = playerNum;
+  state.lastMove = [row, col];
 
   // Check win
   const winLine = checkWin(state.board, row, col, playerNum);

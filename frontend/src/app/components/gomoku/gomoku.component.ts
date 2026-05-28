@@ -50,16 +50,23 @@ import { injectGameSession } from '../../services/game-session.helper';
               <div 
                 class="board-cell"
                 [class.winning-cell]="isWinningCell(row, col)"
+                [class.hover-row]="hoveredCell()?.row === row"
+                [class.hover-col]="hoveredCell()?.col === col"
                 [class.disabled]="!isMyTurn() || board()[row][col] !== 0"
                 (click)="makeMove(row, col)"
-                (mouseenter)="isMyTurn() && board()[row][col] === 0 ? hoveredCell.set({row, col}) : null"
+                (mouseenter)="board()[row][col] === 0 ? hoveredCell.set({row, col}) : null"
                 (mouseleave)="hoveredCell.set(null)"
               >
+                <!-- Star point indicator (hoshi) -->
+                @if (isStarPoint(row, col)) {
+                  <div class="star-point"></div>
+                }
+
                 <!-- Render placed stones -->
                 @if (board()[row][col] === 1) {
-                  <div class="stone stone-black"></div>
+                  <div class="stone stone-black" [class.last-played]="isLastMove(row, col)"></div>
                 } @else if (board()[row][col] === 2) {
-                  <div class="stone stone-white"></div>
+                  <div class="stone stone-white" [class.last-played]="isLastMove(row, col)"></div>
                 } @else if (isMyTurn() && hoveredCell()?.row === row && hoveredCell()?.col === col) {
                   <div 
                     class="ghost-stone" 
@@ -89,14 +96,17 @@ import { injectGameSession } from '../../services/game-session.helper';
 
     .board-grid {
       display: grid;
-      grid-template-columns: repeat(15, min(24px, 4.5vh));
-      grid-template-rows: repeat(15, min(24px, 4.5vh));
+      grid-template-columns: repeat(15, 1fr);
+      grid-template-rows: repeat(15, 1fr);
       background: #D7CCC8; /* Wood background color */
-      border: 6px solid #5D4037; /* Dark wood frame border */
+      border: 8px solid #5D4037; /* Dark wood frame border */
       border-radius: var(--md-radius-lg);
-      padding: 8px;
+      padding: 10px;
       box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
       position: relative;
+      width: 100%;
+      max-width: min(580px, 75vh);
+      aspect-ratio: 1;
     }
 
     .board-cell {
@@ -119,6 +129,7 @@ import { injectGameSession } from '../../services/game-session.helper';
       background: #5D4037;
       opacity: 0.55;
       pointer-events: none;
+      transition: background-color 0.2s, opacity 0.2s;
     }
 
     .board-cell::after {
@@ -131,14 +142,34 @@ import { injectGameSession } from '../../services/game-session.helper';
       background: #5D4037;
       opacity: 0.55;
       pointer-events: none;
+      transition: background-color 0.2s, opacity 0.2s;
+    }
+
+    /* Highlight hovered crosshair lines */
+    .board-cell.hover-row::before,
+    .board-cell.hover-col::after {
+      background: #FF5252 !important;
+      opacity: 0.7;
     }
 
     .board-cell:hover:not(.disabled) {
-      background: rgba(93, 64, 55, 0.12);
+      background: rgba(93, 64, 55, 0.08);
     }
 
     .board-cell.disabled {
       cursor: not-allowed;
+    }
+
+    /* Star point markers (Hoshi) */
+    .star-point {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #5D4037;
+      opacity: 0.85;
+      z-index: 1;
+      pointer-events: none;
     }
 
     /* Highlight winning stones */
@@ -174,6 +205,27 @@ import { injectGameSession } from '../../services/game-session.helper';
       border: 1px solid rgba(0, 0, 0, 0.2);
     }
 
+    /* Last Move indicator (pulsing red center dot) */
+    .stone.last-played::after {
+      content: '';
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: #FF5252;
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 6px #FF5252;
+      animation: pulseLastMove 1s infinite alternate;
+      z-index: 3;
+    }
+
+    @keyframes pulseLastMove {
+      0% { opacity: 0.6; transform: translate(-50%, -50%) scale(0.85); }
+      100% { opacity: 1; transform: translate(-50%, -50%) scale(1.25); }
+    }
+
     .ghost-stone {
       position: absolute;
       width: 88%;
@@ -191,18 +243,17 @@ import { injectGameSession } from '../../services/game-session.helper';
 
     @media (max-width: 480px) {
       .board-grid {
-        grid-template-columns: repeat(15, min(18px, 5.5vw));
-        grid-template-rows: repeat(15, min(18px, 5.5vw));
+        max-width: min(340px, 88vw);
         padding: 4px;
-        border-width: 4px;
+        border-width: 5px;
       }
-    }
-
-    @media (orientation: landscape) and (min-width: 768px) {
-      .board-grid {
-        grid-template-columns: repeat(15, min(28px, 4.2vh));
-        grid-template-rows: repeat(15, min(28px, 4.2vh));
-        padding: 10px;
+      .star-point {
+        width: 4px;
+        height: 4px;
+      }
+      .stone.last-played::after {
+        width: 6px;
+        height: 6px;
       }
     }
   `]
@@ -288,5 +339,15 @@ export class GomokuComponent {
   isWinningCell(row: number, col: number): boolean {
     const winLine = this.room()?.gameState?.winningLine || [];
     return winLine.some((coord: any) => coord[0] === row && coord[1] === col);
+  }
+
+  isLastMove(row: number, col: number): boolean {
+    const last = this.room()?.gameState?.lastMove;
+    return !!last && last[0] === row && last[1] === col;
+  }
+
+  isStarPoint(row: number, col: number): boolean {
+    const points = [[3,3], [3,11], [7,7], [11,3], [11,11]];
+    return points.some(([r, c]) => r === row && c === col);
   }
 }
