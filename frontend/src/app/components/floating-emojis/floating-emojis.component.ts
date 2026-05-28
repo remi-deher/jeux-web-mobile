@@ -6,7 +6,7 @@ import { Component, Input } from '@angular/core';
   template: `
     <div class="floating-emojis-container">
       @for (item of emojis; track item.id) {
-        <span class="floating-emoji">{{ item.emoji }}</span>
+        <span class="floating-emoji material-symbols">{{ item.emoji }}</span>
       }
     </div>
   `,
@@ -26,7 +26,7 @@ import { Component, Input } from '@angular/core';
 
     .floating-emoji {
       position: absolute;
-      font-size: 64px;
+      font-size: 64px !important;
       animation: floatEmoji 2.0s ease-in-out forwards;
     }
 

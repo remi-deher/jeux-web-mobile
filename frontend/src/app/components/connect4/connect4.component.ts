@@ -43,7 +43,7 @@ import { GameLayoutComponent } from '../game-layout/game-layout.component';
         <!-- Floating Emojis Layer -->
         <div class="floating-emojis-container">
           @for (item of floatingEmojis(); track item.id) {
-            <span class="floating-emoji">{{ item.emoji }}</span>
+            <span class="floating-emoji material-symbols">{{ item.emoji }}</span>
           }
         </div>
 

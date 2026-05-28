@@ -147,12 +147,12 @@ import { GameChatComponent } from './game-chat.component';
                             @if (getOnlineUserByName(friendName); as onlineUser) {
                               @if (selectedUserToChallenge() === onlineUser.id) {
                                 <div class="challenge-options">
-                                  <button (click)="challengeUser(onlineUser.id, 'connect4')" title="Puissance 4">🔴</button>
-                                  <button (click)="challengeUser(onlineUser.id, 'battleship')" title="Bataille Navale">🚢</button>
-                                  <button (click)="challengeUser(onlineUser.id, 'tictactoe')" title="Morpion">❌</button>
-                                  <button (click)="challengeUser(onlineUser.id, 'checkers')" title="Dames">🏁</button>
-                                  <button (click)="challengeUser(onlineUser.id, 'chess')" title="Échecs">👑</button>
-                                  <button class="cancel-btn" (click)="selectedUserToChallenge.set(null)">✕</button>
+                                  <button (click)="challengeUser(onlineUser.id, 'connect4')" title="Puissance 4" style="display: inline-flex; align-items: center; justify-content: center;"><span class="material-symbols" style="color: #ff4b5c; font-size: 16px;">fiber_manual_record</span></button>
+                                  <button (click)="challengeUser(onlineUser.id, 'battleship')" title="Bataille Navale" style="display: inline-flex; align-items: center; justify-content: center;"><span class="material-symbols" style="color: #00f0ff; font-size: 16px;">directions_boat</span></button>
+                                  <button (click)="challengeUser(onlineUser.id, 'tictactoe')" title="Morpion" style="display: inline-flex; align-items: center; justify-content: center;"><span class="material-symbols" style="color: #ff79c6; font-size: 16px;">close</span></button>
+                                  <button (click)="challengeUser(onlineUser.id, 'checkers')" title="Dames" style="display: inline-flex; align-items: center; justify-content: center;"><span class="material-symbols" style="color: #d4a373; font-size: 16px;">sports_score</span></button>
+                                  <button (click)="challengeUser(onlineUser.id, 'chess')" title="Échecs" style="display: inline-flex; align-items: center; justify-content: center;"><span class="material-symbols" style="color: #e0c097; font-size: 16px;">crown</span></button>
+                                  <button class="cancel-btn" (click)="selectedUserToChallenge.set(null)" style="display: inline-flex; align-items: center; justify-content: center;"><span class="material-symbols" style="font-size: 12px;">close</span></button>
                                 </div>
                               } @else {
                                 <button class="challenge-btn" (click)="selectedUserToChallenge.set(onlineUser.id)" title="Défier">
@@ -184,12 +184,12 @@ import { GameChatComponent } from './game-chat.component';
                         <div class="social-item-actions" style="display: flex; align-items: center; gap: 8px;">
                           @if (selectedUserToChallenge() === user.id) {
                             <div class="challenge-options">
-                              <button (click)="challengeUser(user.id, 'connect4')" title="Puissance 4">🔴</button>
-                              <button (click)="challengeUser(user.id, 'battleship')" title="Bataille Navale">🚢</button>
-                              <button (click)="challengeUser(user.id, 'tictactoe')" title="Morpion">❌</button>
-                              <button (click)="challengeUser(user.id, 'checkers')" title="Dames">🏁</button>
-                              <button (click)="challengeUser(user.id, 'chess')" title="Échecs">👑</button>
-                              <button class="cancel-btn" (click)="selectedUserToChallenge.set(null)">✕</button>
+                              <button (click)="challengeUser(user.id, 'connect4')" title="Puissance 4" style="display: inline-flex; align-items: center; justify-content: center;"><span class="material-symbols" style="color: #ff4b5c; font-size: 16px;">fiber_manual_record</span></button>
+                              <button (click)="challengeUser(user.id, 'battleship')" title="Bataille Navale" style="display: inline-flex; align-items: center; justify-content: center;"><span class="material-symbols" style="color: #00f0ff; font-size: 16px;">directions_boat</span></button>
+                              <button (click)="challengeUser(user.id, 'tictactoe')" title="Morpion" style="display: inline-flex; align-items: center; justify-content: center;"><span class="material-symbols" style="color: #ff79c6; font-size: 16px;">close</span></button>
+                              <button (click)="challengeUser(user.id, 'checkers')" title="Dames" style="display: inline-flex; align-items: center; justify-content: center;"><span class="material-symbols" style="color: #d4a373; font-size: 16px;">sports_score</span></button>
+                              <button (click)="challengeUser(user.id, 'chess')" title="Échecs" style="display: inline-flex; align-items: center; justify-content: center;"><span class="material-symbols" style="color: #e0c097; font-size: 16px;">crown</span></button>
+                              <button class="cancel-btn" (click)="selectedUserToChallenge.set(null)" style="display: inline-flex; align-items: center; justify-content: center;"><span class="material-symbols" style="font-size: 12px;">close</span></button>
                             </div>
                           } @else {
                             <button class="challenge-btn" (click)="selectedUserToChallenge.set(user.id)" title="Défier">

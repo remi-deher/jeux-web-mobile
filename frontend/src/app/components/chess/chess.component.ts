@@ -60,7 +60,7 @@ interface ChessMove {
         <!-- Floating Emojis -->
         <div class="floating-emojis-container">
           @for (item of floatingEmojis(); track item.id) {
-            <span class="floating-emoji">{{ item.emoji }}</span>
+            <span class="floating-emoji material-symbols">{{ item.emoji }}</span>
           }
         </div>
 

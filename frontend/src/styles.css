@@ -914,3 +914,30 @@ button:active, .ship-place-btn:active {
   to { transform: scale(1); }
 }
 
+/* Emojis replacements */
+.indicator-element.token-black {
+  width: 18px;
+  height: 18px;
+  background: radial-gradient(circle at 35% 35%, #424242 0%, #1e1e1e 60%, #0c0c0c 100%);
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  border-radius: 50%;
+  display: inline-block;
+  vertical-align: middle;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.indicator-element.token-white {
+  width: 18px;
+  height: 18px;
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #f6f6f6 50%, #e5e5e5 85%, #cccccc 100%);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 50%;
+  display: inline-block;
+  vertical-align: middle;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.floating-emoji {
+  font-size: 64px !important;
+}
+

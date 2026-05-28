@@ -23,10 +23,10 @@ import { CommonModule } from '@angular/common';
             (click)="onCellClick(row, col)"
           >
             @if (board[row][col] === 'hit') { 
-              <span class="hit-indicator" [class.target-hit]="mode === 'radar'">💥</span> 
+              <span class="hit-indicator material-symbols" [class.target-hit]="mode === 'radar'" style="color: #ef4444;">explosion</span> 
             }
             @if (board[row][col] === 'miss') { 
-              <span class="miss-indicator" [class.target-miss]="mode === 'radar'">💧</span> 
+              <span class="miss-indicator material-symbols" [class.target-miss]="mode === 'radar'" style="color: #60a5fa;">water_drop</span> 
             }
           </div>
         }

@@ -114,7 +114,7 @@ import { GameHelpersService } from '../../services/game-helpers.service';
 
           @if (disconnectedPlayerName) {
             <div class="disconnect-banner">
-              <span>⚠️ {{ disconnectedPlayerName }} s'est déconnecté. En attente...</span>
+              <span style="display: inline-flex; align-items: center; gap: 6px;"><span class="material-symbols" style="font-size: 20px; color: #fc8181;">warning</span>{{ disconnectedPlayerName }} s'est déconnecté. En attente...</span>
               <button class="force-end-btn" (click)="onForceEnd()">Forcer la fin (Gagner)</button>
             </div>
           }
@@ -129,19 +129,27 @@ import { GameHelpersService } from '../../services/game-helpers.service';
                 </button>
               </div>
             } @else if (room?.status === 'finished') {
-              <div class="win-banner" [class.victory]="isWinner" [class.defeat]="isLoser">
+              <div class="win-banner" [class.victory]="isWinner" [class.defeat]="isLoser" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
                 @if (winnerLabel === 'draw') {
-                  🤝 Égalité ! Bien joué aux deux joueurs.
+                  <span class="material-symbols" style="font-size: 24px;">handshake</span>
+                  <span>Égalité ! Bien joué aux deux joueurs.</span>
                 } @else {
-                  🏆 {{ winnerLabel }} a gagné la partie !
+                  <span class="material-symbols" style="font-size: 24px; color: #fbbf24;">trophy</span>
+                  <span>{{ winnerLabel }} a gagné la partie !</span>
                 }
               </div>
               <div class="rematch-section">
                 @if (hasVotedRematch) {
-                  <div class="rematch-status">⏳ En attente de l'adversaire...</div>
+                  <div class="rematch-status" style="display: inline-flex; align-items: center; gap: 6px; justify-content: center;">
+                    <span class="material-symbols" style="font-size: 16px;">hourglass_empty</span>
+                    <span>En attente de l'adversaire...</span>
+                  </div>
                 } @else if (room?.rematchVotes?.length > 0) {
-                  <div class="rematch-request-banner">
-                    🔄 L'adversaire veut rejouer !
+                  <div class="rematch-request-banner" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                    <div style="display: inline-flex; align-items: center; gap: 6px;">
+                      <span class="material-symbols" style="font-size: 18px;">replay</span>
+                      <span>L'adversaire veut rejouer !</span>
+                    </div>
                     <button class="primary-btn rematch-btn" (click)="onRequestRematch()">
                       <span class="material-symbols">replay</span>
                       <span>Accepter</span>
@@ -157,9 +165,15 @@ import { GameHelpersService } from '../../services/game-helpers.service';
             } @else {
               <div [class]="turnAlertClass ? turnAlertClass : (isMyTurn ? 'turn-alert my-turn' : 'turn-alert opponent-turn')">
                 @if (isMyTurn) {
-                  {{ turnAlertText }}
+                  <span style="display: inline-flex; align-items: center; gap: 6px; justify-content: center; width: 100%;">
+                    <span class="material-symbols" style="font-size: 16px; color: #34d399;">fiber_manual_record</span>
+                    <span>{{ turnAlertText }}</span>
+                  </span>
                 } @else {
-                  {{ opponentTurnText }}
+                  <span style="display: inline-flex; align-items: center; gap: 6px; justify-content: center; width: 100%;">
+                    <span class="material-symbols" style="font-size: 16px;">hourglass_empty</span>
+                    <span>{{ opponentTurnText }}</span>
+                  </span>
                 }
               </div>
             }
@@ -170,18 +184,26 @@ import { GameHelpersService } from '../../services/game-helpers.service';
         <div class="board-area-wrapper">
           <!-- PC-only status alert banners above the board -->
           @if (room?.status === 'finished') {
-            <div class="win-banner-pc glass-card" [class.victory]="isWinner" [class.defeat]="isLoser">
-              @if (winnerLabel === 'draw') {
-                🤝 Égalité ! Bien joué aux deux joueurs.
-              } @else {
-                🏆 {{ winnerLabel }} a gagné la partie !
-              }
+            <div class="win-banner-pc glass-card" [class.victory]="isWinner" [class.defeat]="isLoser" style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+              <div style="display: inline-flex; align-items: center; gap: 8px;">
+                @if (winnerLabel === 'draw') {
+                  <span class="material-symbols" style="font-size: 24px;">handshake</span>
+                  <span>Égalité ! Bien joué aux deux joueurs.</span>
+                } @else {
+                  <span class="material-symbols" style="font-size: 24px; color: #fbbf24;">trophy</span>
+                  <span>{{ winnerLabel }} a gagné la partie !</span>
+                }
+              </div>
               <div class="rematch-section-pc">
                 @if (hasVotedRematch) {
-                  <span class="rematch-status">⏳ En attente...</span>
+                  <span class="rematch-status" style="display: inline-flex; align-items: center; gap: 4px;">
+                    <span class="material-symbols" style="font-size: 16px;">hourglass_empty</span>
+                    <span>En attente...</span>
+                  </span>
                 } @else if (room?.rematchVotes?.length > 0) {
-                  <button class="primary-btn rematch-btn-pc rematch-pulse" (click)="onRequestRematch()">
-                    🔄 Accepter la revanche !
+                  <button class="primary-btn rematch-btn-pc rematch-pulse" (click)="onRequestRematch()" style="display: inline-flex; align-items: center; gap: 6px;">
+                    <span class="material-symbols">replay</span>
+                    <span>Accepter la revanche !</span>
                   </button>
                 } @else {
                   <button class="primary-btn rematch-btn-pc" (click)="onRequestRematch()">
@@ -194,9 +216,15 @@ import { GameHelpersService } from '../../services/game-helpers.service';
           } @else if (isPlaying && room?.status !== 'waiting') {
            <div class="turn-alert-pc glass-card" [class]="turnAlertClass ? turnAlertClass : (isMyTurn ? 'turn-alert-pc glass-card my-turn' : 'turn-alert-pc glass-card opponent-turn')">
              @if (isMyTurn) {
-               🟢 {{ turnAlertText }}
+               <span style="display: inline-flex; align-items: center; gap: 6px; justify-content: center; width: 100%;">
+                 <span class="material-symbols" style="font-size: 16px; color: #34d399;">fiber_manual_record</span>
+                 <span>{{ turnAlertText }}</span>
+               </span>
              } @else {
-               ⏳ {{ opponentTurnText }}
+               <span style="display: inline-flex; align-items: center; gap: 6px; justify-content: center; width: 100%;">
+                 <span class="material-symbols" style="font-size: 16px;">hourglass_empty</span>
+                 <span>{{ opponentTurnText }}</span>
+               </span>
              }
            </div>
           } @else if (room?.status === 'waiting') {
@@ -219,11 +247,11 @@ import { GameHelpersService } from '../../services/game-helpers.service';
           @if (isPlaying && room?.status !== 'waiting') {
             <div class="emoji-bar glass-card">
               <span class="bar-title">Réagir :</span>
-              <button (click)="onSendEmoji('😂')">😂</button>
-              <button (click)="onSendEmoji('😢')">😢</button>
-              <button (click)="onSendEmoji('👍')">👍</button>
-              <button (click)="onSendEmoji('🔥')">🔥</button>
-              <button (click)="onSendEmoji('🎉')">🎉</button>
+              <button (click)="onSendEmoji('mood')" title="Rire"><span class="material-symbols">mood</span></button>
+              <button (click)="onSendEmoji('sentiment_very_dissatisfied')" title="Triste"><span class="material-symbols">sentiment_very_dissatisfied</span></button>
+              <button (click)="onSendEmoji('thumb_up')" title="Super"><span class="material-symbols">thumb_up</span></button>
+              <button (click)="onSendEmoji('local_fire_department')" title="Feu"><span class="material-symbols">local_fire_department</span></button>
+              <button (click)="onSendEmoji('celebration')" title="Fête"><span class="material-symbols">celebration</span></button>
             </div>
           }
         </div>
@@ -690,16 +718,23 @@ import { GameHelpersService } from '../../services/game-helpers.service';
     .emoji-bar button {
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      font-size: 20px;
+      color: var(--md-on-surface);
       cursor: pointer;
       padding: 6px 12px;
       border-radius: 8px;
       transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .emoji-bar button:hover {
       background: rgba(255, 255, 255, 0.15);
       transform: scale(1.15);
+    }
+
+    .emoji-bar button .material-symbols {
+      font-size: 20px;
     }
 
     /* Disconnection banner styles */
@@ -870,6 +905,8 @@ import { GameHelpersService } from '../../services/game-helpers.service';
         background: transparent;
         border: none;
         padding: 4px 8px;
+      }
+      .emoji-bar button .material-symbols {
         font-size: 18px;
       }
       .status-message {

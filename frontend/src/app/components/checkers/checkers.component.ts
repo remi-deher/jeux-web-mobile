@@ -23,7 +23,7 @@ interface CheckerMove {
         'Le jeu de dames se déroule sur un plateau de 8x8 cases.',
         'Les pions se déplacent uniquement en diagonale vers l\\'avant, d\\'une case à la fois, sur les cases sombres.',
         'Prise obligatoire : Si vous pouvez capturer un pion adverse en sautant par-dessus vers une case vide située derrière lui, vous devez le faire.',
-        'Lorsqu\\'un pion atteint la dernière rangée adverse, il est promu en Dame (👑).',
+        'Lorsqu\\'un pion atteint la dernière rangée adverse, il est promu en Dame (couronnée).',
         'La Dame peut se déplacer et capturer en diagonale vers l\\'avant comme vers l\\'arrière, sur n\\'importe quel nombre de cases libres.',
         'Le joueur qui capture toutes les pièces adverses ou bloque toute possibilité de mouvement à son adversaire gagne la partie.'
       ]"
@@ -54,7 +54,7 @@ interface CheckerMove {
         <!-- Floating Emoji Reactions -->
         <div class="floating-emojis-container">
           @for (item of floatingEmojis(); track item.id) {
-            <span class="floating-emoji">{{ item.emoji }}</span>
+            <span class="floating-emoji material-symbols">{{ item.emoji }}</span>
           }
         </div>
 
@@ -89,7 +89,7 @@ interface CheckerMove {
                       [class.player2-piece]="piece.player === 2"
                       [class.king-piece]="piece.type === 'king'"
                     >
-                      @if (piece.type === 'king') { 👑 }
+                      @if (piece.type === 'king') { <span class="material-symbols" style="color: #fbbf24; font-size: min(20px, 4vh); display: block; line-height: 1;">crown</span> }
                     </div>
                   }
                 </div>
