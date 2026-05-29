@@ -169,17 +169,21 @@ export class GameService {
       this.currentRoom.set(room);
 
       // ── Auto-reload for real-time games when the match starts ─────────────────
-      // Pong / Snake / Tetris run at 60 Hz / 15 Hz. When launched from the lobby
-      // the Angular component tree is heavy (friends list, chat, lobby widgets…),
-      // causing change detection overhead that creates lag. A page reload gives a
-      // minimal, fresh component tree — identical to what the user gets when they
-      // manually refresh after launch. The roomId is already in localStorage, so
-      // the reconnect handler at the top of this constructor picks it right back up.
+      // Pong / Snake / Tetris run at 60 Hz / 15 Hz. The Angular component tree
+      // built up from the lobby is heavy and causes 60 Hz change detection lag.
+      // A page reload gives a minimal fresh tree — exactly what a manual refresh does.
+      //
+      // Guard: localStorage key `rt_reloaded` stores the last room.id that was
+      // already reloaded. Prevents infinite reload loops (post-reload roomUpdate
+      // also arrives with status 'playing') and handles local games where the room
+      // starts directly with status 'playing' (no waiting→playing transition).
       const REALTIME_GAMES = new Set(['pong', 'snake', 'tetris']);
-      const justStarted    = room?.status === 'playing' && prevRoom?.status !== 'playing';
-      if (justStarted && REALTIME_GAMES.has(room.gameType)) {
-        window.location.reload();
-        return; // nothing else to do — page is reloading
+      if (room?.status === 'playing' && REALTIME_GAMES.has(room.gameType)) {
+        if (localStorage.getItem('rt_reloaded') !== room.id) {
+          localStorage.setItem('rt_reloaded', room.id);
+          window.location.reload();
+          return;
+        }
       }
 
       // Trigger board move sounds by comparing board states
