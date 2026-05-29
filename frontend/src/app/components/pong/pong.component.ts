@@ -472,14 +472,10 @@ export class PongComponent implements AfterViewInit, OnDestroy {
       const dy   = Math.abs(sim.ball.y - s.ball.y);
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      if (dist < 0.5) {
-        // Near-perfect prediction — tiny nudge
-        sim.ball.x = sim.ball.x * 0.9 + s.ball.x * 0.1;
-        sim.ball.y = sim.ball.y * 0.9 + s.ball.y * 0.1;
-      } else if (dist < 4) {
-        // Small drift — blend 50/50
-        sim.ball.x = (sim.ball.x + s.ball.x) * 0.5;
-        sim.ball.y = (sim.ball.y + s.ball.y) * 0.5;
+      if (dist < 6.0) {
+        // Small or moderate drift — very soft blend to smooth out network jitter
+        sim.ball.x = sim.ball.x * 0.95 + s.ball.x * 0.05;
+        sim.ball.y = sim.ball.y * 0.95 + s.ball.y * 0.05;
       } else {
         // Large error (missed bounce, edge case) — hard snap
         sim.ball.x = s.ball.x;
@@ -501,14 +497,12 @@ export class PongComponent implements AfterViewInit, OnDestroy {
       if (myNum === 1) {
         const diff = Math.abs(this.localP1Y - s.p1Y);
         if (diff > 15) this.localP1Y = s.p1Y;
-        else if (diff > 1) this.localP1Y = this.localP1Y * 0.5 + s.p1Y * 0.5;
         sim.p1Y = this.localP1Y;
         // Opponent (P2): WebRTC value if available (fresher), else server
         // Note: simState.p2Y is smoothed each physics step in tickSimulation
       } else if (myNum === 2) {
         const diff = Math.abs(this.localP2Y - s.p2Y);
         if (diff > 15) this.localP2Y = s.p2Y;
-        else if (diff > 1) this.localP2Y = this.localP2Y * 0.5 + s.p2Y * 0.5;
         sim.p2Y = this.localP2Y;
       } else {
         // Spectator
