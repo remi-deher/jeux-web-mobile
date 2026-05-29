@@ -3,6 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import { SoundService } from './sound.service';
 import { gameLabel } from '../constants/game-labels';
 
+import type { GameType, GameVariant } from '@sn/shared/game-types';
 import { ChatMessage, PrivateMessage, Player, Room, RoomListEntry } from '../models/game.models';
 
 @Injectable({
@@ -27,7 +28,7 @@ export class GameService {
   
   // Navigation signals
   public activeView = signal<string>('games');
-  public activeGame = signal<'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'memory' | 'uno' | 'blackjack' | null>(null);
+  public activeGame = signal<GameType | null>(null);
 
   private prevPongVx: number | null = null;
 
@@ -227,7 +228,7 @@ export class GameService {
     this.socket.emit('globalMessage', { username: this.username(), text });
   }
 
-  createRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'memory' | 'uno' | 'blackjack', isPrivate: boolean = false, variant?: 'classic' | 'branches' | 'grid') {
+  createRoom(gameType: GameType, isPrivate: boolean = false, variant?: GameVariant) {
     this.socket.emit('createRoom', { gameType, username: this.username(), isPrivate, variant }, (res: any) => {
       if (res.success) {
         this.currentRoom.set(res.room);
@@ -238,7 +239,7 @@ export class GameService {
     });
   }
 
-  createLocalRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'memory' | 'uno' | 'blackjack', player1Name?: string, player2Name?: string, variant?: 'classic' | 'branches' | 'grid') {
+  createLocalRoom(gameType: GameType, player1Name?: string, player2Name?: string, variant?: GameVariant) {
     this.socket.emit('createLocalRoom', { gameType, username: this.username() || 'Joueur 1', player1Name, player2Name, variant }, (res: any) => {
       if (res.success) {
         this.currentRoom.set(res.room);

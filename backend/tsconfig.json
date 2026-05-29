@@ -8,7 +8,11 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "paths": {
+      "@sn/shared": ["../shared/src/index.d.ts"],
+      "@sn/shared/*": ["../shared/src/*"]
+    }
   },
   "include": ["src/**/*"]
 }

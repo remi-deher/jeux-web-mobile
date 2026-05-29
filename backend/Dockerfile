@@ -1,13 +1,18 @@
 FROM node:20-alpine
 
-WORKDIR /app
+# Place workdir at backend/ level so ../shared resolves correctly
+WORKDIR /build/backend
 
-COPY package*.json ./
-
+# Install dependencies first (layer cache optimisation)
+COPY backend/package*.json ./
 RUN npm install
 
-COPY tsconfig.json ./
-COPY src/ ./src/
+# Copy shared types (type-only imports — fully erased at compile time)
+COPY shared/ /build/shared/
+
+# Copy backend source
+COPY backend/tsconfig.json ./
+COPY backend/src/ ./src/
 
 RUN npm run build
 

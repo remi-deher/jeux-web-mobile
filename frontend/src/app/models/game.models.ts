@@ -1,3 +1,6 @@
+export type { GameType, GameVariant, RoomStatus } from '@sn/shared/game-types';
+import type { GameType, GameVariant } from '@sn/shared/game-types';
+
 export interface ChatMessage {
   id: string;
   username: string;
@@ -22,10 +25,10 @@ export interface Player {
 
 export interface RoomListEntry {
   id: string;
-  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'memory' | 'uno' | 'blackjack';
+  gameType: GameType;
   playersCount: number;
   status: 'waiting' | 'playing' | 'finished';
-  variant?: 'classic' | 'branches' | 'grid';
+  variant?: GameVariant;
 }
 
 // Battleship Specific Interfaces
@@ -55,7 +58,7 @@ export interface BattleshipGameState {
 
 export interface Room<T = any> {
   id: string;
-  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'memory' | 'uno' | 'blackjack';
+  gameType: GameType;
   players: Player[];
   status: 'waiting' | 'playing' | 'finished';
   gameState: T;
@@ -63,7 +66,7 @@ export interface Room<T = any> {
   rematchVotes?: string[];
   isLocal?: boolean;
   isPrivate?: boolean;
-  variant?: 'classic' | 'branches' | 'grid';
+  variant?: GameVariant;
 }
 
 export interface PlacedTile {

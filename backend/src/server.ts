@@ -1,3 +1,4 @@
+import type { GameType, GameVariant } from '@sn/shared/game-types';
 import express from 'express';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
@@ -106,15 +107,15 @@ interface Player {
 
 interface Room {
   id: string;
-  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'memory' | 'uno' | 'blackjack';
+  gameType: GameType;
   players: Player[];
-  status: 'waiting' | 'playing' | 'finished';
+  status: 'waiting' | 'playing' | 'finished'; // RoomStatus from shared
   gameState: Connect4State | BattleshipState | TicTacToeState | CheckersState | ChessState | GomokuState | OthelloState | PongState | PenduState | DominosState | SnakeState | TetrisState | MemoryState | UnoState | BlackjackState | null;
   chatMessages: ChatMessage[];
   isPrivate: boolean;
   rematchVotes: string[];
   isLocal?: boolean;
-  variant?: 'classic' | 'branches' | 'grid';
+  variant?: GameVariant;
 }
 
 const rooms: { [id: string]: Room } = {};
@@ -173,7 +174,7 @@ io.on('connection', (socket: Socket) => {
     io.to(data.challengerSocketId).emit('challengeDeclined', { opponentUsername });
   });
 
-  socket.on('acceptChallenge', (data: { challengerSocketId: string; gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'memory' | 'uno' | 'blackjack'; variant?: 'classic' | 'branches' | 'grid' }) => {
+  socket.on('acceptChallenge', (data: { challengerSocketId: string; gameType: GameType; variant?: GameVariant }) => {
     const challengerUsername = onlineUsers[data.challengerSocketId] || 'Challenger';
     const opponentUsername = onlineUsers[socket.id] || 'Opponent';
     const challengerSocket = io.sockets.sockets.get(data.challengerSocketId);
@@ -273,7 +274,7 @@ io.on('connection', (socket: Socket) => {
   });
 
 
-  socket.on('createRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'memory' | 'uno' | 'blackjack'; username: string; isPrivate?: boolean; variant?: 'classic' | 'branches' | 'grid' }, callback) => {
+  socket.on('createRoom', (data: { gameType: GameType; username: string; isPrivate?: boolean; variant?: GameVariant }, callback) => {
     const roomId = generateRoomId();
     const newRoom: Room = {
       id: roomId,
@@ -296,7 +297,7 @@ io.on('connection', (socket: Socket) => {
     io.emit('roomsList', getPublicRooms());
   });
 
-  socket.on('createLocalRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'memory' | 'uno' | 'blackjack'; username: string; player1Name?: string; player2Name?: string; variant?: 'classic' | 'branches' | 'grid' }, callback) => {
+  socket.on('createLocalRoom', (data: { gameType: GameType; username: string; player1Name?: string; player2Name?: string; variant?: GameVariant }, callback) => {
     const roomId = generateRoomId();
     const newRoom: Room = {
       id: roomId,

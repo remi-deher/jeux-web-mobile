@@ -1,5 +1,6 @@
 import { Component, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import type { GameType, GameVariant } from '@sn/shared/game-types';
 import { GameService } from '../../services/game.service';
 import { gameLabel } from '../../constants/game-labels';
 
@@ -810,7 +811,7 @@ export class LobbyComponent {
   localPlayer2Name = '';
 
   showDominosVariantModal = signal<boolean>(false);
-  dominosVariant = signal<'classic' | 'branches' | 'grid'>('classic');
+  dominosVariant = signal<GameVariant>('classic');
   isLocalDominos = signal<boolean>(false);
 
   username;
@@ -835,7 +836,7 @@ export class LobbyComponent {
     }
   }
 
-  selectGame(game: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'memory' | 'uno' | 'blackjack' | null) {
+  selectGame(game: GameType | null) {
     this.selectedGame.set(game);
     this.showRules.set(false);
   }
