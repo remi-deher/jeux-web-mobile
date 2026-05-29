@@ -1,4 +1,4 @@
-import { Component, computed, inject, ViewChild, ElementRef, AfterViewInit, OnDestroy, effect } from '@angular/core';
+import { Component, computed, inject, ViewChild, ElementRef, AfterViewInit, OnDestroy, effect, NgZone } from '@angular/core';
 import { GameService } from '../../services/game.service';
 import { GameLayoutComponent } from '../game-layout/game-layout.component';
 import { FloatingEmojisComponent } from '../floating-emojis/floating-emojis.component';
@@ -278,6 +278,7 @@ export class PongComponent implements AfterViewInit, OnDestroy {
   @ViewChild('pongCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private gameService = inject(GameService);
+  private ngZone      = inject(NgZone);
   private session = injectGameSession('pong');
   private rtc     = injectWebRtcSession('pong');
 
@@ -336,12 +337,13 @@ export class PongComponent implements AfterViewInit, OnDestroy {
   // ── Canvas & loop ────────────────────────────────────────────────────────────
   private resizeObserver: ResizeObserver | null = null;
   private rafId: number | null = null;
+  private _pongUnsub?: () => void;
   private visibilityHandler = () => {
     if (document.hidden) {
       if (this.rafId !== null) { cancelAnimationFrame(this.rafId); this.rafId = null; }
     } else if (this.rafId === null) {
       this.lastFrameTs = 0;
-      this.startLoop();
+      this.ngZone.runOutsideAngular(() => this.startLoop());
     }
   };
 
@@ -391,47 +393,10 @@ export class PongComponent implements AfterViewInit, OnDestroy {
   private wallFlash   = { top: 0, bottom: 0 };
 
   constructor() {
-    // ── React to server state ──────────────────────────────────────────────────
-    // Use livePongState (60 Hz signal) for physics reconciliation; falls back to
-    // room().gameState so the initial state is picked up before the first pongUpdate.
-    effect(() => {
-      const state = this.pongState();
-      if (!state) return;
-
-      const isLocal = this.room()?.isLocal ?? false;
-      const myNum   = this.myPlayerNum();
-
-      // First update: initialise sim
-      if (!this.simState) {
-        this.simState = cloneServerState(state);
-        this.serverP1Y = state.p1Y ?? 50;
-        this.serverP2Y = state.p2Y ?? 50;
-        this.localP1Y  = this.serverP1Y;
-        this.localP2Y  = this.serverP2Y;
-        this.prevScoreP1 = state.scoreP1 ?? 0;
-        this.prevScoreP2 = state.scoreP2 ?? 0;
-        return;
-      }
-
-      // Cache raw server paddle positions (used as lerp targets)
-      this.serverP1Y = state.p1Y ?? 50;
-      this.serverP2Y = state.p2Y ?? 50;
-
-      // Reconcile simulation against server truth
-      this.reconcile(state, isLocal, myNum);
-
-      // ── Hit / score detection (drives effects) ──────────────────────────────
-      const lh = state.lastHit as string | null;
-      if (lh && lh !== this.prevLastHit) this.onHit(lh, state);
-      this.prevLastHit = lh;
-
-      if (state.scoreP1 !== this.prevScoreP1) { this.scoreFlash.p1 = 1.0; this.prevScoreP1 = state.scoreP1; }
-      if (state.scoreP2 !== this.prevScoreP2) { this.scoreFlash.p2 = 1.0; this.prevScoreP2 = state.scoreP2; }
-    });
+    // Physics reconciliation is wired in ngAfterViewInit via subscribePongRaw().
+    // Running the hot path outside Angular zone prevents 60 Hz change detection.
 
     // ── Receive opponent paddle via WebRTC ─────────────────────────────────────
-    // Le setup P2P (signaling, initAsHost, handleSignal) est géré par
-    // injectWebRtcSession('pong') — plus rien à écrire ici.
     effect(() => {
       const msg = this.rtc.lastMessage() as any;
       if (msg?.type === 'paddle' && typeof msg.y === 'number') {
@@ -570,12 +535,47 @@ export class PongComponent implements AfterViewInit, OnDestroy {
     document.addEventListener('keyup',   this.keyupHandler);
     this.keyboardInterval = setInterval(() => this.tickKeyboard(), this.STEP_MS);
 
-    this.startLoop();
+    // ── Register raw physics callback (runs outside Angular zone) ───────────────
+    // Handles simState init + reconciliation on every server tick without
+    // triggering Angular change detection.
+    this._pongUnsub = this.gameService.subscribePongRaw((state) => {
+      const isLocal = this.room()?.isLocal ?? false;
+      const myNum   = this.myPlayerNum();
+
+      if (!this.simState) {
+        this.simState    = cloneServerState(state);
+        this.serverP1Y   = state.p1Y ?? 50;
+        this.serverP2Y   = state.p2Y ?? 50;
+        this.localP1Y    = this.serverP1Y;
+        this.localP2Y    = this.serverP2Y;
+        this.prevScoreP1 = state.scoreP1 ?? 0;
+        this.prevScoreP2 = state.scoreP2 ?? 0;
+        return;
+      }
+
+      this.serverP1Y = state.p1Y ?? 50;
+      this.serverP2Y = state.p2Y ?? 50;
+      this.reconcile(state, isLocal, myNum);
+
+      const lh = state.lastHit as string | null;
+      if (lh && lh !== this.prevLastHit) this.onHit(lh, state);
+      this.prevLastHit = lh;
+
+      if (state.scoreP1 !== this.prevScoreP1) { this.scoreFlash.p1 = 1.0; this.prevScoreP1 = state.scoreP1; }
+      if (state.scoreP2 !== this.prevScoreP2) { this.scoreFlash.p2 = 1.0; this.prevScoreP2 = state.scoreP2; }
+    });
+
+    // Run the RAF loop outside the Angular zone: zone.js patches requestAnimationFrame,
+    // so a loop inside the zone triggers ApplicationRef.tick() on every frame (60 Hz).
+    this.ngZone.runOutsideAngular(() => {
+      this.startLoop();
+    });
     document.addEventListener('visibilitychange', this.visibilityHandler);
   }
 
   ngOnDestroy() {
     if (this.rafId !== null) cancelAnimationFrame(this.rafId);
+    this._pongUnsub?.();
     this.resizeObserver?.disconnect();
     if (this.keyboardInterval) clearInterval(this.keyboardInterval);
     document.removeEventListener('keydown', this.keydownHandler);

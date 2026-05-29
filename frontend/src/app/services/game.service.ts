@@ -1,4 +1,4 @@
-import { Injectable, signal, inject } from '@angular/core';
+import { Injectable, signal, inject, NgZone } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { SoundService } from './sound.service';
 import { gameLabel } from '../constants/game-labels';
@@ -12,6 +12,7 @@ import { ChatMessage, PrivateMessage, Player, Room, RoomListEntry } from '../mod
 export class GameService {
   private socket: Socket;
   private soundService = inject(SoundService);
+  private ngZone       = inject(NgZone);
   
   // App signals
   public username = signal<string>(localStorage.getItem('username') || '');
@@ -30,14 +31,50 @@ export class GameService {
   public activeView = signal<string>('games');
   public activeGame = signal<GameType | null>(null);
 
-  // High-frequency live state signals (60 Hz for pong/tetris, 15 Hz for snake).
-  // Kept separate from currentRoom so GameLayoutComponent doesn't re-render
-  // on every physics tick — only the canvas components consume these signals.
+  // ── High-frequency live state ────────────────────────────────────────────────
+  // Signals updated ONLY when UI-visible state changes (score, winner, ready…).
+  // They are written via ngZone.run() so Angular's change detection fires only
+  // for meaningful events — NOT on every 60 Hz physics tick.
   public livePongState   = signal<any>(null);
   public liveSnakeState  = signal<any>(null);
   public liveTetrisState = signal<any>(null);
 
+  // Raw state objects — written directly from socket callbacks (outside Angular
+  // zone), read by canvas RAF loops without triggering change detection.
+  public _rawPongState:   any = null;
+  public _rawSnakeState:  any = null;
+  public _rawTetrisState: any = null;
+
+  // Raw callback registries (outside-zone subscribers for physics/rendering)
+  private _pongCallbacks:   Array<(s: any) => void> = [];
+  private _snakeCallbacks:  Array<(s: any) => void> = [];
+  private _tetrisCallbacks: Array<(s: any) => void> = [];
+
+  // Last-seen UI values — detect when a zone re-entry is actually needed
+  private _lpScoreP1  = 0; private _lpScoreP2  = 0;
+  private _lpWinner: number | null = null;
+  private _lpP1Ready  = false; private _lpP2Ready = false;
+  private _lsWinner: number | null = null;
+  private _lsScoreP1 = 0; private _lsScoreP2  = 0;
+  private _ltWinner: number | null = null;
+  private _ltScoreP1 = 0; private _ltScoreP2  = 0;
+
   private prevPongVx: number | null = null;
+
+  // ── Raw subscription helpers ─────────────────────────────────────────────────
+  /** Register a callback that fires on every pong tick OUTSIDE the Angular zone. */
+  subscribePongRaw(cb: (s: any) => void): () => void {
+    this._pongCallbacks.push(cb);
+    return () => { this._pongCallbacks = this._pongCallbacks.filter(x => x !== cb); };
+  }
+  subscribeSnakeRaw(cb: (s: any) => void): () => void {
+    this._snakeCallbacks.push(cb);
+    return () => { this._snakeCallbacks = this._snakeCallbacks.filter(x => x !== cb); };
+  }
+  subscribeTetrisRaw(cb: (s: any) => void): () => void {
+    this._tetrisCallbacks.push(cb);
+    return () => { this._tetrisCallbacks = this._tetrisCallbacks.filter(x => x !== cb); };
+  }
 
   /**
    * WebRTC signaling messages relayed by the server.
@@ -116,11 +153,18 @@ export class GameService {
 
     this.socket.on('roomUpdate', (room: Room) => {
       const prevRoom = this.currentRoom();
-      // Reset live state signals when switching games or leaving a room
+      // Reset all live state when switching rooms or game types
       if (!room || room.id !== prevRoom?.id || room.gameType !== prevRoom?.gameType) {
         this.livePongState.set(null);
         this.liveSnakeState.set(null);
         this.liveTetrisState.set(null);
+        this._rawPongState   = null;
+        this._rawSnakeState  = null;
+        this._rawTetrisState = null;
+        this._lpScoreP1 = 0; this._lpScoreP2 = 0; this._lpWinner = null;
+        this._lpP1Ready = false; this._lpP2Ready = false;
+        this._lsWinner = null; this._lsScoreP1 = 0; this._lsScoreP2 = 0;
+        this._ltWinner = null; this._ltScoreP1 = 0; this._ltScoreP2 = 0;
       }
       this.currentRoom.set(room);
 
@@ -143,44 +187,90 @@ export class GameService {
     this.socket.on('rtcAnswer', (d: any) => this.rtcSignal.set({ type: 'answer', answer:    d.answer    }));
     this.socket.on('rtcIce',    (d: any) => this.rtcSignal.set({ type: 'ice',    candidate: d.candidate }));
 
-    this.socket.on('tetrisUpdate', (tetrisState: any) => {
-      // Only update the dedicated signal — avoids 60 Hz re-renders of GameLayoutComponent.
-      // currentRoom is updated by 'roomUpdate' when game state changes (winner, etc.).
-      if (this.currentRoom()?.gameType === 'tetris') {
-        this.liveTetrisState.set(tetrisState);
-      }
-    });
+    // ── High-frequency game updates — registered OUTSIDE Angular zone ────────────
+    // Zone.js patches WebSocket events: if these listeners ran in the Angular zone,
+    // ApplicationRef.tick() (full change detection) would fire 60 Hz / 15 Hz.
+    // runOutsideAngular prevents that. ngZone.run() is called only when UI state
+    // actually changes (score, winner, ready status) — rare compared to every tick.
+    this.ngZone.runOutsideAngular(() => {
 
-    this.socket.on('snakeUpdate', (snakeState: any) => {
-      if (this.currentRoom()?.gameType === 'snake') {
-        this.liveSnakeState.set(snakeState);
-      }
-    });
+      this.socket.on('tetrisUpdate', (tetrisState: any) => {
+        if (this.currentRoom()?.gameType !== 'tetris') return;
+        this._rawTetrisState = tetrisState;
+        this._tetrisCallbacks.forEach(cb => cb(tetrisState));
 
-    this.socket.on('pongUpdate', (pongState: any) => {
-      if (this.currentRoom()?.gameType !== 'pong') return;
-
-      // Sound logic — compare against last live state, not currentRoom.gameState
-      const prev = this.livePongState();
-      const prevScores = prev?.scoreP1 !== undefined
-        ? { p1: prev.scoreP1 as number, p2: prev.scoreP2 as number }
-        : null;
-      const prevVx = this.prevPongVx;
-      this.prevPongVx = pongState.ball?.vx ?? null;
-
-      // Only update the dedicated signal — does NOT trigger GameLayoutComponent re-render.
-      this.livePongState.set(pongState);
-
-      if (prevScores && (pongState.scoreP1 !== prevScores.p1 || pongState.scoreP2 !== prevScores.p2)) {
-        this.soundService.playSound('success', 'pong');
-        this.prevPongVx = null;
-      } else if (prevVx !== null && pongState.ball?.vx !== undefined) {
-        const bounced = (prevVx > 0) !== (pongState.ball.vx > 0);
-        if (bounced) {
-          this.soundService.playSound('click', 'pong');
+        const p1 = tetrisState?.players?.p1;
+        const p2 = tetrisState?.players?.p2;
+        const uiChanged =
+          tetrisState.winner !== this._ltWinner ||
+          (p1?.score ?? 0) !== this._ltScoreP1 ||
+          (p2?.score ?? 0) !== this._ltScoreP2;
+        if (uiChanged) {
+          this._ltWinner  = tetrisState.winner;
+          this._ltScoreP1 = p1?.score ?? 0;
+          this._ltScoreP2 = p2?.score ?? 0;
+          this.ngZone.run(() => this.liveTetrisState.set(tetrisState));
         }
-      }
-    });
+      });
+
+      this.socket.on('snakeUpdate', (snakeState: any) => {
+        if (this.currentRoom()?.gameType !== 'snake') return;
+        this._rawSnakeState = snakeState;
+        this._snakeCallbacks.forEach(cb => cb(snakeState));
+
+        const uiChanged =
+          snakeState.winner !== this._lsWinner ||
+          (snakeState.p1?.score ?? 0) !== this._lsScoreP1 ||
+          (snakeState.p2?.score ?? 0) !== this._lsScoreP2;
+        if (uiChanged) {
+          this._lsWinner  = snakeState.winner;
+          this._lsScoreP1 = snakeState.p1?.score ?? 0;
+          this._lsScoreP2 = snakeState.p2?.score ?? 0;
+          this.ngZone.run(() => this.liveSnakeState.set(snakeState));
+        }
+      });
+
+      this.socket.on('pongUpdate', (pongState: any) => {
+        if (this.currentRoom()?.gameType !== 'pong') return;
+        this._rawPongState = pongState;
+
+        // Ball-bounce sound detection (Web Audio API, not zone-sensitive)
+        const prevVx = this.prevPongVx;
+        this.prevPongVx = pongState.ball?.vx ?? null;
+
+        // Call registered physics callbacks (they also run outside zone)
+        this._pongCallbacks.forEach(cb => cb(pongState));
+
+        // Detect UI state changes
+        const scoreChanged =
+          pongState.scoreP1 !== this._lpScoreP1 ||
+          pongState.scoreP2 !== this._lpScoreP2;
+        const uiChanged =
+          scoreChanged ||
+          pongState.winner   !== this._lpWinner  ||
+          !!pongState.p1Ready !== this._lpP1Ready ||
+          !!pongState.p2Ready !== this._lpP2Ready;
+
+        if (uiChanged) {
+          this._lpScoreP1 = pongState.scoreP1 ?? 0;
+          this._lpScoreP2 = pongState.scoreP2 ?? 0;
+          this._lpWinner  = pongState.winner  ?? null;
+          this._lpP1Ready = !!pongState.p1Ready;
+          this._lpP2Ready = !!pongState.p2Ready;
+          this.ngZone.run(() => {
+            this.livePongState.set(pongState);
+            if (scoreChanged) {
+              this.soundService.playSound('success', 'pong');
+              this.prevPongVx = null;
+            }
+          });
+        } else if (prevVx !== null && pongState.ball?.vx !== undefined) {
+          const bounced = (prevVx > 0) !== (pongState.ball.vx > 0);
+          if (bounced) this.soundService.playSound('click', 'pong');
+        }
+      });
+
+    }); // end runOutsideAngular
 
     this.socket.on('roomMessage', (msg: ChatMessage) => {
       const room = this.currentRoom();

@@ -8,7 +8,7 @@
 
 import {
   Component, ViewChild, ElementRef, AfterViewInit, OnDestroy,
-  inject, computed, effect,
+  inject, computed, NgZone,
 } from '@angular/core';
 import { GameService } from '../../services/game.service';
 import { GameLayoutComponent } from '../game-layout/game-layout.component';
@@ -287,6 +287,7 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
   @ViewChild('snakeCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private gameService = inject(GameService);
+  private ngZone      = inject(NgZone);
 
   // ── Game session boilerplate ───────────────────────────────────────────────
   private session = injectGameSession('snake');
@@ -376,6 +377,7 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
   // ── Rendering ─────────────────────────────────────────────────────────────
   private ctx!: CanvasRenderingContext2D;
   private rafId  = 0;
+  private _snakeUnsub?: () => void;
   private prevState: SnakeState | null = null;
   private currState: SnakeState | null = null;
   /** Interpolation progress 0→1 between two server ticks */
@@ -395,38 +397,9 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
   // ── Angular lifecycle ──────────────────────────────────────────────────────
 
   constructor() {
-    // React to state updates from the server
-    effect(() => {
-      const s = this.snakeState();
-      if (!s) return;
-      if (s.tickCount !== this.lastTickCount) {
-        this.prevState     = this.currState ? structuredClone(this.currState) : null;
-        this.currState     = s;
-        this.lastTickCount = s.tickCount;
-        this.lastTickTime  = performance.now();
-        this.lerpT         = 0;
-
-        if (s.speedHz) {
-          this.measuredTickMs = 1000 / s.speedHz;
-        }
-      }
-    });
-
-    // ── Recevoir les directions de l'adversaire via WebRTC ────────────────────
-    // En mode en ligne, l'adversaire envoie { type:'dir', dir, playerIndex }
-    // directement en P2P → latence divisée par 2 par rapport à socket.io.
-    // Le serveur reste autoritaire : la direction P2P ne fait qu'anticiper le
-    // prochain tick pour l'interpolation (pas besoin de logique de prédiction
-    // ici car le serveur tourne à seulement 15 Hz).
-    effect(() => {
-      const msg = this.rtc.lastMessage() as any;
-      if (msg?.type === 'dir' && typeof msg.dir === 'string') {
-        // Transmis directement au serveur pour cohérence — le canal P2P permet
-        // surtout à l'adversaire de voir notre direction AVANT le prochain tick.
-        // Rien à faire côté rendu : le prochain snakeUpdate du serveur intégrera
-        // la direction. Ce canal sert principalement au futur affichage prédictif.
-      }
-    });
+    // State updates are handled in ngAfterViewInit via subscribeSnakeRaw().
+    // The raw callback and RAF loop run outside Angular zone to avoid 15 Hz
+    // change detection cycles.
   }
 
   ngAfterViewInit(): void {
@@ -435,11 +408,27 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
     this.resizeCanvas();
     window.addEventListener('resize', this.onResize);
     window.addEventListener('keydown', this.onKeyDown);
-    this.loop();
+
+    // Raw callback — runs outside Angular zone, no change detection on every tick
+    this._snakeUnsub = this.gameService.subscribeSnakeRaw((s: any) => {
+      if (s.tickCount !== this.lastTickCount) {
+        this.prevState      = this.currState ? structuredClone(this.currState) : null;
+        this.currState      = s;
+        this.lastTickCount  = s.tickCount;
+        this.lastTickTime   = performance.now();
+        this.lerpT          = 0;
+        if (s.speedHz) this.measuredTickMs = 1000 / s.speedHz;
+      }
+    });
+
+    // RAF loop outside zone: zone.js patches requestAnimationFrame,
+    // so running it inside the zone would cause change detection every frame.
+    this.ngZone.runOutsideAngular(() => { this.loop(); });
   }
 
   ngOnDestroy(): void {
     cancelAnimationFrame(this.rafId);
+    this._snakeUnsub?.();
     window.removeEventListener('resize', this.onResize);
     window.removeEventListener('keydown', this.onKeyDown);
   }

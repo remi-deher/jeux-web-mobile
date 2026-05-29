@@ -9,7 +9,7 @@
 
 import {
   Component, ViewChild, ElementRef, AfterViewInit, OnDestroy,
-  inject, computed, effect,
+  inject, computed, NgZone,
 } from '@angular/core';
 import { GameService } from '../../services/game.service';
 import { GameLayoutComponent } from '../game-layout/game-layout.component';
@@ -138,6 +138,7 @@ export class TetrisComponent implements AfterViewInit, OnDestroy {
   @ViewChild('tetrisCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private gameService = inject(GameService);
+  private ngZone      = inject(NgZone);
   private session = injectGameSession('tetris');
   private rtc     = injectWebRtcSession('tetris');
 
@@ -199,6 +200,7 @@ export class TetrisComponent implements AfterViewInit, OnDestroy {
   // ── Canvas & layout ────────────────────────────────────────────────────────
   private ctx!:     CanvasRenderingContext2D;
   private rafId = 0;
+  private _tetrisUnsub?: () => void;
   private cellPx   = 24;
   private state: TetrisState | null = null;
 
@@ -221,17 +223,8 @@ export class TetrisComponent implements AfterViewInit, OnDestroy {
   private touchY = 0;
 
   constructor() {
-    effect(() => {
-      const s = this.tetrisState();
-      if (!s) return;
-
-      // Detect cleared lines (rows that were full in prev board but gone now)
-      this.detectFlash(s.players.p1, this.prevBoardP1, this.flashP1);
-      this.detectFlash(s.players.p2, this.prevBoardP2, this.flashP2);
-      this.prevBoardP1 = s.players.p1.board.map(r => [...r]);
-      this.prevBoardP2 = s.players.p2.board.map(r => [...r]);
-      this.state = s;
-    });
+    // State updates handled in ngAfterViewInit via subscribeTetrisRaw().
+    // Raw callbacks + RAF loop run outside Angular zone to avoid 60 Hz change detection.
   }
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
@@ -243,11 +236,25 @@ export class TetrisComponent implements AfterViewInit, OnDestroy {
     window.addEventListener('resize', this.onResize);
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup',   this.onKeyUp);
-    this.rafId = requestAnimationFrame(this.loop);
+
+    // Raw callback — runs outside Angular zone on every server tick
+    this._tetrisUnsub = this.gameService.subscribeTetrisRaw((s: any) => {
+      this.detectFlash(s.players.p1, this.prevBoardP1, this.flashP1);
+      this.detectFlash(s.players.p2, this.prevBoardP2, this.flashP2);
+      this.prevBoardP1 = s.players.p1.board.map((r: number[]) => [...r]);
+      this.prevBoardP2 = s.players.p2.board.map((r: number[]) => [...r]);
+      this.state = s;
+    });
+
+    // RAF loop outside zone: prevents 60 Hz ApplicationRef.tick()
+    this.ngZone.runOutsideAngular(() => {
+      this.rafId = requestAnimationFrame(this.loop);
+    });
   }
 
   ngOnDestroy(): void {
     cancelAnimationFrame(this.rafId);
+    this._tetrisUnsub?.();
     window.removeEventListener('resize', this.onResize);
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup',   this.onKeyUp);
