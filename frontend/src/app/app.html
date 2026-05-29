@@ -1,4 +1,33 @@
 <div class="app-container" [class.chat-hidden]="!chatVisible()">
+  <!-- PWA Install Banner -->
+  @if (showPwaBanner() && !currentRoom()) {
+    <div class="pwa-install-banner">
+      <div class="pwa-banner-logo">
+        <span class="material-symbols pwa-logo-icon">download_for_offline</span>
+      </div>
+      <div class="pwa-banner-content">
+        <h4>Installer Playbox</h4>
+        <p>Ajoutez l'application à votre écran d'accueil pour y accéder en un clic et jouer en plein écran.</p>
+      </div>
+      <div class="pwa-banner-actions">
+        @if (isPwaInstallable()) {
+          <button class="primary-btn pwa-install-btn" (click)="installPwa()">
+            <span class="material-symbols">download</span>
+            <span>Installer</span>
+          </button>
+        } @else if (isPwaIOS()) {
+          <button class="primary-btn pwa-install-btn" (click)="openIosInstallGuide()">
+            <span class="material-symbols">ios_share</span>
+            <span>Installer</span>
+          </button>
+        }
+        <button class="icon-btn pwa-close-btn" (click)="dismissPwaBanner()" title="Fermer">
+          <span class="material-symbols">close</span>
+        </button>
+      </div>
+    </div>
+  }
+
   <!-- Incoming Challenge Banner -->
   @if (incomingChallenges().length > 0) {
     @for (challenge of incomingChallenges(); track challenge.challengerSocketId) {
@@ -147,6 +176,30 @@
             </form>
           </div>
 
+          <!-- PWA Installation Row in Profile -->
+          @if (!isPwaStandalone() && (isPwaInstallable() || isPwaIOS())) {
+            <div class="profile-section pwa-profile-section">
+              <h4 class="section-title">
+                <span class="material-symbols">download_for_offline</span>
+                Application Playbox
+              </h4>
+              <div class="pwa-profile-row">
+                <p class="pwa-profile-text">Installez l'application sur votre appareil pour jouer dans les meilleures conditions.</p>
+                @if (isPwaInstallable()) {
+                  <button class="primary-btn pwa-profile-btn" (click)="installPwa()">
+                    <span class="material-symbols">download</span>
+                    <span>Installer</span>
+                  </button>
+                } @else if (isPwaIOS()) {
+                  <button class="primary-btn pwa-profile-btn" (click)="openIosInstallGuide()">
+                    <span class="material-symbols">ios_share</span>
+                    <span>Installer</span>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
           <!-- Stats — utilise le computed signal statsList() -->
           <div class="profile-section">
             <h4 class="section-title">
@@ -169,6 +222,53 @@
               }
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- iOS PWA Install Guide Modal -->
+  @if (showIosInstallGuide()) {
+    <div class="modal-overlay pwa-guide-overlay" (click)="closeIosInstallGuide()">
+      <div class="modal-card pwa-guide-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Installer sur iOS</h3>
+          <button class="icon-btn" (click)="closeIosInstallGuide()">
+            <span class="material-symbols">close</span>
+          </button>
+        </div>
+        <div class="pwa-guide-body">
+          <div class="pwa-guide-app-info">
+            <span class="material-symbols pwa-guide-app-icon text-green">sports_esports</span>
+            <div>
+              <h4>Playbox</h4>
+              <p>Jeux Web en ligne</p>
+            </div>
+          </div>
+          <div class="pwa-guide-steps">
+            <div class="pwa-guide-step">
+              <span class="step-num">1</span>
+              <p>Dans Safari, appuyez sur le bouton de partage dans la barre d'outils.</p>
+              <div class="step-icon-wrapper">
+                <span class="material-symbols step-symbol-icon">ios_share</span>
+              </div>
+            </div>
+            <div class="pwa-guide-step">
+              <span class="step-num">2</span>
+              <p>Faites défiler vers le bas et sélectionnez <strong>Sur l'écran d'accueil</strong>.</p>
+              <div class="step-icon-wrapper">
+                <span class="material-symbols step-symbol-icon">add_to_home_screen</span>
+              </div>
+            </div>
+            <div class="pwa-guide-step">
+              <span class="step-num">3</span>
+              <p>Validez en appuyant sur <strong>Ajouter</strong> en haut à droite.</p>
+              <div class="step-text-accent">Ajouter</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="primary-btn pwa-guide-done-btn" (click)="closeIosInstallGuide()">J'ai compris</button>
         </div>
       </div>
     </div>

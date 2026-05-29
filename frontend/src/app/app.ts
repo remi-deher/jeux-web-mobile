@@ -23,6 +23,7 @@ import { MemoryComponent } from './components/memory/memory.component';
 import { UnoComponent } from './components/uno/uno.component';
 import { BlackjackComponent } from './components/blackjack/blackjack.component';
 import { gameLabel } from './constants/game-labels';
+import { PwaService } from './services/pwa.service';
 
 @Component({
   selector: 'app-root',
@@ -63,6 +64,29 @@ export class App {
   activeGame;
 
   private gameHelpersService = inject(GameHelpersService);
+  private pwaService = inject(PwaService);
+
+  showPwaBanner = computed(() => this.pwaService.showBanner());
+  isPwaIOS = computed(() => this.pwaService.isIOS());
+  isPwaInstallable = computed(() => this.pwaService.isInstallable());
+  isPwaStandalone = computed(() => this.pwaService.isStandalone());
+  showIosInstallGuide = signal<boolean>(false);
+
+  installPwa() {
+    this.pwaService.promptInstall();
+  }
+
+  dismissPwaBanner() {
+    this.pwaService.dismissBanner();
+  }
+
+  openIosInstallGuide() {
+    this.showIosInstallGuide.set(true);
+  }
+
+  closeIosInstallGuide() {
+    this.showIosInstallGuide.set(false);
+  }
 
   showProfileModal = signal<boolean>(false);
   newUsername = '';
