@@ -29,6 +29,8 @@ export interface SimPongState {
   serveCountdown: number;
   lastHit: 'p1' | 'p2' | 'wall_top' | 'wall_bottom' | null;
   serveTowards: 1 | 2;
+  p1Ready?: boolean;
+  p2Ready?: boolean;
 }
 
 /** Deep-clone a server pong state into a SimPongState. */
@@ -47,6 +49,8 @@ export function cloneServerState(s: any): SimPongState {
     serveCountdown: s.serveCountdown ?? 0,
     lastHit:       s.lastHit ?? null,
     serveTowards:  s.serveTowards ?? 1,
+    p1Ready:       s.p1Ready ?? false,
+    p2Ready:       s.p2Ready ?? false,
   };
 }
 
@@ -56,6 +60,7 @@ export function cloneServerState(s: any): SimPongState {
  */
 export function stepPong(state: SimPongState): void {
   if (state.winner !== null) return;
+  if (!state.p1Ready || !state.p2Ready) return;
 
   state.lastHit = null;
 
@@ -66,7 +71,7 @@ export function stepPong(state: SimPongState): void {
       state.serving = false;
       state.ball.x  = 50;
       state.ball.y  = 50;
-      state.ball.vx = state.serveTowards === 1 ? -1.3 : 1.3;
+      state.ball.vx = state.serveTowards === 1 ? -1.0 : 1.0;
       state.ball.vy = 0; // ← server uses Math.random(); reconciled on next tick
     }
     return;
@@ -95,8 +100,8 @@ export function stepPong(state: SimPongState): void {
     const p1Bot = state.p1Y + paddleHalf;
     if (ball.y >= p1Top && ball.y <= p1Bot) {
       ball.x        = 4 + ball.radius;
-      ball.vx       = -ball.vx * 1.08;
-      ball.vy       = ((ball.y - state.p1Y) / paddleHalf) * 1.6;
+      ball.vx       = -ball.vx * 1.05;
+      ball.vy       = ((ball.y - state.p1Y) / paddleHalf) * 1.3;
       state.lastHit = 'p1';
     }
   }
@@ -107,8 +112,8 @@ export function stepPong(state: SimPongState): void {
     const p2Bot = state.p2Y + paddleHalf;
     if (ball.y >= p2Top && ball.y <= p2Bot) {
       ball.x        = 96 - ball.radius;
-      ball.vx       = -ball.vx * 1.08;
-      ball.vy       = ((ball.y - state.p2Y) / paddleHalf) * 1.6;
+      ball.vx       = -ball.vx * 1.05;
+      ball.vy       = ((ball.y - state.p2Y) / paddleHalf) * 1.3;
       state.lastHit = 'p2';
     }
   }

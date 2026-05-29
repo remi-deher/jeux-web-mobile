@@ -27,6 +27,9 @@ export interface SnakeState {
   winner:    number | null; // 1, 2, 0 (draw), or null
   tickCount: number;
   playerIds: [string, string];
+  p1Ready?:  boolean;
+  p2Ready?:  boolean;
+  speedHz?:  number;
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -76,6 +79,9 @@ export function createInitialSnakeState(playerIds: [string, string]): SnakeState
     winner:    null,
     tickCount: 0,
     playerIds,
+    p1Ready:   false,
+    p2Ready:   false,
+    speedHz:   15,
   };
   // Spawn 2 initial food items
   state.food.push(randomCell(state));
@@ -102,6 +108,7 @@ export function setSnakeDirection(state: SnakeState, playerIndex: 0 | 1, dir: Di
  */
 export function updateSnakePhysics(state: SnakeState): void {
   if (state.winner !== null) return;
+  if (!state.p1Ready || !state.p2Ready) return;
 
   state.tickCount++;
 

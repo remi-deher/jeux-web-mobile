@@ -22,6 +22,8 @@ export interface PongState {
   lastHit: 'p1' | 'p2' | 'wall_top' | 'wall_bottom' | null;
   /** which player the ball will be served towards */
   serveTowards: 1 | 2;
+  p1Ready?: boolean;
+  p2Ready?: boolean;
 }
 
 export function createInitialPongState(): PongState {
@@ -39,11 +41,14 @@ export function createInitialPongState(): PongState {
     serveCountdown: 30,
     lastHit: null,
     serveTowards: Math.random() > 0.5 ? 1 : 2,
+    p1Ready: false,
+    p2Ready: false,
   };
 }
 
 export function updatePongPhysics(state: PongState) {
   if (state.winner !== null) return;
+  if (!state.p1Ready || !state.p2Ready) return;
 
   // Reset per-tick hit marker
   state.lastHit = null;
@@ -55,8 +60,8 @@ export function updatePongPhysics(state: PongState) {
       state.serving = false;
       state.ball.x  = 50;
       state.ball.y  = 50;
-      state.ball.vx = state.serveTowards === 1 ? -1.3 : 1.3;
-      state.ball.vy = Math.random() * 1.6 - 0.8;
+      state.ball.vx = state.serveTowards === 1 ? -1.0 : 1.0;
+      state.ball.vy = Math.random() * 1.2 - 0.6;
     }
     return;
   }
@@ -84,9 +89,9 @@ export function updatePongPhysics(state: PongState) {
     const p1Bottom = state.p1Y + paddleHalf;
     if (ball.y >= p1Top && ball.y <= p1Bottom) {
       ball.x        = 4 + ball.radius;
-      ball.vx       = -ball.vx * 1.08;
+      ball.vx       = -ball.vx * 1.05;
       const hitPos  = (ball.y - state.p1Y) / paddleHalf;
-      ball.vy       = hitPos * 1.6;
+      ball.vy       = hitPos * 1.3;
       state.lastHit = 'p1';
     }
   }
@@ -97,9 +102,9 @@ export function updatePongPhysics(state: PongState) {
     const p2Bottom = state.p2Y + paddleHalf;
     if (ball.y >= p2Top && ball.y <= p2Bottom) {
       ball.x        = 96 - ball.radius;
-      ball.vx       = -ball.vx * 1.08;
+      ball.vx       = -ball.vx * 1.05;
       const hitPos  = (ball.y - state.p2Y) / paddleHalf;
-      ball.vy       = hitPos * 1.6;
+      ball.vy       = hitPos * 1.3;
       state.lastHit = 'p2';
     }
   }

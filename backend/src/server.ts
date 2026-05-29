@@ -971,6 +971,36 @@ io.on('connection', (socket: Socket) => {
     setSnakeDirection(state, idx, data.dir);
   });
 
+  // ── Ready validation for Snake & Pong ──────────────────────────────────────
+  socket.on('playerReady', (data: { roomId: string }) => {
+    const room = rooms[data.roomId];
+    if (!room || !room.gameState) return;
+
+    if (room.gameType === 'snake') {
+      const state = room.gameState as SnakeState;
+      if (room.isLocal) {
+        state.p1Ready = true;
+        state.p2Ready = true;
+      } else {
+        const playerIndex = room.players.findIndex(p => p.id === socket.id);
+        if (playerIndex === 0) state.p1Ready = true;
+        if (playerIndex === 1) state.p2Ready = true;
+      }
+      broadcastRoomUpdate(room);
+    } else if (room.gameType === 'pong') {
+      const state = room.gameState as PongState;
+      if (room.isLocal) {
+        state.p1Ready = true;
+        state.p2Ready = true;
+      } else {
+        const playerIndex = room.players.findIndex(p => p.id === socket.id);
+        if (playerIndex === 0) state.p1Ready = true;
+        if (playerIndex === 1) state.p2Ready = true;
+      }
+      broadcastRoomUpdate(room);
+    }
+  });
+
   // ── Memory ────────────────────────────────────────────────────────────────────
   socket.on('memoryFlip', (data: { roomId: string; cardId: number }) => {
     const room = rooms[data.roomId];
@@ -1301,36 +1331,59 @@ function startTetrisLoop(roomId: string) {
   }, Math.round(1000 / 60)); // 60 Hz
 }
 
-// ── Snake loop (15 Hz) ────────────────────────────────────────────────────────
+// ── Snake loop (Dynamic Speed) ────────────────────────────────────────────────
 
 const snakeIntervals: { [roomId: string]: NodeJS.Timeout } = {};
 
 function startSnakeLoop(roomId: string) {
   if (snakeIntervals[roomId]) return;
   console.log(`Starting Snake physics loop for room ${roomId}`);
-  snakeIntervals[roomId] = setInterval(() => {
+
+  const runTick = () => {
     const room = rooms[roomId];
     if (!room || room.status !== 'playing' || room.gameType !== 'snake' || !room.gameState) {
-      clearInterval(snakeIntervals[roomId]);
-      delete snakeIntervals[roomId];
+      if (snakeIntervals[roomId]) {
+        clearTimeout(snakeIntervals[roomId]);
+        delete snakeIntervals[roomId];
+      }
       return;
     }
 
     const anyDisconnected = room.players.some(p => p.disconnected);
-    if (anyDisconnected) return;
+    if (anyDisconnected) {
+      snakeIntervals[roomId] = setTimeout(runTick, 100);
+      return;
+    }
 
     const state = room.gameState as SnakeState;
-    updateSnakePhysics(state);
+    if (state.p1Ready && state.p2Ready) {
+      updateSnakePhysics(state);
+    }
 
     io.to(roomId).emit('snakeUpdate', state);
 
     if (state.winner !== null) {
       room.status = 'finished';
       broadcastRoomUpdate(room);
-      clearInterval(snakeIntervals[roomId]);
-      delete snakeIntervals[roomId];
+      if (snakeIntervals[roomId]) {
+        clearTimeout(snakeIntervals[roomId]);
+        delete snakeIntervals[roomId];
+      }
+      return;
     }
-  }, Math.round(1000 / 15)); // 15 Hz
+
+    // Determine current speed (10 Hz initial, up to 20 Hz over 1000 ticks)
+    const speedHz = (state.p1Ready && state.p2Ready)
+      ? Math.min(20, 10 + state.tickCount * 0.01)
+      : 15;
+    
+    state.speedHz = speedHz;
+
+    const delay = Math.round(1000 / speedHz);
+    snakeIntervals[roomId] = setTimeout(runTick, delay);
+  };
+
+  runTick();
 }
 
 // ── Pong loop (60 Hz) ─────────────────────────────────────────────────────────

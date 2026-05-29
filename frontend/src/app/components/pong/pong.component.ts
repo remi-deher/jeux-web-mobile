@@ -50,6 +50,41 @@ interface TrailPt   { x: number; y: number; }
         @if (!isPlaying() && room()?.status !== 'finished') {
           <div class="waiting-overlay">En attente de l'adversaire…</div>
         }
+        @if (room()?.status === 'playing' && (!pongState()?.p1Ready || !pongState()?.p2Ready)) {
+          <div class="ready-overlay-panel">
+            <div class="ready-modal-card">
+              <h3 class="ready-title">Prêt à jouer ?</h3>
+              <p class="ready-subtitle">Le jeu commencera quand les deux joueurs auront validé.</p>
+              
+              <div class="ready-indicators">
+                <div class="ready-pill" [class.ready-ok]="pongState()?.p1Ready">
+                  <span class="ready-dot"></span>
+                  <span class="ready-name">{{ player1Name() }}</span>
+                  <span class="ready-text">{{ pongState()?.p1Ready ? 'Prêt' : 'En attente...' }}</span>
+                </div>
+                <div class="ready-pill" [class.ready-ok]="pongState()?.p2Ready">
+                  <span class="ready-dot"></span>
+                  <span class="ready-name">{{ player2Name() }}</span>
+                  <span class="ready-text">{{ pongState()?.p2Ready ? 'Prêt' : 'En attente...' }}</span>
+                </div>
+              </div>
+
+              @if (room()?.isLocal) {
+                <button class="ready-action-btn pulse-glow" (click)="setReady()">COMMENCER LA PARTIE</button>
+              } @else {
+                @if (amIReady()) {
+                  <button class="ready-action-btn ready-done" disabled>
+                    ATTENTE DE L'ADVERSAIRE
+                  </button>
+                } @else {
+                  <button class="ready-action-btn active-ready pulse-glow" (click)="setReady()">
+                    JE SUIS PRÊT <span class="key-hint">Espace</span>
+                  </button>
+                }
+              }
+            </div>
+          </div>
+        }
       </div>
     </app-game-layout>
   `,
@@ -107,6 +142,136 @@ interface TrailPt   { x: number; y: number; }
       color: rgba(255,120,120,0.8);
       border-color: rgba(255,80,80,0.2);
     }
+    .ready-overlay-panel {
+      position: absolute;
+      inset: 8px;
+      background: rgba(10, 10, 15, 0.85);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .ready-modal-card {
+      background: #14141f;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 40px rgba(0,229,255,0.15);
+      animation: modalFadeIn 0.3s ease-out;
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .ready-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      margin: 0 0 8px 0;
+      letter-spacing: 0.5px;
+    }
+    .ready-subtitle {
+      font-size: 13px;
+      color: rgba(255,255,255,0.5);
+      margin: 0 0 24px 0;
+    }
+    .ready-indicators {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .ready-pill {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      transition: all 0.3s ease;
+    }
+    .ready-pill.ready-ok {
+      background: rgba(0, 229, 255, 0.08);
+      border-color: rgba(0, 229, 255, 0.3);
+    }
+    .ready-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      transition: all 0.3s ease;
+    }
+    .ready-pill.ready-ok .ready-dot {
+      background: #00E5FF;
+      box-shadow: 0 0 8px #00E5FF;
+    }
+    .ready-name {
+      font-weight: 600;
+      color: rgba(255,255,255,0.85);
+      flex: 1;
+      text-align: left;
+      font-size: 14px;
+    }
+    .ready-text {
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.4);
+    }
+    .ready-pill.ready-ok .ready-text {
+      color: #00E5FF;
+    }
+    .ready-action-btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .ready-action-btn.active-ready {
+      background: #00E5FF;
+      color: #000;
+    }
+    .ready-action-btn.active-ready:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 229, 255, 0.4);
+    }
+    .ready-action-btn.ready-done {
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.4);
+      cursor: not-allowed;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .ready-action-btn.pulse-glow {
+      animation: btnPulse 2s infinite;
+    }
+    @keyframes btnPulse {
+      0% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(0, 229, 255, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0); }
+    }
+    .key-hint {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(0,0,0,0.2);
+      border: 1px solid rgba(0,0,0,0.15);
+      margin-left: 6px;
+      opacity: 0.8;
+    }
   `]
 })
 export class PongComponent implements AfterViewInit, OnDestroy {
@@ -145,6 +310,21 @@ export class PongComponent implements AfterViewInit, OnDestroy {
     const idx = r.players.findIndex((p: any) => p.id === id);
     return idx !== -1 ? idx + 1 : null;
   });
+
+  pongState = computed(() => this.room()?.gameState as any);
+  amIReady = computed(() => {
+    const s = this.pongState();
+    if (!s) return false;
+    if (this.room()?.isLocal) return s.p1Ready && s.p2Ready;
+    return this.myPlayerNum() === 1 ? !!s.p1Ready : !!s.p2Ready;
+  });
+
+  setReady() {
+    const r = this.room();
+    if (r) {
+      this.gameService.sendPlayerReady(r.id);
+    }
+  }
 
   scoreLabel  = computed(() => { const gs = this.room()?.gameState as any; return gs ? `${gs.scoreP1 ?? 0} — ${gs.scoreP2 ?? 0}` : ''; });
   winnerLabel = computed(() => { const w = this.room()?.gameState?.winner; return w === 1 ? this.player1Name() : w === 2 ? this.player2Name() : ''; });
@@ -367,6 +547,19 @@ export class PongComponent implements AfterViewInit, OnDestroy {
     // Keyboard
     this.keydownHandler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      const s = this.pongState();
+      const isPlaying = this.isPlaying();
+      const notReady = s && (!s.p1Ready || !s.p2Ready);
+
+      if (isPlaying && notReady) {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          this.setReady();
+          return;
+        }
+      }
+
       if (['w', 'W', 's', 'S', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
         e.preventDefault();
         this.keysDown.add(e.key);

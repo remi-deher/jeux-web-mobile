@@ -374,6 +374,10 @@ export class GameService {
     if (room) this.socket.emit('snakeDirection', { roomId: room.id, dir, playerIndex });
   }
 
+  sendPlayerReady(roomId: string) {
+    this.socket.emit('playerReady', { roomId });
+  }
+
   // WebRTC signaling — forward SDP/ICE to the server which relays to the other player
   // Generic: works for any game (pong, snake, tetris…)
   sendRtcOffer(roomId: string, offer: RTCSessionDescriptionInit)    { this.socket.emit('rtcOffer',  { roomId, offer  }); }

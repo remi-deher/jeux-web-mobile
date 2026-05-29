@@ -36,6 +36,9 @@ interface SnakeState {
   winner:    number | null;
   tickCount: number;
   playerIds: [string, string];
+  p1Ready?:  boolean;
+  p2Ready?:  boolean;
+  speedHz?:  number;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -86,6 +89,41 @@ const GRID_COL  = 'rgba(255,255,255,0.03)';
         @if (!isPlaying() && room()?.status !== 'finished') {
           <div class="waiting-overlay">En attente de l'adversaire…</div>
         }
+        @if (room()?.status === 'playing' && (!snakeState()?.p1Ready || !snakeState()?.p2Ready)) {
+          <div class="ready-overlay-panel">
+            <div class="ready-modal-card">
+              <h3 class="ready-title">Prêt à jouer ?</h3>
+              <p class="ready-subtitle">Le jeu commencera quand les deux joueurs auront validé.</p>
+              
+              <div class="ready-indicators">
+                <div class="ready-pill" [class.ready-ok]="snakeState()?.p1Ready">
+                  <span class="ready-dot"></span>
+                  <span class="ready-name">{{ player1Name() }}</span>
+                  <span class="ready-text">{{ snakeState()?.p1Ready ? 'Prêt' : 'En attente...' }}</span>
+                </div>
+                <div class="ready-pill" [class.ready-ok]="snakeState()?.p2Ready">
+                  <span class="ready-dot"></span>
+                  <span class="ready-name">{{ player2Name() }}</span>
+                  <span class="ready-text">{{ snakeState()?.p2Ready ? 'Prêt' : 'En attente...' }}</span>
+                </div>
+              </div>
+
+              @if (isLocal()) {
+                <button class="ready-action-btn pulse-glow" (click)="setReady()">COMMENCER LA PARTIE</button>
+              } @else {
+                @if (amIReady()) {
+                  <button class="ready-action-btn ready-done" disabled>
+                    ATTENTE DE L'ADVERSAIRE
+                  </button>
+                } @else {
+                  <button class="ready-action-btn active-ready pulse-glow" (click)="setReady()">
+                    JE SUIS PRÊT <span class="key-hint">Espace</span>
+                  </button>
+                }
+              }
+            </div>
+          </div>
+        }
       </div>
     </app-game-layout>
   `,
@@ -113,6 +151,135 @@ const GRID_COL  = 'rgba(255,255,255,0.03)';
       background: rgba(0,0,0,0.6);
       color: #fff;
       font-size: 1.2rem;
+    }
+    .ready-overlay-panel {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 10, 15, 0.85);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      padding: 20px;
+    }
+    .ready-modal-card {
+      background: #14141f;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 40px rgba(0,230,118,0.15);
+      animation: modalFadeIn 0.3s ease-out;
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .ready-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      margin: 0 0 8px 0;
+      letter-spacing: 0.5px;
+    }
+    .ready-subtitle {
+      font-size: 13px;
+      color: rgba(255,255,255,0.5);
+      margin: 0 0 24px 0;
+    }
+    .ready-indicators {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .ready-pill {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      transition: all 0.3s ease;
+    }
+    .ready-pill.ready-ok {
+      background: rgba(0, 230, 118, 0.08);
+      border-color: rgba(0, 230, 118, 0.3);
+    }
+    .ready-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      transition: all 0.3s ease;
+    }
+    .ready-pill.ready-ok .ready-dot {
+      background: #00E676;
+      box-shadow: 0 0 8px #00E676;
+    }
+    .ready-name {
+      font-weight: 600;
+      color: rgba(255,255,255,0.85);
+      flex: 1;
+      text-align: left;
+      font-size: 14px;
+    }
+    .ready-text {
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.4);
+    }
+    .ready-pill.ready-ok .ready-text {
+      color: #00E676;
+    }
+    .ready-action-btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .ready-action-btn.active-ready {
+      background: #00E676;
+      color: #000;
+    }
+    .ready-action-btn.active-ready:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 230, 118, 0.4);
+    }
+    .ready-action-btn.ready-done {
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.4);
+      cursor: not-allowed;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .ready-action-btn.pulse-glow {
+      animation: btnPulse 2s infinite;
+    }
+    @keyframes btnPulse {
+      0% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(0, 230, 118, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0); }
+    }
+    .key-hint {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(0,0,0,0.2);
+      border: 1px solid rgba(0,0,0,0.15);
+      margin-left: 6px;
+      opacity: 0.8;
     }
   `],
 })
@@ -148,6 +315,20 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
   });
 
   isLocal = computed(() => !!this.room()?.isLocal);
+
+  amIReady = computed(() => {
+    const s = this.snakeState();
+    if (!s) return false;
+    if (this.isLocal()) return s.p1Ready && s.p2Ready;
+    return this.myPlayerNum() === 1 ? !!s.p1Ready : !!s.p2Ready;
+  });
+
+  setReady() {
+    const r = this.room();
+    if (r) {
+      this.gameService.sendPlayerReady(r.id);
+    }
+  }
 
   winnerLabel = computed(() => {
     const s = this.snakeState();
@@ -198,7 +379,7 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
   private lastTickCount = -1;
   /** Timestamp of last received server tick */
   private lastTickTime  = 0;
-  private readonly TICK_MS = 1000 / 15;
+  private measuredTickMs = 1000 / 15;
 
   /** Pending direction changes queued before the component is fully init'd */
   private pendingDirs: { dir: Direction; playerIndex?: number }[] = [];
@@ -220,6 +401,10 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
         this.lastTickCount = s.tickCount;
         this.lastTickTime  = performance.now();
         this.lerpT         = 0;
+
+        if (s.speedHz) {
+          this.measuredTickMs = 1000 / s.speedHz;
+        }
       }
     });
 
@@ -283,7 +468,7 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
     const now    = performance.now();
     const elapsed = now - this.lastTickTime;
     // Clamp lerp to [0,1]; once reached 1, hold until next tick
-    this.lerpT    = Math.min(1, elapsed / this.TICK_MS);
+    this.lerpT    = Math.min(1, elapsed / this.measuredTickMs);
 
     this.render(this.lerpT);
   };
@@ -444,7 +629,19 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
   // ── Input ──────────────────────────────────────────────────────────────────
 
   private onKeyDown = (e: KeyboardEvent): void => {
-    if (!this.isPlaying()) return;
+    const s = this.snakeState();
+    const isPlaying = this.isPlaying();
+    const notReady = s && (!s.p1Ready || !s.p2Ready);
+
+    if (isPlaying && notReady) {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        this.setReady();
+        return;
+      }
+    }
+
+    if (!isPlaying || notReady) return;
 
     const isLocal = this.isLocal();
     const myNum   = this.myPlayerNum();
@@ -487,7 +684,11 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
   }
 
   onTouchEnd(e: TouchEvent): void {
-    if (!this.isPlaying()) return;
+    const s = this.snakeState();
+    const isPlaying = this.isPlaying();
+    const notReady = s && (!s.p1Ready || !s.p2Ready);
+
+    if (!isPlaying || notReady) return;
     const dx = e.changedTouches[0].clientX - this.touchStartX;
     const dy = e.changedTouches[0].clientY - this.touchStartY;
     const absDx = Math.abs(dx), absDy = Math.abs(dy);
