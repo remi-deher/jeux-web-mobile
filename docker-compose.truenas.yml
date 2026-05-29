@@ -1,0 +1,42 @@
+services:
+  playbox:
+    image: mrcryllix/playbox:latest
+    container_name: playbox
+    ports:
+      - "8080:80"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - TURN_SECRET=your_secure_turn_secret # Remplacer par une clé secrète aléatoire et sécurisée
+      - TURN_HOST=your_public_ip_or_domain  # Remplacer par l'IP publique ou le domaine de votre TrueNAS (ex: 82.12.x.x ou play.mondomaine.com)
+    restart: unless-stopped
+
+  turn:
+    image: coturn/coturn:latest
+    container_name: playbox-turn
+    # coturn doit voir l'IP interne du conteneur ET l'IP publique.
+    command: >
+      -n
+      --log-file=stdout
+      --listening-port=3478
+      --listening-ip=0.0.0.0
+      --external-ip=your_public_ip_or_domain # Remplacer par votre IP publique ou domaine (ex: 82.12.x.x ou play.mondomaine.com)
+      --relay-ip=0.0.0.0
+      --use-auth-secret
+      --static-auth-secret=your_secure_turn_secret  # Doit correspondre à TURN_SECRET de l'application playbox
+      --realm=playbox
+      --min-port=49152
+      --max-port=49250
+      --fingerprint
+      --no-tls
+      --no-dtls
+      --denied-peer-ip=10.0.0.0-10.255.255.255
+      --denied-peer-ip=192.168.0.0-192.168.255.255
+      --denied-peer-ip=172.16.0.0-172.31.255.255
+    ports:
+      # STUN + TURN signaling
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+      # Ports de relais pour WebRTC (TURN)
+      - "49152-49250:49152-49250/udp"
+    restart: unless-stopped
