@@ -99,6 +99,7 @@ import { GameLayoutComponent } from '../game-layout/game-layout.component';
   styles: [`
     .board-wrapper {
       position: relative;
+      height: 100%;
       margin: 0 auto;
       flex: 1;
       display: flex;
@@ -120,7 +121,7 @@ import { GameLayoutComponent } from '../game-layout/game-layout.component';
 
     .drop-indicators {
       display: grid;
-      grid-template-columns: repeat(7, min(60px, 8vh, calc((100vw - 100px) / 7)));
+      grid-template-columns: repeat(7, min(80px, calc((100dvh - 150px) / 7.5), calc((100vw - 80px) / 7)));
       gap: 8px;
       height: 40px;
       margin-bottom: 8px;
@@ -155,8 +156,8 @@ import { GameLayoutComponent } from '../game-layout/game-layout.component';
 
     .board-mesh {
       display: grid;
-      grid-template-columns: repeat(7, min(60px, 8vh, calc((100vw - 100px) / 7)));
-      grid-template-rows: repeat(6, min(60px, 8vh, calc((100vw - 100px) / 7)));
+      grid-template-columns: repeat(7, min(80px, calc((100dvh - 150px) / 7.5), calc((100vw - 80px) / 7)));
+      grid-template-rows: repeat(6, min(80px, calc((100dvh - 150px) / 7.5), calc((100vw - 80px) / 7)));
       gap: 8px;
       touch-action: manipulation;
     }

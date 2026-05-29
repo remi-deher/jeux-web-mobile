@@ -94,6 +94,7 @@ import { injectGameSession } from '../../services/game-session.helper';
   styles: [`
     .board-wrapper {
       position: relative;
+      height: 100%;
       margin: 0 auto;
       flex: 1;
       display: flex;
@@ -182,8 +183,8 @@ import { injectGameSession } from '../../services/game-session.helper';
     /* Board styling */
     .board-grid {
       display: grid;
-      grid-template-columns: repeat(8, min(48px, 8vh));
-      grid-template-rows: repeat(8, min(48px, 8vh));
+      grid-template-columns: repeat(8, min(min(11vw, 82px), calc((100dvh - 170px) / 8)));
+      grid-template-rows: repeat(8, min(min(11vw, 82px), calc((100dvh - 170px) / 8)));
       background: #004D40; /* Forest felt green color */
       border: 6px solid #00241A;
       border-radius: var(--md-radius-lg);

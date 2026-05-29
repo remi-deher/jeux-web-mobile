@@ -106,7 +106,9 @@ import { GameHelpersService } from '../../services/game-helpers.service';
       <div class="board-area-wrapper">
         <div class="board-content-row">
           <ng-content select="[game-setup]"></ng-content>
-          <ng-content select="[game-board]"></ng-content>
+          <div class="board-slot">
+            <ng-content select="[game-board]"></ng-content>
+          </div>
         </div>
 
         <!-- Barre emoji (en dessous du plateau sur desktop, flottante sur mobile) -->
@@ -459,10 +461,22 @@ import { GameHelpersService } from '../../services/game-helpers.service';
       flex: 1;
       display: flex;
       flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* Slot who wraps ng-content [game-board] — fills all remaining height */
+    .board-slot {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       width: 100%;
-      min-height: 0;
+      overflow: hidden;
     }
 
     /* ═══════════════════════════════════════════════

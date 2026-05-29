@@ -121,7 +121,7 @@ interface CheckerMove {
       padding: 12px;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
       width: 100%;
-      max-width: min(480px, 70vh);
+      max-width: min(min(92vw, 680px), calc(100dvh - 145px));
       box-sizing: border-box;
     }
 
@@ -241,8 +241,8 @@ interface CheckerMove {
   
     @media (orientation: landscape) and (min-width: 768px) {
       .board-container {
-        width: min(450px, calc(100dvh - 220px));
-        height: min(450px, calc(100dvh - 220px));
+        width: min(min(92vw, 680px), calc(100dvh - 145px));
+        height: min(min(92vw, 680px), calc(100dvh - 145px));
         margin: 5px auto;
       }
     }

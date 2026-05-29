@@ -86,6 +86,7 @@ import { injectGameSession } from '../../services/game-session.helper';
   styles: [`
     .board-wrapper {
       position: relative;
+      height: 100%;
       margin: 0 auto;
       flex: 1;
       display: flex;
@@ -107,7 +108,7 @@ import { injectGameSession } from '../../services/game-session.helper';
       box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
       position: relative;
       width: 100%;
-      max-width: min(580px, 75vh);
+      max-width: min(min(95vw, 700px), calc(100dvh - 140px));
       aspect-ratio: 1;
     }
 

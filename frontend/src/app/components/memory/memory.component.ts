@@ -138,10 +138,10 @@ const PAIR_ICONS = ['🦊','🐳','🌵','🍕','🎸','🚀','🦋','🌈'];
 
     .memory-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(4, min(min(20vw, 110px), calc((100dvh - 240px) / 4)));
+      grid-template-rows:    repeat(4, min(min(20vw, 110px), calc((100dvh - 240px) / 4)));
       gap: 10px;
-      max-width: 400px;
-      width: 100%;
+      width: fit-content;
     }
 
     .card-wrapper {

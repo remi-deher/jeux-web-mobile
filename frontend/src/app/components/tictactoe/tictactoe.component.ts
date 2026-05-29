@@ -74,6 +74,7 @@ import { injectGameSession } from '../../services/game-session.helper';
   styles: [`
     .board-wrapper {
       position: relative;
+      height: 100%;
       margin: 0 auto;
       flex: 1;
       display: flex;
@@ -85,8 +86,8 @@ import { injectGameSession } from '../../services/game-session.helper';
 
     .board-grid {
       display: grid;
-      grid-template-columns: repeat(3, min(100px, 15vh));
-      grid-template-rows: repeat(3, min(100px, 15vh));
+      grid-template-columns: repeat(3, min(min(26vw, 160px), calc((100dvh - 150px) / 3)));
+      grid-template-rows: repeat(3, min(min(26vw, 160px), calc((100dvh - 150px) / 3)));
       gap: 12px;
       background: rgba(30, 41, 59, 0.6);
       border: 4px solid var(--md-outline-variant);
@@ -133,7 +134,7 @@ import { injectGameSession } from '../../services/game-session.helper';
     }
 
     .sign {
-      font-size: min(48px, 8vh);
+      font-size: min(min(8vw, 64px), calc((100dvh - 150px) / 3 * 0.5));
       font-weight: 800;
       animation: scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
@@ -172,8 +173,8 @@ import { injectGameSession } from '../../services/game-session.helper';
 
     @media (orientation: landscape) and (min-width: 768px) {
       .board-grid {
-        grid-template-columns: repeat(3, min(100px, 20vh));
-        grid-template-rows: repeat(3, min(100px, 20vh));
+        grid-template-columns: repeat(3, min(min(26vw, 180px), calc((100dvh - 150px) / 3)));
+        grid-template-rows: repeat(3, min(min(26vw, 180px), calc((100dvh - 150px) / 3)));
         gap: 12px;
       }
     }
