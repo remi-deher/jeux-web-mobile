@@ -50,6 +50,8 @@ interface ChessMove {
       [player2Active]="currentPlayer() === 2 && isPlaying()"
       player1IndicatorSymbol="♔"
       player2IndicatorSymbol="♚"
+      player1Color="#f0d9b5"
+      player2Color="#b58863"
       (leaveRoom)="leaveRoom()"
       (requestRematch)="requestRematch()"
       (sendEmoji)="sendEmoji($event)"

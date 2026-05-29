@@ -27,25 +27,37 @@ import { GameHelpersService } from '../../services/game-helpers.service';
               <!-- Joueur 1 -->
               <div class="ph-slot"
                 [class.ph-active]="player1Active"
-                [class.ph-dim]="!player1Active && isPlaying">
+                [class.ph-dim]="!player1Active && isPlaying"
+                [style.--ph-color]="player1Color || null">
                 @if (player1IndicatorClass) {
                   <span class="indicator-element" [class]="player1IndicatorClass"></span>
                 } @else if (player1IndicatorSymbol) {
                   <span class="ph-sym">{{ player1IndicatorSymbol }}</span>
+                } @else if (player1Color) {
+                  <span class="ph-dot" [style.background]="player1Color"></span>
                 }
                 <span class="ph-name">{{ player1Name }}</span>
+                @if (player1Active) {
+                  <span class="ph-turn-chip">joue</span>
+                }
               </div>
               <span class="ph-vs">VS</span>
               <!-- Joueur 2 -->
               <div class="ph-slot"
                 [class.ph-active]="player2Active"
-                [class.ph-dim]="!player2Active && isPlaying">
+                [class.ph-dim]="!player2Active && isPlaying"
+                [style.--ph-color]="player2Color || null">
                 @if (player2IndicatorClass) {
                   <span class="indicator-element" [class]="player2IndicatorClass"></span>
                 } @else if (player2IndicatorSymbol) {
                   <span class="ph-sym">{{ player2IndicatorSymbol }}</span>
+                } @else if (player2Color) {
+                  <span class="ph-dot" [style.background]="player2Color"></span>
                 }
                 <span class="ph-name">{{ player2Name }}</span>
+                @if (player2Active) {
+                  <span class="ph-turn-chip">joue</span>
+                }
               </div>
             </div>
           }
@@ -99,6 +111,19 @@ import { GameHelpersService } from '../../services/game-helpers.service';
           <span class="material-symbols" style="font-size:18px;color:#fc8181;flex-shrink:0">warning</span>
           <span style="flex:1;font-size:13px">{{ disconnectedPlayerName }} s'est déconnecté. En attente...</span>
           <button class="force-end-btn" (click)="onForceEnd()">Forcer la fin</button>
+        </div>
+      }
+
+      <!-- ════════════════════ BANDEAU TOUR ════════════════════ -->
+      @if (isPlaying && room?.status === 'playing') {
+        <div class="turn-strip"
+          [class.turn-strip-mine]="isMyTurn && turnAlertText"
+          [class.turn-strip-opponent]="!isMyTurn && opponentTurnText"
+          [style.--ts-color]="isMyTurn ? (player1Active ? player1Color : player2Color) : ''">
+          <span class="turn-strip-dot"></span>
+          <span class="turn-strip-text">
+            {{ isMyTurn ? turnAlertText : opponentTurnText }}
+          </span>
         </div>
       }
 
@@ -328,13 +353,6 @@ import { GameHelpersService } from '../../services/game-helpers.service';
       overflow: hidden;
     }
 
-    /* Joueur actif : glow vert */
-    .ph-slot.ph-active {
-      background: rgba(52, 211, 153, 0.12);
-      border-color: rgba(52, 211, 153, 0.3);
-    }
-    .ph-slot.ph-active .ph-name { color: #34d399; }
-
     /* Joueur inactif pendant la partie : atténué */
     .ph-slot.ph-dim { opacity: 0.4; }
 
@@ -359,6 +377,85 @@ import { GameHelpersService } from '../../services/game-helpers.service';
       font-size: 12px;
       flex-shrink: 0;
       line-height: 1;
+    }
+
+    /* Colored dot for games that pass player1Color/player2Color */
+    .ph-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.15);
+    }
+
+    /* "joue" badge on active player */
+    .ph-turn-chip {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 1px 5px;
+      border-radius: 20px;
+      background: var(--ph-color, #34d399);
+      color: #000;
+      flex-shrink: 0;
+      line-height: 1.5;
+    }
+
+    /* Active slot: use --ph-color when available */
+    .ph-slot.ph-active {
+      background: color-mix(in srgb, var(--ph-color, #34d399) 15%, transparent);
+      border-color: color-mix(in srgb, var(--ph-color, #34d399) 40%, transparent);
+    }
+    .ph-slot.ph-active .ph-name {
+      color: var(--ph-color, #34d399);
+    }
+
+    /* ═══════════════════════════════════════════════
+       BANDEAU TOUR
+    ═══════════════════════════════════════════════ */
+    .turn-strip {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 4px 12px;
+      margin-bottom: 4px;
+      border-radius: var(--md-radius-full);
+      flex-shrink: 0;
+      align-self: center;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant);
+      color: var(--md-on-surface-variant);
+      transition: background 0.25s, border-color 0.25s, color 0.25s;
+    }
+    .turn-strip-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--md-on-surface-variant);
+      flex-shrink: 0;
+      transition: background 0.25s;
+    }
+    .turn-strip.turn-strip-mine {
+      background: color-mix(in srgb, var(--ts-color, #34d399) 12%, transparent);
+      border-color: color-mix(in srgb, var(--ts-color, #34d399) 35%, transparent);
+      color: var(--ts-color, #34d399);
+    }
+    .turn-strip.turn-strip-mine .turn-strip-dot {
+      background: var(--ts-color, #34d399);
+      box-shadow: 0 0 6px var(--ts-color, #34d399);
+      animation: dotPulse 1.2s ease-in-out infinite;
+    }
+    .turn-strip.turn-strip-opponent {
+      color: var(--md-on-surface-variant);
+      opacity: 0.7;
+    }
+
+    @keyframes dotPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(0.8); }
     }
 
     /* Droite : icônes + code */
@@ -948,6 +1045,8 @@ export class GameLayoutComponent {
   @Input() player2IndicatorClass: string = '';
   @Input() player1IndicatorSymbol: string = '';
   @Input() player2IndicatorSymbol: string = '';
+  @Input() player1Color: string = '';
+  @Input() player2Color: string = '';
 
   @Output() leaveRoom       = new EventEmitter<void>();
   @Output() requestRematch  = new EventEmitter<void>();

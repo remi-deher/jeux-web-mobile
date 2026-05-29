@@ -36,6 +36,8 @@ import { injectGameSession } from '../../services/game-session.helper';
       player1IndicatorSymbol=""
       player2IndicatorClass="indicator-element token-white"
       player2IndicatorSymbol=""
+      player1Color="#1a1a1a"
+      player2Color="#e8e8e8"
       (leaveRoom)="leaveRoom()"
       (requestRematch)="requestRematch()"
       (sendEmoji)="sendEmoji($event)"

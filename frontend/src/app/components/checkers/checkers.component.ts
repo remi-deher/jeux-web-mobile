@@ -44,6 +44,8 @@ interface CheckerMove {
       [player2Active]="currentPlayer() === 2 && isPlaying()"
       player1IndicatorClass="piece-indicator player1-dot"
       player2IndicatorClass="piece-indicator player2-dot"
+      player1Color="#f0d0a0"
+      player2Color="#c0392b"
       (leaveRoom)="leaveRoom()"
       (requestRematch)="requestRematch()"
       (sendEmoji)="sendEmoji($event)"

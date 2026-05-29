@@ -30,6 +30,8 @@ const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
       [player2Active]="currentPlayerNum() === 2 && isPlaying()"
       [player1IndicatorSymbol]="scoreP1Label()"
       [player2IndicatorSymbol]="scoreP2Label()"
+      player1Color="#a78bfa"
+      player2Color="#34d399"
       (leaveRoom)="leaveRoom()"
       (requestRematch)="requestRematch()"
       (sendEmoji)="sendEmoji($event)"

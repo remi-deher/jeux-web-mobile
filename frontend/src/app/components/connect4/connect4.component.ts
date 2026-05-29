@@ -33,6 +33,8 @@ import { GameLayoutComponent } from '../game-layout/game-layout.component';
       [player2Active]="currentPlayerNum() === 2 && isPlaying()"
       player1IndicatorClass="token token-red"
       player2IndicatorClass="token token-yellow"
+      player1Color="#ff4b5c"
+      player2Color="#ffd13b"
       (leaveRoom)="leaveRoom()"
       (requestRematch)="requestRematch()"
       (sendEmoji)="sendEmoji($event)"

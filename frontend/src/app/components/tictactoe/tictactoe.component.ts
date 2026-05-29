@@ -35,6 +35,8 @@ import { injectGameSession } from '../../services/game-session.helper';
       [player2Active]="currentPlayerNum() === 2 && isPlaying()"
       player1IndicatorSymbol="✕"
       player2IndicatorSymbol="◯"
+      player1Color="#60a5fa"
+      player2Color="#f87171"
       (leaveRoom)="leaveRoom()"
       (requestRematch)="requestRematch()"
       (sendEmoji)="sendEmoji($event)"

@@ -87,6 +87,8 @@ const VALUE_SHORT: Record<string, string> = {
   [player2Name]="player2Name()"
   [player1Active]="gameState()?.currentPlayer === 1 && isPlaying()"
   [player2Active]="gameState()?.currentPlayer === 2 && isPlaying()"
+  player1Color="#ef4444"
+  player2Color="#3b82f6"
   (leaveRoom)="leaveRoom()"
   (requestRematch)="requestRematch()"
   (sendEmoji)="sendEmoji($event)"

@@ -56,6 +56,8 @@ const PAIR_ICONS = ['🦊','🐳','🌵','🍕','🎸','🚀','🦋','🌈'];
   [player2Name]="player2Name()"
   [player1Active]="gameState()?.currentPlayer === 1 && isPlaying()"
   [player2Active]="gameState()?.currentPlayer === 2 && isPlaying()"
+  player1Color="#7c4dff"
+  player2Color="#00bcd4"
   (leaveRoom)="leaveRoom()"
   (requestRematch)="requestRematch()"
   (sendEmoji)="sendEmoji($event)"
