@@ -302,8 +302,12 @@ export class CheckersComponent {
   });
 
   myPlayerNum = computed(() => {
+    const r = this.room();
+    if (r?.isLocal) {
+      return this.currentPlayer();
+    }
     const socketId = this.gameService.getSocketId();
-    const idx = this.room()?.players?.findIndex(p => p.id === socketId) ?? -1;
+    const idx = r?.players?.findIndex(p => p.id === socketId) ?? -1;
     return idx !== -1 ? (idx + 1) as 1 | 2 : 1;
   });
 
