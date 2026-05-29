@@ -15,6 +15,9 @@ export const GAME_LABELS: Record<string, string> = {
   dominos:    'Dominos',
   snake:      'Snake vs',
   tetris:     'Tetris vs',
+  memory:     'Memory',
+  uno:        '8 Américain',
+  blackjack:  'Blackjack',
 };
 
 export function gameLabel(gameType: string): string {

@@ -100,6 +100,12 @@
       @defer (on immediate) { <app-snake></app-snake> }
     } @else if (getGameType() === 'tetris') {
       @defer (on immediate) { <app-tetris></app-tetris> }
+    } @else if (getGameType() === 'memory') {
+      @defer (on immediate) { <app-memory></app-memory> }
+    } @else if (getGameType() === 'uno') {
+      @defer (on immediate) { <app-uno></app-uno> }
+    } @else if (getGameType() === 'blackjack') {
+      @defer (on immediate) { <app-blackjack></app-blackjack> }
     }
   </main>
 

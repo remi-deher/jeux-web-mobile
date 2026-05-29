@@ -277,6 +277,76 @@ import { gameLabel } from '../../constants/game-labels';
                 <span class="game-tag">Temps réel</span>
               </div>
             </button>
+
+            <button class="game-card" (click)="selectGame('memory')">
+              <div class="game-card-image">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="100" height="100" rx="24" fill="#1a0a2e"/>
+                  <rect x="12" y="12" width="18" height="18" rx="4" fill="#3f51b5"/>
+                  <rect x="34" y="12" width="18" height="18" rx="4" fill="#3f51b5"/>
+                  <rect x="56" y="12" width="18" height="18" rx="4" fill="#7c4dff"/>
+                  <rect x="78" y="12" width="10" height="18" rx="4" fill="#3f51b5"/>
+                  <rect x="12" y="34" width="18" height="18" rx="4" fill="#7c4dff"/>
+                  <rect x="34" y="34" width="18" height="18" rx="4" fill="#fff9c4"/>
+                  <rect x="56" y="34" width="18" height="18" rx="4" fill="#fff9c4"/>
+                  <rect x="78" y="34" width="10" height="18" rx="4" fill="#3f51b5"/>
+                  <rect x="12" y="56" width="18" height="18" rx="4" fill="#3f51b5"/>
+                  <rect x="34" y="56" width="18" height="18" rx="4" fill="#c8e6c9"/>
+                  <rect x="56" y="56" width="18" height="18" rx="4" fill="#c8e6c9"/>
+                  <rect x="78" y="56" width="10" height="18" rx="4" fill="#3f51b5"/>
+                  <rect x="12" y="78" width="18" height="10" rx="4" fill="#7c4dff"/>
+                  <rect x="34" y="78" width="18" height="10" rx="4" fill="#3f51b5"/>
+                  <rect x="56" y="78" width="18" height="10" rx="4" fill="#3f51b5"/>
+                  <rect x="78" y="78" width="10" height="10" rx="4" fill="#7c4dff"/>
+                </svg>
+              </div>
+              <div class="game-card-info">
+                <span class="game-name">Memory</span>
+                <span class="game-tag">Mémoire</span>
+              </div>
+            </button>
+
+            <button class="game-card" (click)="selectGame('uno')">
+              <div class="game-card-image">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="100" height="100" rx="24" fill="#1a0a0a"/>
+                  <rect x="20" y="20" width="24" height="36" rx="6" fill="#e53935"/>
+                  <rect x="26" y="28" width="12" height="20" rx="3" fill="rgba(255,255,255,0.2)"/>
+                  <text x="32" y="42" font-size="10" fill="white" text-anchor="middle" font-weight="bold">7</text>
+                  <rect x="38" y="28" width="24" height="36" rx="6" fill="#1e88e5"/>
+                  <text x="50" y="50" font-size="10" fill="white" text-anchor="middle" font-weight="bold">R</text>
+                  <rect x="56" y="20" width="24" height="36" rx="6" fill="#43a047"/>
+                  <text x="68" y="42" font-size="10" fill="white" text-anchor="middle" font-weight="bold">+2</text>
+                  <rect x="25" y="54" width="50" height="28" rx="6" fill="#fdd835"/>
+                  <text x="50" y="72" font-size="14" fill="#333" text-anchor="middle" font-weight="bold">🌈</text>
+                </svg>
+              </div>
+              <div class="game-card-info">
+                <span class="game-name">8 Américain</span>
+                <span class="game-tag">Cartes</span>
+              </div>
+            </button>
+
+            <button class="game-card" (click)="selectGame('blackjack')">
+              <div class="game-card-image">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="100" height="100" rx="24" fill="#0a1a0a"/>
+                  <rect x="15" y="20" width="28" height="40" rx="6" fill="white"/>
+                  <text x="29" y="44" font-size="14" fill="#c62828" text-anchor="middle" font-weight="bold">A♥</text>
+                  <rect x="30" y="30" width="28" height="40" rx="6" fill="white"/>
+                  <text x="44" y="54" font-size="14" fill="#222" text-anchor="middle" font-weight="bold">K♠</text>
+                  <rect x="55" y="25" width="28" height="40" rx="6" fill="#1a237e"/>
+                  <text x="69" y="49" font-size="18" fill="rgba(255,255,255,0.3)" text-anchor="middle">🂠</text>
+                  <circle cx="50" cy="85" r="8" fill="#ffd740" opacity="0.8"/>
+                  <text x="50" y="89" font-size="9" fill="#222" text-anchor="middle" font-weight="bold">21</text>
+                </svg>
+              </div>
+              <div class="game-card-info">
+                <span class="game-name">Blackjack</span>
+                <span class="game-tag">Casino</span>
+              </div>
+            </button>
+
           </div>
         </div>
       } @else {
@@ -539,6 +609,27 @@ import { gameLabel } from '../../constants/game-labels';
                       <li>Elle se termine aussi si le jeu est bloqué (plus aucun joueur ne peut poser et le talon est vide). Le joueur ayant le moins de points (somme des points de ses dominos restants) gagne alors la partie. En cas d'égalité parfaite de points, la partie est nulle.</li>
                     </ul>
                   </div>
+                } @else if (selectedGame() === 'memory') {
+                  <div class="rules-section">
+                    <h4>Règles du jeu</h4>
+                    <p>Grille 4×4 = 8 paires de cartes retournées face cachée. À tour de rôle, retournez 2 cartes. Trouvez une paire : vous marquez un point et rejouez. Mismatch : les cartes sont retournées après 1,5 s. Le joueur avec le plus de paires gagne.</p>
+                  </div>
+                } @else if (selectedGame() === 'uno') {
+                  <div class="rules-section">
+                    <h4>Règles du jeu</h4>
+                    <p>Soyez le premier à vider votre main. Jouez une carte de même couleur ou valeur que la défausse. Les cartes spéciales : Skip/Reverse = rejouer, +2 = adversaire pioche 2, Wild = choisissez la couleur, Wild+4 = adversaire pioche 4.</p>
+                  </div>
+                } @else if (selectedGame() === 'blackjack') {
+                  <div class="rules-section">
+                    <h4>Règles du jeu</h4>
+                    <p>2 joueurs contre le dealer. Misez entre 10 et 500 chips. Approchez 21 sans dépasser. Blackjack (As + 10) paie 1,5×. Le dealer tire jusqu'à 17. 10 manches — le plus de chips gagne.</p>
+                    <h4>Actions</h4>
+                    <ul>
+                      <li><b>Hit</b> : piocher une carte</li>
+                      <li><b>Stand</b> : passer sans piocher</li>
+                      <li><b>Double</b> : doubler la mise et piocher exactement 1 carte</li>
+                    </ul>
+                  </div>
                 }
               </div>
             }
@@ -744,7 +835,7 @@ export class LobbyComponent {
     }
   }
 
-  selectGame(game: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | null) {
+  selectGame(game: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'memory' | 'uno' | 'blackjack' | null) {
     this.selectedGame.set(game);
     this.showRules.set(false);
   }

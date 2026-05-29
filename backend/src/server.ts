@@ -22,6 +22,9 @@ import { PenduState, createInitialPenduState, makePenduGuess } from './games/pen
 import { DominosState, createInitialDominosState, makeDominosMove, drawFromBoneyard, passTurn } from './games/dominos';
 import { SnakeState, createInitialSnakeState, updateSnakePhysics, setSnakeDirection, Direction as SnakeDirection } from './games/snake';
 import { TetrisState, createInitialTetrisState, updateTetrisPhysics, TetrisAction } from './games/tetris';
+import { MemoryState, createInitialMemoryState, flipCard, resolveFlip } from './games/memory';
+import { UnoState, createInitialUnoState, unoPlay, unoDraw, UnoColor } from './games/uno';
+import { BlackjackState, createInitialBlackjackState, placeBet, bjHit, bjStand, bjDouble, nextRound } from './games/blackjack';
 
 const app = express();
 app.use(cors());
@@ -103,10 +106,10 @@ interface Player {
 
 interface Room {
   id: string;
-  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'snake';
+  gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'memory' | 'uno' | 'blackjack';
   players: Player[];
   status: 'waiting' | 'playing' | 'finished';
-  gameState: Connect4State | BattleshipState | TicTacToeState | CheckersState | ChessState | GomokuState | OthelloState | PongState | PenduState | DominosState | SnakeState | TetrisState | null;
+  gameState: Connect4State | BattleshipState | TicTacToeState | CheckersState | ChessState | GomokuState | OthelloState | PongState | PenduState | DominosState | SnakeState | TetrisState | MemoryState | UnoState | BlackjackState | null;
   chatMessages: ChatMessage[];
   isPrivate: boolean;
   rematchVotes: string[];
@@ -170,7 +173,7 @@ io.on('connection', (socket: Socket) => {
     io.to(data.challengerSocketId).emit('challengeDeclined', { opponentUsername });
   });
 
-  socket.on('acceptChallenge', (data: { challengerSocketId: string; gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris'; variant?: 'classic' | 'branches' | 'grid' }) => {
+  socket.on('acceptChallenge', (data: { challengerSocketId: string; gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'memory' | 'uno' | 'blackjack'; variant?: 'classic' | 'branches' | 'grid' }) => {
     const challengerUsername = onlineUsers[data.challengerSocketId] || 'Challenger';
     const opponentUsername = onlineUsers[socket.id] || 'Opponent';
     const challengerSocket = io.sockets.sockets.get(data.challengerSocketId);
@@ -220,6 +223,12 @@ io.on('connection', (socket: Socket) => {
     } else if (data.gameType === 'tetris') {
       newRoom.gameState = createInitialTetrisState([data.challengerSocketId, socket.id]);
       startTetrisLoop(roomId);
+    } else if (data.gameType === 'memory') {
+      newRoom.gameState = createInitialMemoryState([data.challengerSocketId, socket.id]);
+    } else if (data.gameType === 'uno') {
+      newRoom.gameState = createInitialUnoState([data.challengerSocketId, socket.id]);
+    } else if (data.gameType === 'blackjack') {
+      newRoom.gameState = createInitialBlackjackState([data.challengerSocketId, socket.id]);
     }
 
     rooms[roomId] = newRoom;
@@ -264,7 +273,7 @@ io.on('connection', (socket: Socket) => {
   });
 
 
-  socket.on('createRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris'; username: string; isPrivate?: boolean; variant?: 'classic' | 'branches' | 'grid' }, callback) => {
+  socket.on('createRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'memory' | 'uno' | 'blackjack'; username: string; isPrivate?: boolean; variant?: 'classic' | 'branches' | 'grid' }, callback) => {
     const roomId = generateRoomId();
     const newRoom: Room = {
       id: roomId,
@@ -287,7 +296,7 @@ io.on('connection', (socket: Socket) => {
     io.emit('roomsList', getPublicRooms());
   });
 
-  socket.on('createLocalRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris'; username: string; player1Name?: string; player2Name?: string; variant?: 'classic' | 'branches' | 'grid' }, callback) => {
+  socket.on('createLocalRoom', (data: { gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'memory' | 'uno' | 'blackjack'; username: string; player1Name?: string; player2Name?: string; variant?: 'classic' | 'branches' | 'grid' }, callback) => {
     const roomId = generateRoomId();
     const newRoom: Room = {
       id: roomId,
@@ -332,6 +341,12 @@ io.on('connection', (socket: Socket) => {
     } else if (data.gameType === 'tetris') {
       newRoom.gameState = createInitialTetrisState([socket.id, 'local-player-2']);
       startTetrisLoop(roomId);
+    } else if (data.gameType === 'memory') {
+      newRoom.gameState = createInitialMemoryState([socket.id, 'local-player-2']);
+    } else if (data.gameType === 'uno') {
+      newRoom.gameState = createInitialUnoState([socket.id, 'local-player-2']);
+    } else if (data.gameType === 'blackjack') {
+      newRoom.gameState = createInitialBlackjackState([socket.id, 'local-player-2']);
     }
 
     rooms[roomId] = newRoom;
@@ -386,6 +401,12 @@ io.on('connection', (socket: Socket) => {
       } else if (room.gameType === 'tetris') {
         room.gameState = createInitialTetrisState(room.players.map(p => p.id) as [string, string]);
         startTetrisLoop(room.id);
+      } else if (room.gameType === 'memory') {
+        room.gameState = createInitialMemoryState(room.players.map(p => p.id) as [string, string]);
+      } else if (room.gameType === 'uno') {
+        room.gameState = createInitialUnoState(room.players.map(p => p.id) as [string, string]);
+      } else if (room.gameType === 'blackjack') {
+        room.gameState = createInitialBlackjackState(room.players.map(p => p.id) as [string, string]);
       }
     }
 
@@ -691,6 +712,12 @@ io.on('connection', (socket: Socket) => {
       } else if (room.gameType === 'tetris') {
         room.gameState = createInitialTetrisState(room.players.map(p => p.id) as [string, string]);
         startTetrisLoop(room.id);
+      } else if (room.gameType === 'memory') {
+        room.gameState = createInitialMemoryState(room.players.map(p => p.id) as [string, string]);
+      } else if (room.gameType === 'uno') {
+        room.gameState = createInitialUnoState(room.players.map(p => p.id) as [string, string]);
+      } else if (room.gameType === 'blackjack') {
+        room.gameState = createInitialBlackjackState(room.players.map(p => p.id) as [string, string]);
       }
     } else {
       if (!room.rematchVotes) room.rematchVotes = [];
@@ -728,6 +755,12 @@ io.on('connection', (socket: Socket) => {
         } else if (room.gameType === 'tetris') {
           room.gameState = createInitialTetrisState(room.players.map(p => p.id) as [string, string]);
           startTetrisLoop(room.id);
+        } else if (room.gameType === 'memory') {
+          room.gameState = createInitialMemoryState(room.players.map(p => p.id) as [string, string]);
+        } else if (room.gameType === 'uno') {
+          room.gameState = createInitialUnoState(room.players.map(p => p.id) as [string, string]);
+        } else if (room.gameType === 'blackjack') {
+          room.gameState = createInitialBlackjackState(room.players.map(p => p.id) as [string, string]);
         }
       }
     }
@@ -862,6 +895,24 @@ io.on('connection', (socket: Socket) => {
         clearInterval(tetrisIntervals[room.id]);
         delete tetrisIntervals[room.id];
       }
+    } else if (room.gameType === 'memory') {
+      const state = room.gameState as MemoryState;
+      if (state) {
+        const playerIndex = room.players.findIndex(p => p.id === winner.id);
+        state.winner = playerIndex !== -1 ? playerIndex + 1 : 1;
+      }
+    } else if (room.gameType === 'uno') {
+      const state = room.gameState as UnoState;
+      if (state) {
+        const playerIndex = room.players.findIndex(p => p.id === winner.id);
+        state.winner = playerIndex !== -1 ? playerIndex + 1 : 1;
+      }
+    } else if (room.gameType === 'blackjack') {
+      const state = room.gameState as BlackjackState;
+      if (state) {
+        const playerIndex = room.players.findIndex(p => p.id === winner.id);
+        state.winner = playerIndex !== -1 ? playerIndex + 1 : 1;
+      }
     }
 
     broadcastRoomUpdate(room);
@@ -917,6 +968,159 @@ io.on('connection', (socket: Socket) => {
       idx = pi === 0 ? 0 : 1;
     }
     setSnakeDirection(state, idx, data.dir);
+  });
+
+  // ── Memory ────────────────────────────────────────────────────────────────────
+  socket.on('memoryFlip', (data: { roomId: string; cardId: number }) => {
+    const room = rooms[data.roomId];
+    if (!room || room.gameType !== 'memory' || !room.gameState) return;
+    const state = room.gameState as MemoryState;
+    if (state.winner !== null) return;
+
+    // Check it's this player's turn (in online mode)
+    if (!room.isLocal) {
+      const playerIndex = room.players.findIndex(p => p.id === socket.id);
+      if (playerIndex === -1) return;
+      const playerNum = (playerIndex + 1) as 1 | 2;
+      if (state.currentPlayer !== playerNum) return;
+    }
+
+    const result = flipCard(state, data.cardId);
+    if (result === 'ignored') return;
+
+    if (result === 'mismatch') {
+      broadcastRoomUpdate(room);
+      // Resolve after 1.5s
+      if (memoryTimeouts[data.roomId]) clearTimeout(memoryTimeouts[data.roomId]);
+      memoryTimeouts[data.roomId] = setTimeout(() => {
+        delete memoryTimeouts[data.roomId];
+        if (rooms[data.roomId]) {
+          resolveFlip(room.gameState as MemoryState);
+          broadcastRoomUpdate(room);
+        }
+      }, 1500);
+    } else {
+      if (state.winner !== null) room.status = 'finished';
+      broadcastRoomUpdate(room);
+    }
+  });
+
+  // ── Uno ───────────────────────────────────────────────────────────────────────
+  socket.on('unoPlay', (data: { roomId: string; cardId: number; chosenColor?: UnoColor }) => {
+    const room = rooms[data.roomId];
+    if (!room || room.gameType !== 'uno' || !room.gameState) return;
+    const state = room.gameState as UnoState;
+
+    const playerIndex = room.isLocal
+      ? (state.currentPlayer === 1 ? 0 : 1)
+      : room.players.findIndex(p => p.id === socket.id);
+    if (playerIndex === -1) return;
+
+    const result = unoPlay(state, playerIndex as 0 | 1, data.cardId, data.chosenColor);
+    if (result === 'ok') {
+      if (state.winner !== null) room.status = 'finished';
+      broadcastRoomUpdate(room);
+    }
+  });
+
+  socket.on('unoDraw', (data: { roomId: string }) => {
+    const room = rooms[data.roomId];
+    if (!room || room.gameType !== 'uno' || !room.gameState) return;
+    const state = room.gameState as UnoState;
+
+    const playerIndex = room.isLocal
+      ? (state.currentPlayer === 1 ? 0 : 1)
+      : room.players.findIndex(p => p.id === socket.id);
+    if (playerIndex === -1) return;
+
+    const result = unoDraw(state, playerIndex as 0 | 1);
+    if (result === 'ok') broadcastRoomUpdate(room);
+  });
+
+  // ── Blackjack ─────────────────────────────────────────────────────────────────
+  socket.on('blackjackBet', (data: { roomId: string; amount: number; playerIndex?: number }) => {
+    const room = rooms[data.roomId];
+    if (!room || room.gameType !== 'blackjack' || !room.gameState) return;
+    const state = room.gameState as BlackjackState;
+
+    let idx: 0 | 1;
+    if (room.isLocal && data.playerIndex !== undefined) {
+      idx = data.playerIndex === 0 ? 0 : 1;
+    } else {
+      const pi = room.players.findIndex(p => p.id === socket.id);
+      if (pi === -1) return;
+      idx = pi as 0 | 1;
+    }
+
+    if (placeBet(state, idx, data.amount)) broadcastRoomUpdate(room);
+  });
+
+  socket.on('blackjackHit', (data: { roomId: string; playerIndex?: number }) => {
+    const room = rooms[data.roomId];
+    if (!room || room.gameType !== 'blackjack' || !room.gameState) return;
+    const state = room.gameState as BlackjackState;
+
+    let idx: 0 | 1;
+    if (room.isLocal && data.playerIndex !== undefined) {
+      idx = data.playerIndex === 0 ? 0 : 1;
+    } else {
+      const pi = room.players.findIndex(p => p.id === socket.id);
+      if (pi === -1) return;
+      idx = pi as 0 | 1;
+    }
+
+    if (bjHit(state, idx)) {
+      if (state.winner !== null) room.status = 'finished';
+      broadcastRoomUpdate(room);
+    }
+  });
+
+  socket.on('blackjackStand', (data: { roomId: string; playerIndex?: number }) => {
+    const room = rooms[data.roomId];
+    if (!room || room.gameType !== 'blackjack' || !room.gameState) return;
+    const state = room.gameState as BlackjackState;
+
+    let idx: 0 | 1;
+    if (room.isLocal && data.playerIndex !== undefined) {
+      idx = data.playerIndex === 0 ? 0 : 1;
+    } else {
+      const pi = room.players.findIndex(p => p.id === socket.id);
+      if (pi === -1) return;
+      idx = pi as 0 | 1;
+    }
+
+    if (bjStand(state, idx)) {
+      if (state.winner !== null) room.status = 'finished';
+      broadcastRoomUpdate(room);
+    }
+  });
+
+  socket.on('blackjackDouble', (data: { roomId: string; playerIndex?: number }) => {
+    const room = rooms[data.roomId];
+    if (!room || room.gameType !== 'blackjack' || !room.gameState) return;
+    const state = room.gameState as BlackjackState;
+
+    let idx: 0 | 1;
+    if (room.isLocal && data.playerIndex !== undefined) {
+      idx = data.playerIndex === 0 ? 0 : 1;
+    } else {
+      const pi = room.players.findIndex(p => p.id === socket.id);
+      if (pi === -1) return;
+      idx = pi as 0 | 1;
+    }
+
+    if (bjDouble(state, idx)) {
+      if (state.winner !== null) room.status = 'finished';
+      broadcastRoomUpdate(room);
+    }
+  });
+
+  socket.on('blackjackNextRound', (data: { roomId: string }) => {
+    const room = rooms[data.roomId];
+    if (!room || room.gameType !== 'blackjack' || !room.gameState) return;
+    const state = room.gameState as BlackjackState;
+
+    if (nextRound(state)) broadcastRoomUpdate(room);
   });
 
   // ── WebRTC signaling (pong P2P data channel) ────────────────────────────────
@@ -1046,11 +1250,23 @@ function handlePlayerLeave(socket: Socket, roomId: string) {
         clearInterval(tetrisIntervals[room.id]);
         delete tetrisIntervals[room.id];
       }
+    } else if (room.gameType === 'memory') {
+      const state = room.gameState as MemoryState;
+      if (state) state.winner = leavingPlayerIndex === 0 ? 2 : 1;
+    } else if (room.gameType === 'uno') {
+      const state = room.gameState as UnoState;
+      if (state) state.winner = leavingPlayerIndex === 0 ? 2 : 1;
+    } else if (room.gameType === 'blackjack') {
+      const state = room.gameState as BlackjackState;
+      if (state) state.winner = leavingPlayerIndex === 0 ? 2 : 1;
     }
     broadcastRoomUpdate(room);
   }
   io.emit('roomsList', getPublicRooms());
 }
+
+// ── Memory mismatch timeouts ──────────────────────────────────────────────────
+const memoryTimeouts: { [roomId: string]: NodeJS.Timeout } = {};
 
 // ── Tetris loop (60 Hz) ───────────────────────────────────────────────────────
 

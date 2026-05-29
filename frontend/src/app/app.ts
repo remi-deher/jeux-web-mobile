@@ -19,6 +19,9 @@ import { PenduComponent } from './components/pendu/pendu.component';
 import { DominosComponent } from './components/dominos/dominos.component';
 import { SnakeComponent } from './components/snake/snake.component';
 import { TetrisComponent } from './components/tetris/tetris.component';
+import { MemoryComponent } from './components/memory/memory.component';
+import { UnoComponent } from './components/uno/uno.component';
+import { BlackjackComponent } from './components/blackjack/blackjack.component';
 import { gameLabel } from './constants/game-labels';
 
 @Component({
@@ -41,7 +44,10 @@ import { gameLabel } from './constants/game-labels';
     PenduComponent,
     DominosComponent,
     SnakeComponent,
-    TetrisComponent
+    TetrisComponent,
+    MemoryComponent,
+    UnoComponent,
+    BlackjackComponent
   ],
   templateUrl: './app.html',
   styleUrl: './app.css'
@@ -83,6 +89,9 @@ export class App {
       { name: 'Dominos',        color: '#D7CCC8', wins: read('stats_dominos_wins'),    losses: read('stats_dominos_losses'),    draws: read('stats_dominos_draws')    },
       { name: 'Snake vs',       color: '#00E676', wins: read('stats_snake_wins'),       losses: read('stats_snake_losses'),       draws: read('stats_snake_draws')       },
       { name: 'Tetris vs',      color: '#E040FB', wins: read('stats_tetris_wins'),      losses: read('stats_tetris_losses'),      draws: read('stats_tetris_draws')      },
+      { name: 'Memory',         color: '#FF80AB', wins: read('stats_memory_wins'),      losses: read('stats_memory_losses'),      draws: read('stats_memory_draws')      },
+      { name: '8 Américain',    color: '#FF6D00', wins: read('stats_uno_wins'),         losses: read('stats_uno_losses'),         draws: read('stats_uno_draws')         },
+      { name: 'Blackjack',      color: '#FFD740', wins: read('stats_blackjack_wins'),   losses: read('stats_blackjack_losses'),   draws: read('stats_blackjack_draws')   },
     ];
   });
 

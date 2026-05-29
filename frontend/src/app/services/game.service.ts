@@ -27,7 +27,7 @@ export class GameService {
   
   // Navigation signals
   public activeView = signal<string>('games');
-  public activeGame = signal<'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'snake' | null>(null);
+  public activeGame = signal<'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'memory' | 'uno' | 'blackjack' | null>(null);
 
   private prevPongVx: number | null = null;
 
@@ -227,7 +227,7 @@ export class GameService {
     this.socket.emit('globalMessage', { username: this.username(), text });
   }
 
-  createRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris', isPrivate: boolean = false, variant?: 'classic' | 'branches' | 'grid') {
+  createRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'memory' | 'uno' | 'blackjack', isPrivate: boolean = false, variant?: 'classic' | 'branches' | 'grid') {
     this.socket.emit('createRoom', { gameType, username: this.username(), isPrivate, variant }, (res: any) => {
       if (res.success) {
         this.currentRoom.set(res.room);
@@ -238,7 +238,7 @@ export class GameService {
     });
   }
 
-  createLocalRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris', player1Name?: string, player2Name?: string, variant?: 'classic' | 'branches' | 'grid') {
+  createLocalRoom(gameType: 'connect4' | 'battleship' | 'tictactoe' | 'checkers' | 'chess' | 'gomoku' | 'othello' | 'pong' | 'pendu' | 'dominos' | 'snake' | 'tetris' | 'memory' | 'uno' | 'blackjack', player1Name?: string, player2Name?: string, variant?: 'classic' | 'branches' | 'grid') {
     this.socket.emit('createLocalRoom', { gameType, username: this.username() || 'Joueur 1', player1Name, player2Name, variant }, (res: any) => {
       if (res.success) {
         this.currentRoom.set(res.room);
@@ -412,6 +412,49 @@ export class GameService {
     if (room) {
       this.socket.emit('dominosPass', { roomId: room.id });
     }
+  }
+
+  // Memory Actions
+  sendMemoryFlip(cardId: number) {
+    const room = this.currentRoom();
+    if (room) this.socket.emit('memoryFlip', { roomId: room.id, cardId });
+  }
+
+  // Uno Actions
+  sendUnoPlay(cardId: number, chosenColor?: string) {
+    const room = this.currentRoom();
+    if (room) this.socket.emit('unoPlay', { roomId: room.id, cardId, chosenColor });
+  }
+
+  sendUnoDraw() {
+    const room = this.currentRoom();
+    if (room) this.socket.emit('unoDraw', { roomId: room.id });
+  }
+
+  // Blackjack Actions
+  sendBlackjackBet(amount: number, playerIndex?: number) {
+    const room = this.currentRoom();
+    if (room) this.socket.emit('blackjackBet', { roomId: room.id, amount, playerIndex });
+  }
+
+  sendBlackjackHit(playerIndex?: number) {
+    const room = this.currentRoom();
+    if (room) this.socket.emit('blackjackHit', { roomId: room.id, playerIndex });
+  }
+
+  sendBlackjackStand(playerIndex?: number) {
+    const room = this.currentRoom();
+    if (room) this.socket.emit('blackjackStand', { roomId: room.id, playerIndex });
+  }
+
+  sendBlackjackDouble(playerIndex?: number) {
+    const room = this.currentRoom();
+    if (room) this.socket.emit('blackjackDouble', { roomId: room.id, playerIndex });
+  }
+
+  sendBlackjackNextRound() {
+    const room = this.currentRoom();
+    if (room) this.socket.emit('blackjackNextRound', { roomId: room.id });
   }
 
   // Social Methods
