@@ -30,6 +30,13 @@ export class GameService {
   public activeView = signal<string>('games');
   public activeGame = signal<GameType | null>(null);
 
+  // High-frequency live state signals (60 Hz for pong/tetris, 15 Hz for snake).
+  // Kept separate from currentRoom so GameLayoutComponent doesn't re-render
+  // on every physics tick — only the canvas components consume these signals.
+  public livePongState   = signal<any>(null);
+  public liveSnakeState  = signal<any>(null);
+  public liveTetrisState = signal<any>(null);
+
   private prevPongVx: number | null = null;
 
   /**
@@ -109,6 +116,12 @@ export class GameService {
 
     this.socket.on('roomUpdate', (room: Room) => {
       const prevRoom = this.currentRoom();
+      // Reset live state signals when switching games or leaving a room
+      if (!room || room.id !== prevRoom?.id || room.gameType !== prevRoom?.gameType) {
+        this.livePongState.set(null);
+        this.liveSnakeState.set(null);
+        this.liveTetrisState.set(null);
+      }
       this.currentRoom.set(room);
 
       // Trigger board move sounds by comparing board states
@@ -131,38 +144,40 @@ export class GameService {
     this.socket.on('rtcIce',    (d: any) => this.rtcSignal.set({ type: 'ice',    candidate: d.candidate }));
 
     this.socket.on('tetrisUpdate', (tetrisState: any) => {
-      const room = this.currentRoom();
-      if (room && room.gameType === 'tetris') {
-        this.currentRoom.set({ ...room, gameState: tetrisState });
+      // Only update the dedicated signal — avoids 60 Hz re-renders of GameLayoutComponent.
+      // currentRoom is updated by 'roomUpdate' when game state changes (winner, etc.).
+      if (this.currentRoom()?.gameType === 'tetris') {
+        this.liveTetrisState.set(tetrisState);
       }
     });
 
     this.socket.on('snakeUpdate', (snakeState: any) => {
-      const room = this.currentRoom();
-      if (room && room.gameType === 'snake') {
-        this.currentRoom.set({ ...room, gameState: snakeState });
+      if (this.currentRoom()?.gameType === 'snake') {
+        this.liveSnakeState.set(snakeState);
       }
     });
 
     this.socket.on('pongUpdate', (pongState: any) => {
-      const room = this.currentRoom();
-      if (room && room.gameType === 'pong') {
-        const prevScores = (room.gameState as any)?.scoreP1 !== undefined ?
-          { p1: (room.gameState as any).scoreP1, p2: (room.gameState as any).scoreP2 } : null;
-        const prevVx = this.prevPongVx;
-        this.prevPongVx = pongState.ball?.vx ?? null;
+      if (this.currentRoom()?.gameType !== 'pong') return;
 
-        this.currentRoom.set({ ...room, gameState: pongState });
+      // Sound logic — compare against last live state, not currentRoom.gameState
+      const prev = this.livePongState();
+      const prevScores = prev?.scoreP1 !== undefined
+        ? { p1: prev.scoreP1 as number, p2: prev.scoreP2 as number }
+        : null;
+      const prevVx = this.prevPongVx;
+      this.prevPongVx = pongState.ball?.vx ?? null;
 
-        if (prevScores && (pongState.scoreP1 !== prevScores.p1 || pongState.scoreP2 !== prevScores.p2)) {
-          this.soundService.playSound('success', 'pong');
-          this.prevPongVx = null;
-        } else if (prevVx !== null && pongState.ball?.vx !== undefined) {
-          // Only play bounce when the ball's horizontal direction actually reverses
-          const bounced = (prevVx > 0) !== (pongState.ball.vx > 0);
-          if (bounced) {
-            this.soundService.playSound('click', 'pong');
-          }
+      // Only update the dedicated signal — does NOT trigger GameLayoutComponent re-render.
+      this.livePongState.set(pongState);
+
+      if (prevScores && (pongState.scoreP1 !== prevScores.p1 || pongState.scoreP2 !== prevScores.p2)) {
+        this.soundService.playSound('success', 'pong');
+        this.prevPongVx = null;
+      } else if (prevVx !== null && pongState.ball?.vx !== undefined) {
+        const bounced = (prevVx > 0) !== (pongState.ball.vx > 0);
+        if (bounced) {
+          this.soundService.playSound('click', 'pong');
         }
       }
     });

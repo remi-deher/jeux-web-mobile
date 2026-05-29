@@ -165,6 +165,9 @@ export class TetrisComponent implements AfterViewInit, OnDestroy {
   isLocal = computed(() => !!this.room()?.isLocal);
 
   tetrisState = computed<TetrisState | null>(() => {
+    // liveTetrisState is updated at 60 Hz; falls back to room().gameState for initial state.
+    const live = this.gameService.liveTetrisState();
+    if (live) return live as TetrisState;
     const r = this.room();
     return r?.gameType === 'tetris' ? (r.gameState as TetrisState) : null;
   });

@@ -311,7 +311,9 @@ export class PongComponent implements AfterViewInit, OnDestroy {
     return idx !== -1 ? idx + 1 : null;
   });
 
-  pongState = computed(() => this.room()?.gameState as any);
+  // livePongState is updated at 60 Hz by game.service; room().gameState only has
+  // the initial state or the last state at room-level events (e.g. winner).
+  pongState = computed(() => this.gameService.livePongState() ?? (this.room()?.gameState as any));
   amIReady = computed(() => {
     const s = this.pongState();
     if (!s) return false;
@@ -326,10 +328,10 @@ export class PongComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  scoreLabel  = computed(() => { const gs = this.room()?.gameState as any; return gs ? `${gs.scoreP1 ?? 0} — ${gs.scoreP2 ?? 0}` : ''; });
-  winnerLabel = computed(() => { const w = this.room()?.gameState?.winner; return w === 1 ? this.player1Name() : w === 2 ? this.player2Name() : ''; });
-  isWinner    = computed(() => { const w = this.room()?.gameState?.winner; return w != null && w === this.myPlayerNum(); });
-  isLoser     = computed(() => { const w = this.room()?.gameState?.winner; return w != null && w !== this.myPlayerNum(); });
+  scoreLabel  = computed(() => { const gs = this.pongState(); return gs ? `${gs.scoreP1 ?? 0} — ${gs.scoreP2 ?? 0}` : ''; });
+  winnerLabel = computed(() => { const w = this.pongState()?.winner; return w === 1 ? this.player1Name() : w === 2 ? this.player2Name() : ''; });
+  isWinner    = computed(() => { const w = this.pongState()?.winner; return w != null && w === this.myPlayerNum(); });
+  isLoser     = computed(() => { const w = this.pongState()?.winner; return w != null && w !== this.myPlayerNum(); });
 
   // ── Canvas & loop ────────────────────────────────────────────────────────────
   private resizeObserver: ResizeObserver | null = null;
@@ -390,8 +392,10 @@ export class PongComponent implements AfterViewInit, OnDestroy {
 
   constructor() {
     // ── React to server state ──────────────────────────────────────────────────
+    // Use livePongState (60 Hz signal) for physics reconciliation; falls back to
+    // room().gameState so the initial state is picked up before the first pongUpdate.
     effect(() => {
-      const state = this.room()?.gameState as any;
+      const state = this.pongState();
       if (!state) return;
 
       const isLocal = this.room()?.isLocal ?? false;

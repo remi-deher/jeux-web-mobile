@@ -357,6 +357,9 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
   });
 
   snakeState = computed<SnakeState | null>(() => {
+    // liveSnakeState is set at 15 Hz; falls back to room().gameState for initial state.
+    const live = this.gameService.liveSnakeState();
+    if (live) return live as SnakeState;
     const room = this.room();
     return room?.gameType === 'snake' ? (room.gameState as SnakeState) : null;
   });
