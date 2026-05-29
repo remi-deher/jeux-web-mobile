@@ -1,4 +1,4 @@
-import { Component, computed, signal, effect } from '@angular/core';
+import { Component, computed, signal, effect, DestroyRef, inject } from '@angular/core';
 import { GameService } from '../../services/game.service';
 import { GameLayoutComponent } from '../game-layout/game-layout.component';
 
@@ -303,6 +303,7 @@ import { GameLayoutComponent } from '../game-layout/game-layout.component';
   `],
 })
 export class Connect4Component {
+  private readonly destroyRef = inject(DestroyRef);
   room;
   showRulesModal = signal<boolean>(false);
 
@@ -431,9 +432,10 @@ export class Connect4Component {
   spawnFloatingEmoji(emoji: string) {
     const id = this.emojiId++;
     this.floatingEmojis.update((list: { id: number; emoji: string }[]) => [...list, { id, emoji }]);
-    setTimeout(() => {
+    const t = setTimeout(() => {
       this.floatingEmojis.update((list: { id: number; emoji: string }[]) => list.filter((item: { id: number; emoji: string }) => item.id !== id));
     }, 2000);
+    this.destroyRef.onDestroy(() => clearTimeout(t));
   }
 
   sendEmoji(emoji: string) {

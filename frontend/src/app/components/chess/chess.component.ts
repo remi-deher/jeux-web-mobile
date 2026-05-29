@@ -1,4 +1,4 @@
-import { Component, computed, signal, effect } from '@angular/core';
+import { Component, computed, signal, effect, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GameService } from '../../services/game.service';
 import { GameLayoutComponent } from '../game-layout/game-layout.component';
@@ -248,6 +248,7 @@ interface ChessMove {
   `]
 })
 export class ChessComponent {
+  private readonly destroyRef = inject(DestroyRef);
   room;
   username;
   showRulesModal = signal<boolean>(false);
@@ -269,9 +270,10 @@ export class ChessComponent {
           ...list,
           { id: newId, emoji: emojiReact.emoji }
         ]);
-        setTimeout(() => {
+        const t = setTimeout(() => {
           this.floatingEmojis.update((list: { id: number; emoji: string }[]) => list.filter(item => item.id !== newId));
         }, 2000);
+        this.destroyRef.onDestroy(() => clearTimeout(t));
       }
     }, { allowSignalWrites: true });
 
@@ -459,9 +461,10 @@ export class ChessComponent {
       ...list,
       { id: newId, emoji }
     ]);
-    setTimeout(() => {
+    const t = setTimeout(() => {
       this.floatingEmojis.update((list: { id: number; emoji: string }[]) => list.filter(item => item.id !== newId));
     }, 2000);
+    this.destroyRef.onDestroy(() => clearTimeout(t));
 
     this.gameService.sendEmoji(emoji);
   }

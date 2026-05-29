@@ -197,42 +197,9 @@ io.on('connection', (socket: Socket) => {
       variant: data.variant
     };
 
-    if (data.gameType === 'connect4') {
-      newRoom.gameState = createInitialConnect4State();
-    } else if (data.gameType === 'battleship') {
-      newRoom.gameState = createInitialBattleshipState([data.challengerSocketId, socket.id]);
-    } else if (data.gameType === 'tictactoe') {
-      newRoom.gameState = createInitialTicTacToeState();
-    } else if (data.gameType === 'checkers') {
-      newRoom.gameState = createInitialCheckersState();
-    } else if (data.gameType === 'chess') {
-      newRoom.gameState = createInitialChessState();
-    } else if (data.gameType === 'gomoku') {
-      newRoom.gameState = createInitialGomokuState();
-    } else if (data.gameType === 'othello') {
-      newRoom.gameState = createInitialOthelloState();
-    } else if (data.gameType === 'pong') {
-      newRoom.gameState = createInitialPongState();
-      startPongLoop(roomId);
-    } else if (data.gameType === 'pendu') {
-      newRoom.gameState = createInitialPenduState();
-    } else if (data.gameType === 'dominos') {
-      newRoom.gameState = createInitialDominosState(data.variant);
-    } else if (data.gameType === 'snake') {
-      newRoom.gameState = createInitialSnakeState([data.challengerSocketId, socket.id]);
-      startSnakeLoop(roomId);
-    } else if (data.gameType === 'tetris') {
-      newRoom.gameState = createInitialTetrisState([data.challengerSocketId, socket.id]);
-      startTetrisLoop(roomId);
-    } else if (data.gameType === 'memory') {
-      newRoom.gameState = createInitialMemoryState([data.challengerSocketId, socket.id]);
-    } else if (data.gameType === 'uno') {
-      newRoom.gameState = createInitialUnoState([data.challengerSocketId, socket.id]);
-    } else if (data.gameType === 'blackjack') {
-      newRoom.gameState = createInitialBlackjackState([data.challengerSocketId, socket.id]);
-    }
-
     rooms[roomId] = newRoom;
+    newRoom.gameState = createGameState(data.gameType, [data.challengerSocketId, socket.id], data.variant);
+    startGameLoop(data.gameType, roomId);
     challengerSocket.join(roomId);
     socket.join(roomId);
 
@@ -315,42 +282,9 @@ io.on('connection', (socket: Socket) => {
       variant: data.variant
     };
 
-    if (data.gameType === 'connect4') {
-      newRoom.gameState = createInitialConnect4State();
-    } else if (data.gameType === 'battleship') {
-      newRoom.gameState = createInitialBattleshipState([socket.id, 'local-player-2']);
-    } else if (data.gameType === 'tictactoe') {
-      newRoom.gameState = createInitialTicTacToeState();
-    } else if (data.gameType === 'checkers') {
-      newRoom.gameState = createInitialCheckersState();
-    } else if (data.gameType === 'chess') {
-      newRoom.gameState = createInitialChessState();
-    } else if (data.gameType === 'gomoku') {
-      newRoom.gameState = createInitialGomokuState();
-    } else if (data.gameType === 'othello') {
-      newRoom.gameState = createInitialOthelloState();
-    } else if (data.gameType === 'pong') {
-      newRoom.gameState = createInitialPongState();
-      startPongLoop(roomId);
-    } else if (data.gameType === 'pendu') {
-      newRoom.gameState = createInitialPenduState();
-    } else if (data.gameType === 'dominos') {
-      newRoom.gameState = createInitialDominosState(data.variant);
-    } else if (data.gameType === 'snake') {
-      newRoom.gameState = createInitialSnakeState([socket.id, 'local-player-2']);
-      startSnakeLoop(roomId);
-    } else if (data.gameType === 'tetris') {
-      newRoom.gameState = createInitialTetrisState([socket.id, 'local-player-2']);
-      startTetrisLoop(roomId);
-    } else if (data.gameType === 'memory') {
-      newRoom.gameState = createInitialMemoryState([socket.id, 'local-player-2']);
-    } else if (data.gameType === 'uno') {
-      newRoom.gameState = createInitialUnoState([socket.id, 'local-player-2']);
-    } else if (data.gameType === 'blackjack') {
-      newRoom.gameState = createInitialBlackjackState([socket.id, 'local-player-2']);
-    }
-
     rooms[roomId] = newRoom;
+    newRoom.gameState = createGameState(data.gameType, [socket.id, 'local-player-2'], data.variant);
+    startGameLoop(data.gameType, roomId);
     socket.join(roomId);
 
     console.log(`Local room created: ${roomId} with players ${newRoom.players[0].username} and ${newRoom.players[1].username}`);
@@ -375,40 +309,8 @@ io.on('connection', (socket: Socket) => {
     // If room is full, start the game
     if (room.players.length === 2) {
       room.status = 'playing';
-      if (room.gameType === 'connect4') {
-        room.gameState = createInitialConnect4State();
-      } else if (room.gameType === 'battleship') {
-        room.gameState = createInitialBattleshipState(room.players.map(p => p.id));
-      } else if (room.gameType === 'tictactoe') {
-        room.gameState = createInitialTicTacToeState();
-      } else if (room.gameType === 'checkers') {
-        room.gameState = createInitialCheckersState();
-      } else if (room.gameType === 'chess') {
-        room.gameState = createInitialChessState();
-      } else if (room.gameType === 'gomoku') {
-        room.gameState = createInitialGomokuState();
-      } else if (room.gameType === 'othello') {
-        room.gameState = createInitialOthelloState();
-      } else if (room.gameType === 'pong') {
-        room.gameState = createInitialPongState();
-        startPongLoop(room.id);
-      } else if (room.gameType === 'pendu') {
-        room.gameState = createInitialPenduState();
-      } else if (room.gameType === 'dominos') {
-        room.gameState = createInitialDominosState(room.variant);
-      } else if (room.gameType === 'snake') {
-        room.gameState = createInitialSnakeState(room.players.map(p => p.id) as [string, string]);
-        startSnakeLoop(room.id);
-      } else if (room.gameType === 'tetris') {
-        room.gameState = createInitialTetrisState(room.players.map(p => p.id) as [string, string]);
-        startTetrisLoop(room.id);
-      } else if (room.gameType === 'memory') {
-        room.gameState = createInitialMemoryState(room.players.map(p => p.id) as [string, string]);
-      } else if (room.gameType === 'uno') {
-        room.gameState = createInitialUnoState(room.players.map(p => p.id) as [string, string]);
-      } else if (room.gameType === 'blackjack') {
-        room.gameState = createInitialBlackjackState(room.players.map(p => p.id) as [string, string]);
-      }
+      room.gameState = createGameState(room.gameType, room.players.map(p => p.id) as [string, string], room.variant);
+      startGameLoop(room.gameType, room.id);
     }
 
     callback({ success: true, roomId: room.id, room });
@@ -686,40 +588,8 @@ io.on('connection', (socket: Socket) => {
       // For local play, a rematch is triggered immediately
       room.status = 'playing';
       room.rematchVotes = [];
-      if (room.gameType === 'connect4') {
-        room.gameState = createInitialConnect4State();
-      } else if (room.gameType === 'battleship') {
-        room.gameState = createInitialBattleshipState(room.players.map(p => p.id));
-      } else if (room.gameType === 'tictactoe') {
-        room.gameState = createInitialTicTacToeState();
-      } else if (room.gameType === 'checkers') {
-        room.gameState = createInitialCheckersState();
-      } else if (room.gameType === 'chess') {
-        room.gameState = createInitialChessState();
-      } else if (room.gameType === 'gomoku') {
-        room.gameState = createInitialGomokuState();
-      } else if (room.gameType === 'othello') {
-        room.gameState = createInitialOthelloState();
-      } else if (room.gameType === 'pong') {
-        room.gameState = createInitialPongState();
-        startPongLoop(room.id);
-      } else if (room.gameType === 'pendu') {
-        room.gameState = createInitialPenduState();
-      } else if (room.gameType === 'dominos') {
-        room.gameState = createInitialDominosState(room.variant);
-      } else if (room.gameType === 'snake') {
-        room.gameState = createInitialSnakeState(room.players.map(p => p.id) as [string, string]);
-        startSnakeLoop(room.id);
-      } else if (room.gameType === 'tetris') {
-        room.gameState = createInitialTetrisState(room.players.map(p => p.id) as [string, string]);
-        startTetrisLoop(room.id);
-      } else if (room.gameType === 'memory') {
-        room.gameState = createInitialMemoryState(room.players.map(p => p.id) as [string, string]);
-      } else if (room.gameType === 'uno') {
-        room.gameState = createInitialUnoState(room.players.map(p => p.id) as [string, string]);
-      } else if (room.gameType === 'blackjack') {
-        room.gameState = createInitialBlackjackState(room.players.map(p => p.id) as [string, string]);
-      }
+      room.gameState = createGameState(room.gameType, room.players.map(p => p.id) as [string, string], room.variant);
+      startGameLoop(room.gameType, room.id);
     } else {
       if (!room.rematchVotes) room.rematchVotes = [];
       if (!room.rematchVotes.includes(socket.id)) {
@@ -729,40 +599,8 @@ io.on('connection', (socket: Socket) => {
       if (room.rematchVotes.length === 2) {
         room.status = 'playing';
         room.rematchVotes = [];
-        if (room.gameType === 'connect4') {
-          room.gameState = createInitialConnect4State();
-        } else if (room.gameType === 'battleship') {
-          room.gameState = createInitialBattleshipState(room.players.map(p => p.id));
-        } else if (room.gameType === 'tictactoe') {
-          room.gameState = createInitialTicTacToeState();
-        } else if (room.gameType === 'checkers') {
-          room.gameState = createInitialCheckersState();
-        } else if (room.gameType === 'chess') {
-          room.gameState = createInitialChessState();
-        } else if (room.gameType === 'gomoku') {
-          room.gameState = createInitialGomokuState();
-        } else if (room.gameType === 'othello') {
-          room.gameState = createInitialOthelloState();
-        } else if (room.gameType === 'pong') {
-          room.gameState = createInitialPongState();
-          startPongLoop(room.id);
-        } else if (room.gameType === 'pendu') {
-          room.gameState = createInitialPenduState();
-        } else if (room.gameType === 'dominos') {
-          room.gameState = createInitialDominosState(room.variant);
-        } else if (room.gameType === 'snake') {
-          room.gameState = createInitialSnakeState(room.players.map(p => p.id) as [string, string]);
-          startSnakeLoop(room.id);
-        } else if (room.gameType === 'tetris') {
-          room.gameState = createInitialTetrisState(room.players.map(p => p.id) as [string, string]);
-          startTetrisLoop(room.id);
-        } else if (room.gameType === 'memory') {
-          room.gameState = createInitialMemoryState(room.players.map(p => p.id) as [string, string]);
-        } else if (room.gameType === 'uno') {
-          room.gameState = createInitialUnoState(room.players.map(p => p.id) as [string, string]);
-        } else if (room.gameType === 'blackjack') {
-          room.gameState = createInitialBlackjackState(room.players.map(p => p.id) as [string, string]);
-        }
+        room.gameState = createGameState(room.gameType, room.players.map(p => p.id) as [string, string], room.variant);
+        startGameLoop(room.gameType, room.id);
       }
     }
 
@@ -826,95 +664,9 @@ io.on('connection', (socket: Socket) => {
       }
     });
 
+    const winnerNum = (room.players.findIndex(p => p.id === winner.id) + 1) as 1 | 2;
     room.status = 'finished';
-    if (room.gameType === 'connect4') {
-      const state = room.gameState as Connect4State;
-      if (state) {
-        const playerIndex = room.players.findIndex(p => p.id === winner.id);
-        state.winner = playerIndex !== -1 ? playerIndex + 1 : 1;
-      }
-    } else if (room.gameType === 'battleship') {
-      const state = room.gameState as BattleshipState;
-      if (state) {
-        state.winnerId = winner.id;
-        state.phase = 'finished';
-      }
-    } else if (room.gameType === 'tictactoe') {
-      const state = room.gameState as TicTacToeState;
-      if (state) {
-        const playerIndex = room.players.findIndex(p => p.id === winner.id);
-        state.winner = playerIndex === 0 ? 'X' : 'O';
-      }
-    } else if (room.gameType === 'checkers') {
-      const state = room.gameState as CheckersState;
-      if (state) {
-        const playerIndex = room.players.findIndex(p => p.id === winner.id);
-        state.winner = (playerIndex !== -1 ? playerIndex + 1 : 1) as 1 | 2;
-      }
-    } else if (room.gameType === 'chess') {
-      const state = room.gameState as ChessState;
-      if (state) {
-        const playerIndex = room.players.findIndex(p => p.id === winner.id);
-        state.winner = (playerIndex !== -1 ? playerIndex + 1 : 1) as 1 | 2;
-      }
-    } else if (room.gameType === 'gomoku') {
-      const state = room.gameState as GomokuState;
-      if (state) {
-        const playerIndex = room.players.findIndex(p => p.id === winner.id);
-        state.winner = playerIndex !== -1 ? playerIndex + 1 : 1;
-      }
-    } else if (room.gameType === 'othello') {
-      const state = room.gameState as OthelloState;
-      if (state) {
-        const playerIndex = room.players.findIndex(p => p.id === winner.id);
-        state.winner = playerIndex !== -1 ? playerIndex + 1 : 1;
-      }
-    } else if (room.gameType === 'dominos') {
-      const state = room.gameState as DominosState;
-      if (state) {
-        const playerIndex = room.players.findIndex(p => p.id === winner.id);
-        state.winner = playerIndex !== -1 ? playerIndex + 1 : 1;
-        state.winnerReason = "abandon de l'adversaire";
-      }
-    } else if (room.gameType === 'snake') {
-      const state = room.gameState as SnakeState;
-      if (state) {
-        const playerIndex = room.players.findIndex(p => p.id === winner.id);
-        state.winner = playerIndex !== -1 ? playerIndex + 1 : 1;
-      }
-      if (snakeIntervals[room.id]) {
-        clearInterval(snakeIntervals[room.id]);
-        delete snakeIntervals[room.id];
-      }
-    } else if (room.gameType === 'tetris') {
-      const state = room.gameState as TetrisState;
-      if (state) {
-        const playerIndex = room.players.findIndex(p => p.id === winner.id);
-        state.winner = playerIndex !== -1 ? playerIndex + 1 : 1;
-      }
-      if (tetrisIntervals[room.id]) {
-        clearInterval(tetrisIntervals[room.id]);
-        delete tetrisIntervals[room.id];
-      }
-    } else if (room.gameType === 'memory') {
-      const state = room.gameState as MemoryState;
-      if (state) {
-        const playerIndex = room.players.findIndex(p => p.id === winner.id);
-        state.winner = playerIndex !== -1 ? playerIndex + 1 : 1;
-      }
-    } else if (room.gameType === 'uno') {
-      const state = room.gameState as UnoState;
-      if (state) {
-        const playerIndex = room.players.findIndex(p => p.id === winner.id);
-        state.winner = playerIndex !== -1 ? playerIndex + 1 : 1;
-      }
-    } else if (room.gameType === 'blackjack') {
-      const state = room.gameState as BlackjackState;
-      if (state) {
-        const playerIndex = room.players.findIndex(p => p.id === winner.id);
-        state.winner = playerIndex !== -1 ? playerIndex + 1 : 1;
-      }
-    }
+    setGameWinner(room, winnerNum, winner.id);
 
     broadcastRoomUpdate(room);
     io.emit('roomsList', getPublicRooms());
@@ -940,7 +692,6 @@ io.on('connection', (socket: Socket) => {
     }
 
     updateTetrisPhysics(state, pid, data.action);
-    io.to(data.roomId).emit('tetrisUpdate', state);
 
     if (state.winner !== null) {
       room.status = 'finished';
@@ -949,6 +700,8 @@ io.on('connection', (socket: Socket) => {
         clearInterval(tetrisIntervals[data.roomId]);
         delete tetrisIntervals[data.roomId];
       }
+    } else {
+      io.to(data.roomId).emit('tetrisUpdate', state);
     }
   });
 
@@ -1198,99 +951,23 @@ function handlePlayerLeave(socket: Socket, roomId: string) {
   if (!room) return;
 
   const leavingPlayerIndex = room.players.findIndex(p => p.id === socket.id);
+  const winnerNum = (leavingPlayerIndex === 0 ? 2 : 1) as 1 | 2;
+  const winnerPlayer = room.players.find(p => p.id !== socket.id);
+
   room.players = room.players.filter(p => p.id !== socket.id);
   socket.leave(roomId);
 
   if (room.players.length === 0) {
+    stopGameLoop(room.gameType, roomId);
+    if (memoryTimeouts[roomId]) {
+      clearTimeout(memoryTimeouts[roomId]);
+      delete memoryTimeouts[roomId];
+    }
     delete rooms[roomId];
     console.log(`Room ${roomId} deleted (empty)`);
-  } else {
-    // Notify remaining player that they won or opponent disconnected
+  } else if (winnerPlayer) {
     room.status = 'finished';
-    if (room.gameType === 'connect4') {
-      const state = room.gameState as Connect4State;
-      if (state) {
-        state.winner = leavingPlayerIndex === 0 ? 2 : 1;
-      }
-    } else if (room.gameType === 'battleship') {
-      const state = room.gameState as BattleshipState;
-      if (state) {
-        state.winnerId = room.players[0].id;
-        state.phase = 'finished';
-      }
-    } else if (room.gameType === 'tictactoe') {
-      const state = room.gameState as TicTacToeState;
-      if (state) {
-        state.winner = leavingPlayerIndex === 0 ? 'O' : 'X';
-      }
-    } else if (room.gameType === 'checkers') {
-      const state = room.gameState as CheckersState;
-      if (state) {
-        state.winner = leavingPlayerIndex === 0 ? 2 : 1;
-      }
-    } else if (room.gameType === 'chess') {
-      const state = room.gameState as ChessState;
-      if (state) {
-        state.winner = leavingPlayerIndex === 0 ? 2 : 1;
-      }
-    } else if (room.gameType === 'gomoku') {
-      const state = room.gameState as GomokuState;
-      if (state) {
-        state.winner = leavingPlayerIndex === 0 ? 2 : 1;
-      }
-    } else if (room.gameType === 'othello') {
-      const state = room.gameState as OthelloState;
-      if (state) {
-        state.winner = leavingPlayerIndex === 0 ? 2 : 1;
-      }
-    } else if (room.gameType === 'pong') {
-      const state = room.gameState as PongState;
-      if (state) {
-        state.winner = leavingPlayerIndex === 0 ? 2 : 1;
-      }
-      if (pongIntervals[room.id]) {
-        clearInterval(pongIntervals[room.id]);
-        delete pongIntervals[room.id];
-      }
-    } else if (room.gameType === 'pendu') {
-      const state = room.gameState as PenduState;
-      if (state) {
-        state.winner = leavingPlayerIndex === 0 ? 2 : 1;
-      }
-    } else if (room.gameType === 'dominos') {
-      const state = room.gameState as DominosState;
-      if (state) {
-        state.winner = leavingPlayerIndex === 0 ? 2 : 1;
-        state.winnerReason = "forfait (déconnexion)";
-      }
-    } else if (room.gameType === 'snake') {
-      const state = room.gameState as SnakeState;
-      if (state) {
-        state.winner = leavingPlayerIndex === 0 ? 2 : 1;
-      }
-      if (snakeIntervals[room.id]) {
-        clearInterval(snakeIntervals[room.id]);
-        delete snakeIntervals[room.id];
-      }
-    } else if (room.gameType === 'tetris') {
-      const state = room.gameState as TetrisState;
-      if (state) {
-        state.winner = leavingPlayerIndex === 0 ? 2 : 1;
-      }
-      if (tetrisIntervals[room.id]) {
-        clearInterval(tetrisIntervals[room.id]);
-        delete tetrisIntervals[room.id];
-      }
-    } else if (room.gameType === 'memory') {
-      const state = room.gameState as MemoryState;
-      if (state) state.winner = leavingPlayerIndex === 0 ? 2 : 1;
-    } else if (room.gameType === 'uno') {
-      const state = room.gameState as UnoState;
-      if (state) state.winner = leavingPlayerIndex === 0 ? 2 : 1;
-    } else if (room.gameType === 'blackjack') {
-      const state = room.gameState as BlackjackState;
-      if (state) state.winner = leavingPlayerIndex === 0 ? 2 : 1;
-    }
+    setGameWinner(room, winnerNum, winnerPlayer.id, "forfait (déconnexion)");
     broadcastRoomUpdate(room);
   }
   io.emit('roomsList', getPublicRooms());
@@ -1320,13 +997,14 @@ function startTetrisLoop(roomId: string) {
     const state = room.gameState as TetrisState;
     // Gravity-only tick (no action)
     updateTetrisPhysics(state, null, null);
-    io.to(roomId).emit('tetrisUpdate', state);
 
     if (state.winner !== null) {
       room.status = 'finished';
       broadcastRoomUpdate(room);
       clearInterval(tetrisIntervals[roomId]);
       delete tetrisIntervals[roomId];
+    } else {
+      io.to(roomId).emit('tetrisUpdate', state);
     }
   }, Math.round(1000 / 60)); // 60 Hz
 }
@@ -1418,6 +1096,77 @@ function startPongLoop(roomId: string) {
     }
   }, 1000 / 60); // 60 Hz physics + broadcast
 }
+
+// ── Game factory helpers ──────────────────────────────────────────────────────
+
+function createGameState(
+  gameType: GameType,
+  playerIds: [string, string],
+  variant?: GameVariant
+): Room['gameState'] {
+  switch (gameType) {
+    case 'connect4':   return createInitialConnect4State();
+    case 'battleship': return createInitialBattleshipState(playerIds);
+    case 'tictactoe':  return createInitialTicTacToeState();
+    case 'checkers':   return createInitialCheckersState();
+    case 'chess':      return createInitialChessState();
+    case 'gomoku':     return createInitialGomokuState();
+    case 'othello':    return createInitialOthelloState();
+    case 'pong':       return createInitialPongState();
+    case 'pendu':      return createInitialPenduState();
+    case 'dominos':    return createInitialDominosState(variant);
+    case 'snake':      return createInitialSnakeState(playerIds);
+    case 'tetris':     return createInitialTetrisState(playerIds);
+    case 'memory':     return createInitialMemoryState(playerIds);
+    case 'uno':        return createInitialUnoState(playerIds);
+    case 'blackjack':  return createInitialBlackjackState(playerIds);
+    default:           return null;
+  }
+}
+
+function startGameLoop(gameType: GameType, roomId: string): void {
+  if (gameType === 'pong')        startPongLoop(roomId);
+  else if (gameType === 'snake')  startSnakeLoop(roomId);
+  else if (gameType === 'tetris') startTetrisLoop(roomId);
+}
+
+function stopGameLoop(gameType: GameType, roomId: string): void {
+  if (gameType === 'pong' && pongIntervals[roomId]) {
+    clearInterval(pongIntervals[roomId]);
+    delete pongIntervals[roomId];
+  } else if (gameType === 'snake' && snakeIntervals[roomId]) {
+    clearTimeout(snakeIntervals[roomId]);
+    delete snakeIntervals[roomId];
+  } else if (gameType === 'tetris' && tetrisIntervals[roomId]) {
+    clearInterval(tetrisIntervals[roomId]);
+    delete tetrisIntervals[roomId];
+  }
+}
+
+function setGameWinner(room: Room, winnerNum: 1 | 2, winnerId: string, leaveReason?: string): void {
+  const state = room.gameState;
+  if (!state) return;
+
+  switch (room.gameType) {
+    case 'tictactoe':
+      (state as TicTacToeState).winner = winnerNum === 1 ? 'X' : 'O';
+      break;
+    case 'battleship':
+      (state as BattleshipState).winnerId = winnerId;
+      (state as BattleshipState).phase = 'finished';
+      break;
+    case 'dominos':
+      (state as DominosState).winner = winnerNum;
+      (state as DominosState).winnerReason = leaveReason ?? "abandon de l'adversaire";
+      break;
+    default:
+      (state as any).winner = winnerNum;
+  }
+
+  stopGameLoop(room.gameType, room.id);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function broadcastRoomUpdate(room: Room) {
   if (room.gameType === 'battleship' && room.gameState) {

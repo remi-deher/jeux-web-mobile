@@ -25,8 +25,13 @@ serene-noether/
 * **Point d'entrée** : [backend/src/server.ts](file:///C:/Users/remi2/Documents/antigravity/serene-noether/backend/src/server.ts)
 * **Logique de Jeu** : Les dossiers `backend/src/games/` contiennent les moteurs de jeux autoritaires (Chess, Checkers, Pong, Snake, Tetris, Blackjack, Uno, Dominos, Memory, TicTacToe).
 * **Moteur physique / Boucle principale** :
-  * Les jeux en temps réel (Pong, Tetris, Snake) ont leur propre boucle de tick initiée par `startPongLoop()`, `startSnakeLoop()`, etc.
+  * Les jeux en temps réel (Pong, Tetris, Snake) ont leur propre boucle de tick initiée par `startGameLoop()`.
   * Les calculs physiques sont exécutés côté serveur, puis l'état résultant est diffusé périodiquement via Socket.io à tous les joueurs du salon.
+* **Helpers de cycle de vie** (définis en bas de `server.ts`, avant `broadcastRoomUpdate`) :
+  * `createGameState(gameType, playerIds, variant?)` — factory centralisée : retourne l'état initial du jeu correspondant. **Point d'entrée unique** pour ajouter un nouveau jeu.
+  * `startGameLoop(gameType, roomId)` — démarre la boucle physique (pong/snake/tetris uniquement).
+  * `stopGameLoop(gameType, roomId)` — arrête proprement la boucle physique.
+  * `setGameWinner(room, winnerNum, winnerId, leaveReason?)` — assigne le gagnant selon la sémantique propre à chaque type de jeu (numérique, X/O pour Morpion, ID pour Battleship).
 
 ### 3. Dossier `frontend/` (Client & PWA)
 * **Stack** : Angular (Standalone Components), RxJS, Socket.io-client, Vanilla CSS (Variables MD3/Modernes).
@@ -60,6 +65,32 @@ serene-noether/
   * Intercepte l'événement `beforeinstallprompt` pour proposer un bouton d'installation natif (Android, Chrome, Windows/macOS).
   * Détecte les plateformes iOS/Apple et affiche à la place un modal explicatif pas-à-pas pour Safari (Bouton Partager ➔ Sur l'écran d'accueil).
   * Les métadonnées iOS spécifiques sont configurées dans `index.html`.
+
+---
+
+---
+
+## ➕ Ajouter un nouveau jeu — Checklist
+
+1. **Backend** — créer `backend/src/games/<nom>.ts` avec :
+   - `create<Nom>State(...playerIds)` → état initial
+   - Fonctions de mise à jour / validation des coups
+   - Exporter les types d'état
+
+2. **Backend `server.ts`** — 3 modifications ciblées :
+   - `import { create<Nom>State, ... } from './games/<nom>'`
+   - Ajouter le `case '<nom>':` dans `createGameState()`
+   - Ajouter le handler de l'événement socket (`'<nom>Move'` etc.)
+   - Si jeu temps-réel : ajouter `start<Nom>Loop()` et brancher dans `startGameLoop()` / `stopGameLoop()`
+
+3. **Shared** — ajouter `'<nom>'` à l'union `GameType` dans `shared/src/game-types.d.ts`
+
+4. **Frontend** — créer le composant Angular dans `frontend/src/app/components/<nom>/`
+   - Utiliser `injectGameSession('<nom>')` pour la logique commune (room, emojis, stats)
+   - Utiliser `injectRealtimeCanvas()` pour les jeux canvas haute-fréquence
+   - Déclarer la route dans `app.routes.ts`
+
+5. **Labels & constants** — ajouter le libellé dans `frontend/src/app/constants/game-labels.ts`
 
 ---
 
