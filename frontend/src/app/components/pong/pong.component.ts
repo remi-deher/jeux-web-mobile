@@ -472,10 +472,12 @@ export class PongComponent implements AfterViewInit, OnDestroy {
       const dy   = Math.abs(sim.ball.y - s.ball.y);
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      if (dist < 6.0) {
-        // Small or moderate drift — very soft blend to smooth out network jitter
-        sim.ball.x = sim.ball.x * 0.95 + s.ball.x * 0.05;
-        sim.ball.y = sim.ball.y * 0.95 + s.ball.y * 0.05;
+      if (dist < 2.5) {
+        // Within latency dead-zone — do not correct position (prevents visual drag/stutter during flight)
+      } else if (dist < 6.0) {
+        // Moderate drift — soft blend to converge smoothly
+        sim.ball.x = sim.ball.x * 0.92 + s.ball.x * 0.08;
+        sim.ball.y = sim.ball.y * 0.92 + s.ball.y * 0.08;
       } else {
         // Large error (missed bounce, edge case) — hard snap
         sim.ball.x = s.ball.x;
