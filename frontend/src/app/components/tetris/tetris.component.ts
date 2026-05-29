@@ -9,13 +9,14 @@
 
 import {
   Component, ViewChild, ElementRef, AfterViewInit, OnDestroy,
-  inject, computed, NgZone,
+  inject, computed,
 } from '@angular/core';
 import { GameService } from '../../services/game.service';
 import { GameLayoutComponent } from '../game-layout/game-layout.component';
 import { FloatingEmojisComponent } from '../floating-emojis/floating-emojis.component';
 import { injectGameSession } from '../../services/game-session.helper';
 import { injectWebRtcSession } from '../../services/webrtc-session.helper';
+import { injectRealtimeCanvas } from '../../services/realtime-canvas.helper';
 
 // ── Types (mirrors backend tetris.ts) ────────────────────────────────────────
 type PieceType = 'I' | 'O' | 'T' | 'S' | 'Z' | 'J' | 'L';
@@ -138,9 +139,12 @@ export class TetrisComponent implements AfterViewInit, OnDestroy {
   @ViewChild('tetrisCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private gameService = inject(GameService);
-  private ngZone      = inject(NgZone);
-  private session = injectGameSession('tetris');
-  private rtc     = injectWebRtcSession('tetris');
+  private session     = injectGameSession('tetris');
+  private rtc         = injectWebRtcSession('tetris');
+  private rt          = injectRealtimeCanvas(
+    cb => this.gameService.subscribeTetrisRaw(cb),
+    () => this.gameService.liveTetrisState(),
+  );
 
   // ── Session boilerplate ────────────────────────────────────────────────────
   room                   = this.session.room;
@@ -200,7 +204,6 @@ export class TetrisComponent implements AfterViewInit, OnDestroy {
   // ── Canvas & layout ────────────────────────────────────────────────────────
   private ctx!:     CanvasRenderingContext2D;
   private rafId = 0;
-  private _tetrisUnsub?: () => void;
   private cellPx   = 24;
   private state: TetrisState | null = null;
 
@@ -237,24 +240,21 @@ export class TetrisComponent implements AfterViewInit, OnDestroy {
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup',   this.onKeyUp);
 
-    // Raw callback — runs outside Angular zone on every server tick
-    this._tetrisUnsub = this.gameService.subscribeTetrisRaw((s: any) => {
-      this.detectFlash(s.players.p1, this.prevBoardP1, this.flashP1);
-      this.detectFlash(s.players.p2, this.prevBoardP2, this.flashP2);
-      this.prevBoardP1 = s.players.p1.board.map((r: number[]) => [...r]);
-      this.prevBoardP2 = s.players.p2.board.map((r: number[]) => [...r]);
-      this.state = s;
-    });
-
-    // RAF loop outside zone: prevents 60 Hz ApplicationRef.tick()
-    this.ngZone.runOutsideAngular(() => {
-      this.rafId = requestAnimationFrame(this.loop);
-    });
+    // injectRealtimeCanvas : cdr.detach() + abonnement hors zone + RAF hors zone
+    this.rt.start(
+      (s: any) => {
+        this.detectFlash(s.players.p1, this.prevBoardP1, this.flashP1);
+        this.detectFlash(s.players.p2, this.prevBoardP2, this.flashP2);
+        this.prevBoardP1 = s.players.p1.board.map((r: number[]) => [...r]);
+        this.prevBoardP2 = s.players.p2.board.map((r: number[]) => [...r]);
+        this.state = s;
+      },
+      () => { this.rafId = requestAnimationFrame(this.loop); },
+    );
   }
 
   ngOnDestroy(): void {
     cancelAnimationFrame(this.rafId);
-    this._tetrisUnsub?.();
     window.removeEventListener('resize', this.onResize);
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup',   this.onKeyUp);

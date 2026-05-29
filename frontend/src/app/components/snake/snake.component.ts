@@ -8,13 +8,14 @@
 
 import {
   Component, ViewChild, ElementRef, AfterViewInit, OnDestroy,
-  inject, computed, NgZone,
+  inject, computed,
 } from '@angular/core';
 import { GameService } from '../../services/game.service';
 import { GameLayoutComponent } from '../game-layout/game-layout.component';
 import { FloatingEmojisComponent } from '../floating-emojis/floating-emojis.component';
 import { injectGameSession } from '../../services/game-session.helper';
 import { injectWebRtcSession } from '../../services/webrtc-session.helper';
+import { injectRealtimeCanvas } from '../../services/realtime-canvas.helper';
 
 // ── Types (mirrors backend snake.ts) ─────────────────────────────────────────
 type Direction = 'up' | 'down' | 'left' | 'right';
@@ -287,10 +288,11 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
   @ViewChild('snakeCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private gameService = inject(GameService);
-  private ngZone      = inject(NgZone);
-
-  // ── Game session boilerplate ───────────────────────────────────────────────
-  private session = injectGameSession('snake');
+  private session     = injectGameSession('snake');
+  private rt          = injectRealtimeCanvas(
+    cb => this.gameService.subscribeSnakeRaw(cb),
+    () => this.gameService.liveSnakeState(),
+  );
   /** Canal WebRTC P2P — relaye les directions à l'adversaire avec la latence minimale. */
   private rtc     = injectWebRtcSession('snake');
   private onResize = () => this.resizeCanvas();
@@ -377,7 +379,6 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
   // ── Rendering ─────────────────────────────────────────────────────────────
   private ctx!: CanvasRenderingContext2D;
   private rafId  = 0;
-  private _snakeUnsub?: () => void;
   private prevState: SnakeState | null = null;
   private currState: SnakeState | null = null;
   /** Interpolation progress 0→1 between two server ticks */
@@ -409,26 +410,24 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
     window.addEventListener('resize', this.onResize);
     window.addEventListener('keydown', this.onKeyDown);
 
-    // Raw callback — runs outside Angular zone, no change detection on every tick
-    this._snakeUnsub = this.gameService.subscribeSnakeRaw((s: any) => {
-      if (s.tickCount !== this.lastTickCount) {
-        this.prevState      = this.currState ? structuredClone(this.currState) : null;
-        this.currState      = s;
-        this.lastTickCount  = s.tickCount;
-        this.lastTickTime   = performance.now();
-        this.lerpT          = 0;
-        if (s.speedHz) this.measuredTickMs = 1000 / s.speedHz;
-      }
-    });
-
-    // RAF loop outside zone: zone.js patches requestAnimationFrame,
-    // so running it inside the zone would cause change detection every frame.
-    this.ngZone.runOutsideAngular(() => { this.loop(); });
+    // injectRealtimeCanvas : cdr.detach() + abonnement hors zone + RAF hors zone
+    this.rt.start(
+      (s: any) => {
+        if (s.tickCount !== this.lastTickCount) {
+          this.prevState     = this.currState ? structuredClone(this.currState) : null;
+          this.currState     = s;
+          this.lastTickCount = s.tickCount;
+          this.lastTickTime  = performance.now();
+          this.lerpT         = 0;
+          if (s.speedHz) this.measuredTickMs = 1000 / s.speedHz;
+        }
+      },
+      () => this.loop(),
+    );
   }
 
   ngOnDestroy(): void {
     cancelAnimationFrame(this.rafId);
-    this._snakeUnsub?.();
     window.removeEventListener('resize', this.onResize);
     window.removeEventListener('keydown', this.onKeyDown);
   }
