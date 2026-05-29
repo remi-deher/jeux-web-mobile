@@ -671,6 +671,12 @@ export class PongComponent implements AfterViewInit, OnDestroy {
 
     this.accumulator += delta;
 
+    // Cap the accumulator to prevent the physics loop 'spiral of death' catch-up cycle
+    const maxAccumulator = this.STEP_MS * 2;
+    if (this.accumulator > maxAccumulator) {
+      this.accumulator = maxAccumulator;
+    }
+
     while (this.accumulator >= this.STEP_MS) {
       // Smooth opponent paddle toward server (or WebRTC) value each step
       this.stepOpponentPaddle();
@@ -880,7 +886,6 @@ export class PongComponent implements AfterViewInit, OnDestroy {
       ctx.save();
       ctx.font = `bold ${Math.floor(H * 0.09)}px 'Courier New', monospace`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.shadowColor = '#FFFFFF'; ctx.shadowBlur = 20;
       ctx.fillStyle   = `rgba(255,255,255,${0.4 + pulse * 0.4})`;
       ctx.fillText(secs > 0 ? String(secs) : '▶', W / 2, H / 2);
       ctx.restore();
@@ -908,14 +913,13 @@ export class PongComponent implements AfterViewInit, OnDestroy {
 
     // ── Particles ─────────────────────────────────────────────────────────────
     for (const p of this.particles) {
-      ctx.save();
       ctx.globalAlpha = p.life;
+      ctx.fillStyle = p.color;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.radius * p.life, 0, Math.PI * 2);
-      ctx.fillStyle = p.color; ctx.shadowColor = p.color; ctx.shadowBlur = 6;
       ctx.fill();
-      ctx.restore();
     }
+    ctx.globalAlpha = 1.0;
 
     // ── Paddles ───────────────────────────────────────────────────────────────
     const pH    = (sim.paddleHeight / 100) * H;
@@ -925,36 +929,45 @@ export class PongComponent implements AfterViewInit, OnDestroy {
 
     // P1 — green
     const p1Top = (sim.p1Y / 100) * H - pH / 2;
-    ctx.save();
     const pf1 = this.paddleFlash.p1;
-    ctx.shadowColor = pf1 > 0 ? `rgba(255,255,255,${pf1})` : '#00E676';
-    ctx.shadowBlur  = 18 + pf1 * 30;
+    // Simulated glow outline
+    ctx.fillStyle = pf1 > 0 ? `rgba(255, 255, 255, ${0.15 + pf1 * 0.35})` : 'rgba(0, 230, 118, 0.18)';
+    ctx.beginPath();
+    (ctx as any).roundRect(leftX - 4, p1Top - 4, pW + 8, pH + 8, 6);
+    ctx.fill();
+
     const g1 = ctx.createLinearGradient(0, p1Top, 0, p1Top + pH);
     g1.addColorStop(0, '#00C853'); g1.addColorStop(0.5, pf1 > 0 ? `rgba(255,255,255,${pf1})` : '#69F0AE'); g1.addColorStop(1, '#00C853');
     ctx.fillStyle = g1;
     ctx.beginPath(); (ctx as any).roundRect(leftX, p1Top, pW, pH, 4); ctx.fill();
-    ctx.restore();
 
     // P2 — cyan
     const p2Top = (sim.p2Y / 100) * H - pH / 2;
-    ctx.save();
     const pf2 = this.paddleFlash.p2;
-    ctx.shadowColor = pf2 > 0 ? `rgba(255,255,255,${pf2})` : '#00E5FF';
-    ctx.shadowBlur  = 18 + pf2 * 30;
+    // Simulated glow outline
+    ctx.fillStyle = pf2 > 0 ? `rgba(255, 255, 255, ${0.15 + pf2 * 0.35})` : 'rgba(0, 229, 255, 0.18)';
+    ctx.beginPath();
+    (ctx as any).roundRect(rightX - 4, p2Top - 4, pW + 8, pH + 8, 6);
+    ctx.fill();
+
     const g2 = ctx.createLinearGradient(0, p2Top, 0, p2Top + pH);
     g2.addColorStop(0, '#0091EA'); g2.addColorStop(0.5, pf2 > 0 ? `rgba(255,255,255,${pf2})` : '#80D8FF'); g2.addColorStop(1, '#0091EA');
     ctx.fillStyle = g2;
     ctx.beginPath(); (ctx as any).roundRect(rightX, p2Top, pW, pH, 4); ctx.fill();
-    ctx.restore();
 
     // ── Ball ──────────────────────────────────────────────────────────────────
     if (!sim.serving) {
-      ctx.save();
-      ctx.shadowColor = `rgba(255,255,255,${0.7 + speedT * 0.3})`;
-      ctx.shadowBlur  = 20 + speedT * 30;
-      ctx.fillStyle   = '#FFFFFF';
-      ctx.beginPath(); ctx.arc(bX, bY, bR, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
+      // Ball glow circle
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.15 + speedT * 0.15})`;
+      ctx.beginPath();
+      ctx.arc(bX, bY, bR + 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Ball core
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(bX, bY, bR, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 }

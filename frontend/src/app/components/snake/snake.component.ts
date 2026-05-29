@@ -292,6 +292,7 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
   private session = injectGameSession('snake');
   /** Canal WebRTC P2P — relaye les directions à l'adversaire avec la latence minimale. */
   private rtc     = injectWebRtcSession('snake');
+  private onResize = () => this.resizeCanvas();
   room             = this.session.room;
   floatingEmojis   = this.session.floatingEmojis;
   isPlaying        = this.session.isPlaying;
@@ -429,14 +430,14 @@ export class SnakeComponent implements AfterViewInit, OnDestroy {
     const canvas = this.canvasRef.nativeElement;
     this.ctx = canvas.getContext('2d')!;
     this.resizeCanvas();
-    window.addEventListener('resize', () => this.resizeCanvas());
+    window.addEventListener('resize', this.onResize);
     window.addEventListener('keydown', this.onKeyDown);
     this.loop();
   }
 
   ngOnDestroy(): void {
     cancelAnimationFrame(this.rafId);
-    window.removeEventListener('resize', () => this.resizeCanvas());
+    window.removeEventListener('resize', this.onResize);
     window.removeEventListener('keydown', this.onKeyDown);
   }
 

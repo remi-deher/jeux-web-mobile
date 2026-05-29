@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, inject, OnDestroy } from '@angular/core';
 import { GameHelpersService } from '../../services/game-helpers.service';
 
 @Component({
@@ -1019,7 +1019,7 @@ import { GameHelpersService } from '../../services/game-helpers.service';
     }
   `]
 })
-export class GameLayoutComponent {
+export class GameLayoutComponent implements OnDestroy {
   public gameHelpersService = inject(GameHelpersService);
 
   @Input() gameTitle: string = '';
@@ -1057,11 +1057,19 @@ export class GameLayoutComponent {
   showRulesModal = signal<boolean>(false);
   isFullscreen   = signal<boolean>(false);
 
+  private onFullscreenChange = () => {
+    this.isFullscreen.set(!!document.fullscreenElement);
+  };
+
   constructor() {
     if (typeof window !== 'undefined') {
-      document.addEventListener('fullscreenchange', () => {
-        this.isFullscreen.set(!!document.fullscreenElement);
-      });
+      document.addEventListener('fullscreenchange', this.onFullscreenChange);
+    }
+  }
+
+  ngOnDestroy() {
+    if (typeof window !== 'undefined') {
+      document.removeEventListener('fullscreenchange', this.onFullscreenChange);
     }
   }
 
