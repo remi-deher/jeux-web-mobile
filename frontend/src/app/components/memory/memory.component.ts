@@ -1,46 +1,32 @@
-import { Component, computed, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  OnDestroy,
+  ViewChild,
+  computed,
+  effect,
+  inject,
+} from '@angular/core';
+import * as Phaser from 'phaser';
 import { GameService } from '../../services/game.service';
 import { GameLayoutComponent } from '../game-layout/game-layout.component';
 import { injectGameSession } from '../../services/game-session.helper';
-
-interface MemoryCard {
-  id: number;
-  pairId: number;
-  faceUp: boolean;
-  matched: boolean;
-}
-
-interface MemoryState {
-  cards: MemoryCard[];
-  cols: number;
-  rows: number;
-  currentPlayer: 1 | 2;
-  scores: [number, number];
-  flippedIds: number[];
-  isResolving: boolean;
-  totalPairs: number;
-  matchedPairs: number;
-  winner: number | null;
-  playerIds: [string, string];
-}
-
-// Simple emoji icons for pairs (8 pairs)
-const PAIR_ICONS = ['🦊','🐳','🌵','🍕','🎸','🚀','🦋','🌈'];
+import { MemoryPhaserScene, MemorySceneSnapshot, MemoryState } from './memory.scene';
 
 @Component({
   selector: 'app-memory',
   standalone: true,
-  imports: [CommonModule, GameLayoutComponent],
+  imports: [GameLayoutComponent],
   template: `
 <app-game-layout
   gameTitle="Memory"
   [rules]="[
     'Retournez 2 cartes par tour.',
     'Si elles forment une paire, vous marquez un point et rejouez.',
-    'Sinon, elles sont retournées face cachée.',
-    'Le joueur avec le plus de paires à la fin gagne.',
-    '4×4 = 8 paires à trouver.'
+    'Sinon, elles sont retournees face cachee.',
+    'Le joueur avec le plus de paires a la fin gagne.',
+    '4x4 = 8 paires a trouver.'
   ]"
   [room]="room()"
   [isPlaying]="isPlaying()"
@@ -65,143 +51,55 @@ const PAIR_ICONS = ['🦊','🐳','🌵','🍕','🎸','🚀','🦋','🌈'];
   (shareInvitation)="shareInvitationLink()"
 >
   <div game-board class="memory-container">
-    <!-- Score board -->
-    <div class="score-bar" *ngIf="gameState()">
-      <div class="score-item" [class.active]="gameState()!.currentPlayer === 1">
-        <span class="score-name">{{ player1Name() }}</span>
-        <span class="score-value">{{ gameState()!.scores[0] }} paires</span>
-      </div>
-      <div class="score-divider">
-        <span class="pairs-left">{{ gameState()!.totalPairs - gameState()!.matchedPairs }} restantes</span>
-      </div>
-      <div class="score-item" [class.active]="gameState()!.currentPlayer === 2">
-        <span class="score-name">{{ player2Name() }}</span>
-        <span class="score-value">{{ gameState()!.scores[1] }} paires</span>
-      </div>
-    </div>
-
-    <!-- Grid -->
-    <div class="memory-grid" *ngIf="gameState()">
-      @for (card of gameState()!.cards; track card.id) {
-        <div
-          class="card-wrapper"
-          [class.flipped]="card.faceUp || card.matched"
-          [class.matched]="card.matched"
-          [class.disabled]="isResolving() || card.faceUp || card.matched || !canFlip()"
-          (click)="flip(card.id)"
-        >
-          <div class="card-inner">
-            <div class="card-front">?</div>
-            <div class="card-back">{{ iconFor(card.pairId) }}</div>
-          </div>
-        </div>
-      }
-    </div>
-
-    <div class="resolving-msg" *ngIf="isResolving()">
-      Pas de paire… retournement en cours…
-    </div>
+    <div #phaserHost class="memory-phaser" aria-label="Plateau Memory Phaser"></div>
   </div>
 </app-game-layout>
   `,
   styles: [`
     .memory-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-      padding: 16px;
-    }
-    .score-bar {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      background: rgba(255,255,255,0.08);
-      border-radius: 12px;
-      padding: 10px 20px;
-      width: 100%;
-      max-width: 480px;
-      justify-content: space-between;
-    }
-    .score-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-      transition: transform 0.2s;
-    }
-    .score-item.active {
-      transform: scale(1.1);
-    }
-    .score-name { font-size: 13px; color: rgba(255,255,255,0.6); }
-    .score-value { font-size: 18px; font-weight: 700; color: #fff; }
-    .score-divider { display: flex; flex-direction: column; align-items: center; }
-    .pairs-left { font-size: 12px; color: rgba(255,255,255,0.4); }
-
-    .memory-grid {
-      display: grid;
-      grid-template-columns: repeat(4, min(min(20vw, 110px), calc((100dvh - 240px) / 4)));
-      grid-template-rows:    repeat(4, min(min(20vw, 110px), calc((100dvh - 240px) / 4)));
-      gap: 10px;
-      width: fit-content;
-    }
-
-    .card-wrapper {
-      perspective: 600px;
-      cursor: pointer;
-      aspect-ratio: 1;
-    }
-    .card-wrapper.disabled { cursor: not-allowed; }
-
-    .card-inner {
       width: 100%;
       height: 100%;
-      position: relative;
-      transform-style: preserve-3d;
-      transition: transform 0.45s ease;
-      border-radius: 10px;
-    }
-    .card-wrapper.flipped .card-inner { transform: rotateY(180deg); }
-
-    .card-front, .card-back {
-      position: absolute;
-      inset: 0;
-      border-radius: 10px;
+      min-height: 0;
+      padding: 12px;
+      box-sizing: border-box;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      backface-visibility: hidden;
-      font-size: 28px;
-      user-select: none;
-    }
-    .card-front {
-      background: linear-gradient(135deg, #3f51b5, #7c4dff);
-      color: rgba(255,255,255,0.4);
-      font-size: 22px;
-      font-weight: bold;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    .card-back {
-      background: linear-gradient(135deg, #fff9c4, #fff);
-      transform: rotateY(180deg);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    .card-wrapper.matched .card-back {
-      background: linear-gradient(135deg, #c8e6c9, #a5d6a7);
-      box-shadow: 0 0 10px rgba(76,175,80,0.6);
     }
 
-    .resolving-msg {
-      font-size: 14px;
-      color: rgba(255,255,255,0.5);
-      font-style: italic;
-      margin-top: 4px;
+    .memory-phaser {
+      width: 100%;
+      height: 100%;
+      min-height: 420px;
+      overflow: hidden;
+      border-radius: 8px;
+      box-shadow: 0 16px 42px rgba(0,0,0,0.3);
+      touch-action: manipulation;
+    }
+
+    .memory-phaser canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    @media (max-width: 560px) {
+      .memory-container {
+        padding: 8px;
+      }
+
+      .memory-phaser {
+        min-height: 360px;
+      }
     }
   `]
 })
-export class MemoryComponent {
+export class MemoryComponent implements AfterViewInit, OnDestroy {
+  @ViewChild('phaserHost') private phaserHost?: ElementRef<HTMLDivElement>;
+
   private gameService = inject(GameService);
   private session = injectGameSession('memory');
+  private phaserGame?: Phaser.Game;
+  private phaserScene?: MemoryPhaserScene;
+  private resizeObserver?: ResizeObserver;
 
   room = this.session.room;
   isPlaying = this.session.isPlaying;
@@ -244,6 +142,55 @@ export class MemoryComponent {
     return this.isMyTurn();
   });
 
+  private readonly phaserSnapshot = computed<MemorySceneSnapshot>(() => ({
+    state: this.gameState(),
+    canFlip: this.canFlip(),
+    player1Name: this.player1Name(),
+    player2Name: this.player2Name(),
+    statusText: this.sceneStatusText(),
+  }));
+
+  private readonly phaserSync = effect(() => {
+    this.phaserScene?.render(this.phaserSnapshot());
+  });
+
+  ngAfterViewInit(): void {
+    const host = this.phaserHost?.nativeElement;
+    if (!host) return;
+
+    const width = Math.max(host.clientWidth, 320);
+    const height = Math.max(host.clientHeight, 360);
+    this.phaserScene = new MemoryPhaserScene(cardId => this.flip(cardId));
+    this.phaserGame = new Phaser.Game({
+      type: Phaser.AUTO,
+      parent: host,
+      width,
+      height,
+      backgroundColor: '#0b1020',
+      scene: this.phaserScene,
+      scale: {
+        mode: Phaser.Scale.NONE,
+      },
+    });
+
+    this.resizeObserver = new ResizeObserver(entries => {
+      const entry = entries[0];
+      if (!entry || !this.phaserGame) return;
+      const nextWidth = Math.max(Math.floor(entry.contentRect.width), 320);
+      const nextHeight = Math.max(Math.floor(entry.contentRect.height), 360);
+      this.phaserGame.scale.resize(nextWidth, nextHeight);
+      this.phaserScene?.refreshSize();
+    });
+    this.resizeObserver.observe(host);
+    this.phaserScene.render(this.phaserSnapshot());
+  }
+
+  ngOnDestroy(): void {
+    this.phaserSync.destroy();
+    this.resizeObserver?.disconnect();
+    this.phaserGame?.destroy(true);
+  }
+
   turnText = computed(() => {
     const gs = this.gameState();
     if (!gs) return '';
@@ -251,7 +198,7 @@ export class MemoryComponent {
     if (room?.isLocal) {
       return `Tour du ${gs.currentPlayer === 1 ? this.player1Name() : this.player2Name()}`;
     }
-    return 'Votre tour — retournez une carte !';
+    return 'Votre tour - retournez une carte !';
   });
 
   opponentText = computed(() => {
@@ -260,13 +207,23 @@ export class MemoryComponent {
     const room = this.room();
     if (room?.isLocal) return '';
     const oppName = this.myPlayerNum() === 1 ? this.player2Name() : this.player1Name();
-    return `${oppName} retourne une carte…`;
+    return `${oppName} retourne une carte...`;
+  });
+
+  sceneStatusText = computed(() => {
+    const gs = this.gameState();
+    if (!gs) return 'En attente de la partie...';
+    if (gs.winner !== null) return this.winnerLabel();
+    if (gs.isResolving) return 'Pas de paire... retournement en cours';
+    const currentName = gs.currentPlayer === 1 ? this.player1Name() : this.player2Name();
+    if (this.room()?.isLocal) return `Tour de ${currentName}`;
+    return this.isMyTurn() ? 'Votre tour' : `Tour de ${currentName}`;
   });
 
   winnerLabel = computed(() => {
     const gs = this.gameState();
     if (!gs || gs.winner === null) return '';
-    if (gs.winner === 0) return 'Égalité !';
+    if (gs.winner === 0) return 'Egalite !';
     const name = gs.winner === 1 ? this.player1Name() : this.player2Name();
     return `${name} gagne !`;
   });
@@ -288,10 +245,6 @@ export class MemoryComponent {
     if (room?.isLocal) return false;
     return gs.winner !== this.myPlayerNum();
   });
-
-  iconFor(pairId: number): string {
-    return PAIR_ICONS[pairId % PAIR_ICONS.length];
-  }
 
   flip(cardId: number) {
     if (!this.canFlip()) return;
