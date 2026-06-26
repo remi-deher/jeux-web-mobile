@@ -159,24 +159,78 @@
           </button>
         </div>
         <div class="profile-modal-body">
-          <!-- Change Username -->
-          <div class="profile-section">
-            <h4 class="section-title">
-              <span class="material-symbols">edit</span>
-              Changer de pseudonyme
-            </h4>
-            <form (submit)="saveNewUsername(); $event.preventDefault()" class="username-edit-form">
-              <input
-                type="text"
-                [(ngModel)]="newUsername"
-                name="newUsername"
-                placeholder="Pseudonyme..."
-                maxlength="15"
-                required
-              />
-              <button type="submit" class="primary-btn">Enregistrer</button>
-            </form>
+          <!-- User status card -->
+          <div class="profile-section user-identity-section" style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding-bottom: 20px; border-bottom: 1px solid var(--md-outline-variant); text-align: center;">
+            <div class="user-hero" style="width: 70px; height: 70px; border-radius: 50%; background: var(--md-primary-container); display: flex; align-items: center; justify-content: center;">
+              <span class="material-symbols" style="font-size: 38px; color: var(--md-on-primary-container);">account_circle</span>
+            </div>
+            <div>
+              <h3 style="margin: 0; font-size: 20px; font-weight: 600; color: var(--md-on-surface);">{{ username() }}</h3>
+              
+              @if (tempUser()) {
+                <span class="status-badge temp" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(255, 171, 0, 0.15); color: #FFD54F; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 12px; margin-top: 6px; border: 1px solid rgba(255, 171, 0, 0.3);">
+                  <span class="material-symbols" style="font-size: 14px;">warning</span>
+                  Compte Temporaire
+                </span>
+              } @else {
+                <span class="status-badge secured" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(0, 230, 118, 0.15); color: #00E676; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 12px; margin-top: 6px; border: 1px solid rgba(0, 230, 118, 0.3);">
+                  <span class="material-symbols" style="font-size: 14px;">shield</span>
+                  Compte Sécurisé
+                </span>
+              }
+            </div>
+            
+            <button class="outlined-btn" (click)="resetUsername(); closeProfileModal()" style="display: flex; align-items: center; gap: 6px; margin-top: 4px; padding: 8px 16px; font-size: 13px; border-color: var(--md-error); color: var(--md-error);">
+              <span class="material-symbols" style="font-size: 16px;">logout</span>
+              <span>Se déconnecter</span>
+            </button>
           </div>
+
+          <!-- Account Security / PIN Setup -->
+          @if (tempUser()) {
+            <div class="profile-section" style="padding-top: 16px;">
+              <h4 class="section-title" style="margin: 0 0 10px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; color: var(--md-primary);">
+                <span class="material-symbols">security</span>
+                Sécuriser votre compte
+              </h4>
+              <p style="margin: 0 0 12px; font-size: 13px; color: var(--md-on-surface-variant); line-height: 1.5; text-align: left;">
+                Créez un code PIN pour sauvegarder vos victoires et défis définitivement sur le serveur et pouvoir vous reconnecter.
+              </p>
+              <form (submit)="secureAccount(); $event.preventDefault()" style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+                <input
+                  type="password"
+                  [(ngModel)]="pinCodeToSecure"
+                  name="pinCodeToSecure"
+                  placeholder="Code PIN (4 à 6 chiffres)..."
+                  pattern="\\d{4,6}"
+                  inputmode="numeric"
+                  maxlength="6"
+                  style="-webkit-text-security: disc; text-align: center; font-size: 16px; letter-spacing: 4px; font-family: monospace; width: 100%; box-sizing: border-box;"
+                  required
+                  autocomplete="new-password"
+                />
+                @if (secureErrorMessage()) {
+                  <div class="form-error-msg" style="color: var(--md-error); font-size: 13px; text-align: left; width: 100%;">
+                    {{ secureErrorMessage() }}
+                  </div>
+                }
+                <button type="submit" class="primary-btn" [disabled]="!pinCodeToSecure || pinCodeToSecure.length < 4 || pinCodeToSecure.length > 6" style="width: 100%;">
+                  <span>Activer la sécurité</span>
+                  <span class="material-symbols">arrow_forward</span>
+                </button>
+              </form>
+            </div>
+          } @else {
+            <div class="profile-section" style="padding-top: 16px; text-align: left;">
+              <div style="display: flex; gap: 10px; align-items: flex-start; padding: 12px; border-radius: var(--md-radius-md); background: var(--md-surface-container-high); border: 1px solid var(--md-outline-variant);">
+                <span class="material-symbols" style="color: var(--md-primary); font-size: 20px; margin-top: 2px;">cloud_done</span>
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <span style="font-size: 13px; font-weight: 600; color: var(--md-on-surface);">Sauvegarde active</span>
+                  <span style="font-size: 12px; color: var(--md-on-surface-variant); line-height: 1.4;">Vos données de jeu sont synchronisées sur le serveur et protégées par votre code PIN.</span>
+                </div>
+              </div>
+            </div>
+          }
 
           <!-- PWA Installation Row in Profile -->
           @if (!isPwaStandalone() && (isPwaInstallable() || isPwaIOS())) {

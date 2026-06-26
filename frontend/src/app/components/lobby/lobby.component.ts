@@ -12,29 +12,108 @@ import { gameLabel } from '../../constants/game-labels';
   template: `
     <div class="lobby-container">
       @if (!username()) {
-        <!-- Username Selection -->
+        <!-- Username & PIN Connection Flow -->
         <div class="surface-card username-card">
           <div class="user-hero">
             <span class="material-symbols hero-icon">account_circle</span>
           </div>
-          <div class="card-text">
-            <h2>Prêt à jouer ?</h2>
-            <p>Choisissez un pseudonyme pour rejoindre le salon général et défier d'autres joueurs.</p>
-          </div>
-          <form (submit)="saveUsername(); $event.preventDefault()">
-            <input
-              type="text"
-              [(ngModel)]="tempUsername"
-              name="tempUsername"
-              placeholder="Pseudonyme..."
-              maxlength="15"
-              required
-            />
-            <button type="submit" class="primary-btn">
-              <span>Entrer</span>
-              <span class="material-symbols">arrow_forward</span>
-            </button>
-          </form>
+
+          @if (loginStep() === 'username') {
+            <div class="card-text">
+              <h2>Prêt à jouer ?</h2>
+              <p>Choisissez un pseudonyme pour rejoindre le salon général et défier d'autres joueurs.</p>
+            </div>
+            <form (submit)="saveUsername(); $event.preventDefault()">
+              <input
+                type="text"
+                [(ngModel)]="tempUsername"
+                name="tempUsername"
+                placeholder="Pseudonyme..."
+                maxlength="15"
+                required
+              />
+              @if (errorMessage()) {
+                <div class="form-error-msg" style="color: var(--md-error); font-size: 13px; margin-top: 4px; text-align: left; width: 100%;">
+                  {{ errorMessage() }}
+                </div>
+              }
+              <button type="submit" class="primary-btn">
+                <span>Continuer</span>
+                <span class="material-symbols">arrow_forward</span>
+              </button>
+            </form>
+          } @else if (loginStep() === 'pin-login') {
+            <div class="card-text">
+              <h2>Compte sécurisé</h2>
+              <p>Ce pseudonyme (<strong>{{ tempUsername }}</strong>) est protégé. Saisissez votre code PIN (4-6 chiffres) pour vous connecter.</p>
+            </div>
+            <form (submit)="confirmLogin(); $event.preventDefault()">
+              <input
+                type="password"
+                [(ngModel)]="pinCode"
+                name="pinCode"
+                placeholder="Code PIN..."
+                pattern="\\d{4,6}"
+                inputmode="numeric"
+                maxlength="6"
+                style="-webkit-text-security: disc; text-align: center; font-size: 18px; letter-spacing: 4px; font-family: monospace;"
+                required
+                autocomplete="current-password"
+              />
+              @if (errorMessage()) {
+                <div class="form-error-msg" style="color: var(--md-error); font-size: 13px; margin-top: 4px; text-align: left; width: 100%;">
+                  {{ errorMessage() }}
+                </div>
+              }
+              <div style="display: flex; gap: 8px; width: 100%; margin-top: 8px;">
+                <button type="button" class="outlined-btn" (click)="resetStep()" style="flex: 1;">
+                  <span>Retour</span>
+                </button>
+                <button type="submit" class="primary-btn" style="flex: 2;">
+                  <span>Se connecter</span>
+                  <span class="material-symbols">login</span>
+                </button>
+              </div>
+            </form>
+          } @else if (loginStep() === 'pin-create') {
+            <div class="card-text">
+              <h2>Sécuriser votre compte ?</h2>
+              <p>Voulez-vous créer un code PIN pour enregistrer vos statistiques de victoire et progression sur le serveur ?</p>
+            </div>
+            <form (submit)="confirmRegisterSecured(); $event.preventDefault()">
+              <div style="display: flex; flex-direction: column; gap: 6px; width: 100%; margin-bottom: 8px;">
+                <label style="font-size: 12px; font-weight: 500; color: var(--md-on-surface-variant); text-align: left;">Code PIN de sécurité (4 à 6 chiffres)</label>
+                <input
+                  type="password"
+                  [(ngModel)]="pinCode"
+                  name="pinCode"
+                  placeholder="Code PIN à créer..."
+                  pattern="\\d{4,6}"
+                  inputmode="numeric"
+                  maxlength="6"
+                  style="-webkit-text-security: disc; text-align: center; font-size: 18px; letter-spacing: 4px; font-family: monospace;"
+                  autocomplete="new-password"
+                />
+              </div>
+              @if (errorMessage()) {
+                <div class="form-error-msg" style="color: var(--md-error); font-size: 13px; margin-top: 4px; text-align: left; width: 100%;">
+                  {{ errorMessage() }}
+                </div>
+              }
+              <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 8px;">
+                <button type="submit" class="primary-btn" [disabled]="!pinCode || pinCode.length < 4 || pinCode.length > 6">
+                  <span class="material-symbols">shield</span>
+                  <span>Créer mon compte sécurisé</span>
+                </button>
+                <button type="button" class="text-btn" (click)="confirmRegisterTemp()" style="font-size: 13px; padding: 10px; color: var(--md-secondary);">
+                  <span>Continuer en compte temporaire (invité)</span>
+                </button>
+                <button type="button" class="outlined-btn" (click)="resetStep()" style="font-size: 13px; padding: 10px;">
+                  <span>Retour au pseudo</span>
+                </button>
+              </div>
+            </form>
+          }
         </div>
       } @else if (selectedGame() === null) {
         <!-- Step 1: Select Game -->
@@ -800,6 +879,11 @@ import { gameLabel } from '../../constants/game-labels';
 export class LobbyComponent {
   tempUsername = '';
   joinCode = '';
+  
+  // PIN Connection Flow variables
+  loginStep = signal<'username' | 'pin-create' | 'pin-login'>('username');
+  pinCode = '';
+  errorMessage = signal<string>('');
 
   selectedGame;
   showCreateModal = signal<boolean>(false);
@@ -830,10 +914,80 @@ export class LobbyComponent {
     this.tempUsername = this.username();
   }
 
-  saveUsername() {
-    if (this.tempUsername.trim()) {
-      this.gameService.setUsername(this.tempUsername.trim());
+  async saveUsername() {
+    const name = this.tempUsername.trim();
+    if (!name) return;
+    this.errorMessage.set('');
+    try {
+      const status = await this.gameService.checkUsername(name);
+      if (status.exists) {
+        if (status.requiresPin) {
+          this.loginStep.set('pin-login');
+        } else {
+          // If guest user exists on server, try to register.
+          // The server will trigger 'This nickname is already taken' if it is active.
+          const res = await this.gameService.registerUser(name, null);
+          if (!res.success) {
+            this.errorMessage.set(res.message || 'Ce pseudonyme est déjà pris.');
+          }
+        }
+      } else {
+        this.loginStep.set('pin-create');
+      }
+    } catch (err: any) {
+      this.errorMessage.set('Une erreur est survenue lors de la vérification.');
     }
+  }
+
+  async confirmLogin() {
+    const name = this.tempUsername.trim();
+    const pin = this.pinCode.trim();
+    if (!name || !pin) return;
+    this.errorMessage.set('');
+    const res = await this.gameService.loginUser(name, pin);
+    if (res.success) {
+      this.pinCode = '';
+      this.loginStep.set('username');
+    } else {
+      this.errorMessage.set(res.message || 'Pseudonyme ou code PIN incorrect.');
+    }
+  }
+
+  async confirmRegisterSecured() {
+    const name = this.tempUsername.trim();
+    const pin = this.pinCode.trim();
+    if (!name || !pin) return;
+    if (pin.length < 4 || pin.length > 6 || !/^\d+$/.test(pin)) {
+      this.errorMessage.set('Le code PIN doit comporter entre 4 et 6 chiffres.');
+      return;
+    }
+    this.errorMessage.set('');
+    const res = await this.gameService.registerUser(name, pin);
+    if (res.success) {
+      this.pinCode = '';
+      this.loginStep.set('username');
+    } else {
+      this.errorMessage.set(res.message || 'Erreur lors de la création du compte.');
+    }
+  }
+
+  async confirmRegisterTemp() {
+    const name = this.tempUsername.trim();
+    if (!name) return;
+    this.errorMessage.set('');
+    const res = await this.gameService.registerUser(name, null);
+    if (res.success) {
+      this.pinCode = '';
+      this.loginStep.set('username');
+    } else {
+      this.errorMessage.set(res.message || 'Erreur lors de la création du compte temporaire.');
+    }
+  }
+
+  resetStep() {
+    this.loginStep.set('username');
+    this.pinCode = '';
+    this.errorMessage.set('');
   }
 
   selectGame(game: GameType | null) {

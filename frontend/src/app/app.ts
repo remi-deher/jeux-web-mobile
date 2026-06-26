@@ -59,11 +59,16 @@ export class App {
   title = 'Playbox';
 
   username;
+  tempUser;
   currentRoom;
   incomingChallenges;
 
   activeView;
   activeGame;
+
+  // Temporary account security PIN code
+  pinCodeToSecure = '';
+  secureErrorMessage = signal<string>('');
 
   private gameHelpersService = inject(GameHelpersService);
   private pwaService = inject(PwaService);
@@ -124,6 +129,7 @@ export class App {
 
   constructor(private gameService: GameService, private router: Router) {
     this.username = this.gameService.username;
+    this.tempUser = this.gameService.tempUser;
     this.currentRoom = this.gameService.currentRoom;
     this.incomingChallenges = this.gameService.incomingChallenges;
     this.activeView = this.gameService.activeView;
@@ -201,7 +207,7 @@ export class App {
   }
 
   resetUsername() {
-    this.gameService.setUsername('');
+    this.gameService.logout();
   }
 
   openProfileModal() {
@@ -211,12 +217,24 @@ export class App {
 
   closeProfileModal() {
     this.showProfileModal.set(false);
+    this.pinCodeToSecure = '';
+    this.secureErrorMessage.set('');
   }
 
-  saveNewUsername() {
-    if (this.newUsername.trim()) {
-      this.gameService.setUsername(this.newUsername.trim());
+  async secureAccount() {
+    const pin = this.pinCodeToSecure.trim();
+    if (!pin) return;
+    if (pin.length < 4 || pin.length > 6 || !/^\d+$/.test(pin)) {
+      this.secureErrorMessage.set('Le code PIN doit comporter entre 4 et 6 chiffres.');
+      return;
+    }
+    this.secureErrorMessage.set('');
+    const res = await this.gameService.secureTempUser(pin);
+    if (res.success) {
+      this.pinCodeToSecure = '';
       this.closeProfileModal();
+    } else {
+      this.secureErrorMessage.set(res.message || 'Erreur lors de la sécurisation du compte.');
     }
   }
 }

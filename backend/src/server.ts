@@ -27,6 +27,16 @@ import { MemoryState, createInitialMemoryState, flipCard, resolveFlip } from './
 import { UnoState, createInitialUnoState, unoPlay, unoDraw, UnoColor } from './games/uno';
 import { BlackjackState, createInitialBlackjackState, placeBet, bjHit, bjStand, bjDouble, nextRound } from './games/blackjack';
 import { AirhockeyState, createInitialAirhockeyState, updateAirhockeyPhysics } from './games/airhockey';
+import {
+  loadUsers,
+  registerUser,
+  loginUser,
+  loginWithToken,
+  secureTempUser,
+  checkUserStatus,
+  incrementUserStats,
+  getUserStats
+} from './users';
 
 const app = express();
 app.use(cors());
@@ -159,6 +169,53 @@ io.on('connection', (socket: Socket) => {
     if (!username || !username.trim()) return;
     onlineUsers[socket.id] = username.trim();
     broadcastOnlineUsers();
+  });
+
+  socket.on('checkUsername', (data: { username: string }, callback) => {
+    const status = checkUserStatus(data.username);
+    callback(status);
+  });
+
+  socket.on('registerUser', (data: { username: string; pin: string | null }, callback) => {
+    const res = registerUser(data.username, data.pin);
+    if (res.success) {
+      onlineUsers[socket.id] = data.username.trim();
+      broadcastOnlineUsers();
+    }
+    callback(res);
+  });
+
+  socket.on('loginUser', (data: { username: string; pin: string }, callback) => {
+    const res = loginUser(data.username, data.pin);
+    if (res.success) {
+      onlineUsers[socket.id] = data.username.trim();
+      broadcastOnlineUsers();
+    }
+    callback(res);
+  });
+
+  socket.on('loginWithToken', (data: { username: string; token: string }, callback) => {
+    const res = loginWithToken(data.username, data.token);
+    if (res.success) {
+      onlineUsers[socket.id] = data.username.trim();
+      broadcastOnlineUsers();
+    }
+    callback(res);
+  });
+
+  socket.on('secureTempUser', (data: { username: string; pin: string }, callback) => {
+    const res = secureTempUser(data.username, data.pin);
+    if (res.success) {
+      const stats = getUserStats(data.username);
+      callback({ success: true, token: res.token, stats });
+    } else {
+      callback(res);
+    }
+  });
+
+  socket.on('getUserStats', (data: { username: string }, callback) => {
+    const stats = getUserStats(data.username);
+    callback({ success: true, stats });
   });
 
   socket.on('sendChallenge', (data: { targetSocketId: string; gameType: string }) => {
@@ -1223,6 +1280,22 @@ function setGameWinner(room: Room, winnerNum: 1 | 2, winnerId: string, leaveReas
       (state as any).winner = winnerNum;
   }
 
+  if (!room.isLocal && room.players.length === 2) {
+    const p1 = room.players[0].username;
+    const p2 = room.players[1].username;
+
+    if (winnerNum === 1 || winnerId === room.players[0].id) {
+      incrementUserStats(p1, room.gameType, 'win');
+      incrementUserStats(p2, room.gameType, 'loss');
+    } else if (winnerNum === 2 || winnerId === room.players[1].id) {
+      incrementUserStats(p2, room.gameType, 'win');
+      incrementUserStats(p1, room.gameType, 'loss');
+    } else if (winnerId === 'draw') {
+      incrementUserStats(p1, room.gameType, 'draw');
+      incrementUserStats(p2, room.gameType, 'draw');
+    }
+  }
+
   stopGameLoop(room.gameType, room.id);
 }
 
@@ -1259,6 +1332,8 @@ function getPublicRooms() {
       variant: r.variant
     }));
 }
+
+loadUsers();
 
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {

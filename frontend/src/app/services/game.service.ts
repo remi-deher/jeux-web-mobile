@@ -16,6 +16,8 @@ export class GameService {
   
   // App signals
   public username = signal<string>(localStorage.getItem('username') || '');
+  public tempUser = signal<boolean>(localStorage.getItem('tempUser') === 'true');
+  public authToken = signal<string>(localStorage.getItem('authToken') || '');
   public currentRoom = signal<Room | null>(null);
   public roomsList = signal<RoomListEntry[]>([]);
   public globalChat = signal<ChatMessage[]>([]);
@@ -108,8 +110,31 @@ export class GameService {
       : io(); // Connects to same origin — nginx proxies /socket.io/ to backend
     
       const savedUsername = this.username();
+      const savedToken = this.authToken();
+
       if (savedUsername) {
-        this.socket.emit('registerUsername', savedUsername);
+        if (savedToken) {
+          console.log('Attempting automatic token authentication for:', savedUsername);
+          this.socket.emit('loginWithToken', { username: savedUsername, token: savedToken }, (res: any) => {
+            if (res.success) {
+              console.log('Token login successful.');
+              if (res.stats) {
+                this.syncStatsFromServer(res.stats);
+              }
+            } else {
+              console.log('Token login failed, logging out.');
+              this.logout();
+            }
+          });
+        } else {
+          // Si compte invité, on se déclare juste sur le serveur
+          this.socket.emit('registerUser', { username: savedUsername, pin: null }, (res: any) => {
+            if (!res.success) {
+              console.log('Guest register failed:', res.message);
+              this.logout();
+            }
+          });
+        }
       }
       
       const savedRoomId = localStorage.getItem('roomId');
@@ -126,12 +151,17 @@ export class GameService {
       }
 
       // ── Reconnexion automatique après coupure réseau ──────────────────────
-      // socket.io-client reconnecte tout seul, mais il faut ré-enregistrer
-      // le username et re-rejoindre la salle éventuellement en cours.
       this.socket.io.on('reconnect', () => {
         const user = this.username();
+        const token = this.authToken();
         if (user) {
-          this.socket.emit('registerUsername', user);
+          if (token) {
+            this.socket.emit('loginWithToken', { username: user, token }, (res: any) => {
+              if (!res.success) this.logout();
+            });
+          } else {
+            this.socket.emit('registerUser', { username: user, pin: null });
+          }
         }
         const roomId = localStorage.getItem('roomId');
         if (roomId && user) {
@@ -389,12 +419,102 @@ export class GameService {
     return this.socket.id;
   }
 
-  setUsername(name: string) {
-    this.username.set(name);
-    localStorage.setItem('username', name);
-    if (name) {
-      this.socket.emit('registerUsername', name);
-    }
+  logout() {
+    this.username.set('');
+    this.authToken.set('');
+    this.tempUser.set(false);
+    localStorage.removeItem('username');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('tempUser');
+    localStorage.removeItem('roomId');
+    this.currentRoom.set(null);
+  }
+
+  syncStatsFromServer(stats: any) {
+    if (!stats) return;
+    Object.entries(stats).forEach(([game, stat]: [string, any]) => {
+      localStorage.setItem(`stats_${game}_wins`, String(stat.wins ?? 0));
+      localStorage.setItem(`stats_${game}_losses`, String(stat.losses ?? 0));
+      localStorage.setItem(`stats_${game}_draws`, String(stat.draws ?? 0));
+    });
+  }
+
+  checkUsername(username: string): Promise<{ exists: boolean; requiresPin: boolean }> {
+    return new Promise((resolve) => {
+      this.socket.emit('checkUsername', { username }, (res: any) => {
+        resolve(res || { exists: false, requiresPin: false });
+      });
+    });
+  }
+
+  registerUser(username: string, pin: string | null): Promise<{ success: boolean; message?: string }> {
+    return new Promise((resolve) => {
+      this.socket.emit('registerUser', { username, pin }, (res: any) => {
+        if (res.success) {
+          this.username.set(username.trim());
+          localStorage.setItem('username', username.trim());
+          if (pin !== null) {
+            this.tempUser.set(false);
+            localStorage.setItem('tempUser', 'false');
+            if (res.token) {
+              this.authToken.set(res.token);
+              localStorage.setItem('authToken', res.token);
+            }
+          } else {
+            this.tempUser.set(true);
+            localStorage.setItem('tempUser', 'true');
+            this.authToken.set('');
+            localStorage.removeItem('authToken');
+          }
+        }
+        resolve(res);
+      });
+    });
+  }
+
+  loginUser(username: string, pin: string): Promise<{ success: boolean; message?: string }> {
+    return new Promise((resolve) => {
+      this.socket.emit('loginUser', { username, pin }, (res: any) => {
+        if (res.success) {
+          this.username.set(username.trim());
+          localStorage.setItem('username', username.trim());
+          this.tempUser.set(false);
+          localStorage.setItem('tempUser', 'false');
+          if (res.token) {
+            this.authToken.set(res.token);
+            localStorage.setItem('authToken', res.token);
+          }
+          if (res.stats) {
+            this.syncStatsFromServer(res.stats);
+          }
+        }
+        resolve(res);
+      });
+    });
+  }
+
+  secureTempUser(pin: string): Promise<{ success: boolean; message?: string }> {
+    return new Promise((resolve) => {
+      const currentUsername = this.username();
+      if (!currentUsername) {
+        resolve({ success: false, message: 'Aucun utilisateur connecté.' });
+        return;
+      }
+      this.socket.emit('secureTempUser', { username: currentUsername, pin }, (res: any) => {
+        if (res.success) {
+          this.tempUser.set(false);
+          localStorage.setItem('tempUser', 'false');
+          if (res.token) {
+            this.authToken.set(res.token);
+            localStorage.setItem('authToken', res.token);
+          }
+          if (res.stats) {
+            this.syncStatsFromServer(res.stats);
+          }
+        }
+        resolve(res);
+      });
+    });
   }
 
   sendGlobalMessage(text: string) {
