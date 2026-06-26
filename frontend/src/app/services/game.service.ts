@@ -27,6 +27,7 @@ export class GameService {
   public onlineUsers = signal<{ id: string; username: string }[]>([]);
   public friends = signal<string[]>(JSON.parse(localStorage.getItem('friends') || '[]'));
   public incomingChallenges = signal<{ challengerSocketId: string; challengerUsername: string; gameType: string }[]>([]);
+  public incomingInvitations = signal<{ hostUsername: string; roomId: string; gameType: string }[]>([]);
   public privateMessages = signal<PrivateMessage[]>(JSON.parse(localStorage.getItem('privateMessages') || '[]'));
   
   // Navigation signals
@@ -398,6 +399,11 @@ export class GameService {
       this.showNativeNotification(data.challengerUsername, data.gameType);
     });
 
+    this.socket.on('friendInvitationReceived', (data: { hostUsername: string; roomId: string; gameType: string }) => {
+      this.incomingInvitations.update(invitations => [...invitations, data]);
+      this.soundService.playSound('warning');
+    });
+
     this.socket.on('challengeAccepted', (data: { roomId: string; room: Room }) => {
       this.currentRoom.set(data.room);
       localStorage.setItem('roomId', data.roomId);
@@ -543,11 +549,14 @@ export class GameService {
     this.socket.emit('globalMessage', { username: this.username(), text });
   }
 
-  createRoom(gameType: GameType, isPrivate: boolean = false, variant?: GameVariant) {
+  createRoom(gameType: GameType, isPrivate: boolean = false, variant?: GameVariant, inviteUsername?: string) {
     this.socket.emit('createRoom', { gameType, username: this.username(), isPrivate, variant }, (res: any) => {
       if (res.success) {
         this.currentRoom.set(res.room);
         localStorage.setItem('roomId', res.roomId);
+        if (inviteUsername) {
+          this.socket.emit('inviteFriend', { friendUsername: inviteUsername, roomId: res.roomId, gameType });
+        }
       } else {
         alert(res.message || 'Error creating room');
       }

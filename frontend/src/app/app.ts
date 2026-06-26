@@ -62,6 +62,7 @@ export class App {
   tempUser;
   currentRoom;
   incomingChallenges;
+  incomingInvitations;
 
   activeView;
   activeGame;
@@ -132,6 +133,7 @@ export class App {
     this.tempUser = this.gameService.tempUser;
     this.currentRoom = this.gameService.currentRoom;
     this.incomingChallenges = this.gameService.incomingChallenges;
+    this.incomingInvitations = this.gameService.incomingInvitations;
     this.activeView = this.gameService.activeView;
     this.activeGame = this.gameService.activeGame;
 
@@ -187,6 +189,15 @@ export class App {
 
   declineChallenge(challengerSocketId: string) {
     this.gameService.declineChallenge(challengerSocketId);
+  }
+
+  acceptInvitation(roomId: string) {
+    this.gameService.joinRoom(roomId);
+    this.gameService.incomingInvitations.update(list => list.filter(i => i.roomId !== roomId));
+  }
+
+  declineInvitation(roomId: string) {
+    this.gameService.incomingInvitations.update(list => list.filter(i => i.roomId !== roomId));
   }
 
   /** Utilise la constante centrale GAME_LABELS */

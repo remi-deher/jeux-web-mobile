@@ -58,4 +58,6 @@ export interface SharedRoomListEntry {
   playersCount: number;
   status:       RoomStatus;
   variant?:     GameVariant;
+  creator?:     string;
+  isPrivate?:   boolean;
 }

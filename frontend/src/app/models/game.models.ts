@@ -29,6 +29,8 @@ export interface RoomListEntry {
   playersCount: number;
   status: 'waiting' | 'playing' | 'finished';
   variant?: GameVariant;
+  creator?: string;
+  isPrivate?: boolean;
 }
 
 // Battleship Specific Interfaces

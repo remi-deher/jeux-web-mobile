@@ -50,6 +50,28 @@
     }
   }
 
+  <!-- Incoming Friend Invitations Banner -->
+  @if (incomingInvitations().length > 0) {
+    @for (invitation of incomingInvitations(); track invitation.roomId) {
+      <div class="challenge-toast-banner" style="background: var(--md-secondary-container); border-color: var(--md-outline-variant);">
+        <div class="challenge-toast-content">
+          <span class="material-symbols challenge-toast-icon" style="color: var(--md-on-secondary-container);">mail</span>
+          <div class="challenge-toast-text" style="color: var(--md-on-secondary-container);">
+            <strong>{{ invitation.hostUsername }}</strong> vous invite à rejoindre sa partie de <strong>{{ getGameLabel(invitation.gameType) }}</strong> !
+          </div>
+        </div>
+        <div class="challenge-toast-actions">
+          <button class="primary-btn accept-challenge-btn" (click)="acceptInvitation(invitation.roomId)">
+            <span>Rejoindre</span>
+          </button>
+          <button class="outlined-btn decline-challenge-btn" (click)="declineInvitation(invitation.roomId)">
+            <span>Refuser</span>
+          </button>
+        </div>
+      </div>
+    }
+  }
+
   <!-- Header / Navigation (hidden during a game) -->
   @if (!currentRoom()) {
     <header class="app-header">

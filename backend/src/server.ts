@@ -229,6 +229,20 @@ io.on('connection', (socket: Socket) => {
     if (callback) callback(res);
   });
 
+  socket.on('inviteFriend', (data: { friendUsername: string; roomId: string; gameType: string }) => {
+    const hostUsername = onlineUsers[socket.id] || 'Un ami';
+    const friendSocketEntry = Object.entries(onlineUsers).find(
+      ([_, uname]) => uname.toLowerCase() === data.friendUsername.toLowerCase()
+    );
+    if (friendSocketEntry) {
+      io.to(friendSocketEntry[0]).emit('friendInvitationReceived', {
+        hostUsername,
+        roomId: data.roomId,
+        gameType: data.gameType
+      });
+    }
+  });
+
   socket.on('sendChallenge', (data: { targetSocketId: string; gameType: string }) => {
     const challengerUsername = onlineUsers[socket.id] || 'Anonymous';
     io.to(data.targetSocketId).emit('challengeReceived', {
@@ -1334,13 +1348,14 @@ function broadcastRoomUpdate(room: Room) {
 
 function getPublicRooms() {
   return Object.values(rooms)
-    .filter(r => !r.isPrivate)
     .map(r => ({
       id: r.id,
       gameType: r.gameType,
       playersCount: r.players.length,
       status: r.status,
-      variant: r.variant
+      variant: r.variant,
+      creator: r.players[0]?.username || '',
+      isPrivate: !!r.isPrivate
     }));
 }
 

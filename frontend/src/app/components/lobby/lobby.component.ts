@@ -123,6 +123,42 @@ import { gameLabel } from '../../constants/game-labels';
             <p>Sélectionnez un jeu pour voir les salons disponibles ou en créer un nouveau.</p>
           </div>
 
+          @if (activeRooms().length > 0) {
+            <div class="surface-card active-rooms-card" style="text-align: left; padding: 20px; animation: slideFadeIn 0.3s ease; box-shadow: var(--md-elevation-1);">
+              <h3 style="margin: 0 0 14px; font-size: 16px; font-weight: 600; color: var(--md-on-surface); display: flex; align-items: center; gap: 8px;">
+                <span class="material-symbols" style="color: var(--md-primary);">sports_esports</span>
+                Parties prêtes à rejoindre
+              </h3>
+              <div class="active-rooms-list" style="display: flex; flex-direction: column; gap: 10px;">
+                @for (room of activeRooms(); track room.id) {
+                  <div class="active-room-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: var(--md-radius-md); background: var(--md-surface-container-high); border: 1px solid var(--md-outline-variant); transition: transform 0.2s, border-color 0.2s;">
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <span style="font-weight: 600; font-size: 14px; color: var(--md-on-surface);">{{ translateGame(room.gameType) }}</span>
+                        @if (room.isPrivate) {
+                          <span style="background: rgba(157, 142, 255, 0.15); color: #B0A2FF; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 8px; display: inline-flex; align-items: center; gap: 3px;">
+                            <span class="material-symbols" style="font-size: 12px;">lock</span>
+                            Privé
+                          </span>
+                        }
+                        @if (room.creator && gameService.friends().includes(room.creator)) {
+                          <span style="background: rgba(0, 229, 255, 0.15); color: #00E5FF; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 8px; display: inline-flex; align-items: center; gap: 3px;">
+                            <span class="material-symbols" style="font-size: 12px;">group</span>
+                            Ami
+                          </span>
+                        }
+                      </div>
+                      <div style="font-size: 12px; color: var(--md-on-surface-variant);">
+                        Créé par <strong>{{ room.creator }}</strong> • {{ room.playersCount }}/2 joueurs
+                      </div>
+                    </div>
+                    <button class="primary-btn" (click)="joinRoom(room.id)" style="padding: 8px 16px; font-size: 13px;">Rejoindre</button>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
           <div class="game-selector-grid">
             <button class="game-card" (click)="selectGame('connect4')">
               <div class="game-card-image">
@@ -749,7 +785,20 @@ import { gameLabel } from '../../constants/game-labels';
               </label>
             </div>
 
-            <div class="modal-actions">
+            @if (onlineFriends().length > 0) {
+              <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 16px; text-align: left;">
+                <label style="font-size: 13px; font-weight: 600; color: var(--md-on-surface-variant);">Inviter un ami en ligne (Optionnel)</label>
+                <select [value]="selectedFriendToInvite()" (change)="selectedFriendToInvite.set($any($event.target).value); isPrivateChoice.set(true)" style="width: 100%; padding: 10px 12px; border-radius: var(--md-radius-md); border: 1px solid var(--md-outline-variant); background: var(--md-surface-container-high); color: var(--md-on-surface); font-size: 14px; font-family: inherit; outline: none;">
+                  <option value="">-- Sélectionner un ami --</option>
+                  @for (friend of onlineFriends(); track friend.id) {
+                    <option [value]="friend.username">{{ friend.username }}</option>
+                  }
+                </select>
+                <span style="font-size: 11px; color: var(--md-secondary);">Note: Inviter un ami forcera le salon en mode privé.</span>
+              </div>
+            }
+
+            <div class="modal-actions" style="margin-top: 20px;">
               <button class="outlined-btn" (click)="closeCreateModal()">Annuler</button>
               <button class="primary-btn" (click)="confirmCreateRoom()">Créer</button>
             </div>
@@ -864,6 +913,20 @@ import { gameLabel } from '../../constants/game-labels';
                   <input type="checkbox" [checked]="isPrivateChoice()" (change)="isPrivateChoice.set(!isPrivateChoice())" />
                   <span>Rendre la partie privée (accessible uniquement par code)</span>
                 </label>
+
+                @if (onlineFriends().length > 0) {
+                  <div style="display: flex; flex-direction: column; gap: 6px; text-align: left;">
+                    <label style="font-size: 12px; font-weight: 600; color: var(--md-on-surface-variant);">Inviter un ami en ligne (Optionnel)</label>
+                    <select [value]="selectedFriendToInvite()" (change)="selectedFriendToInvite.set($any($event.target).value); isPrivateChoice.set(true)" style="width: 100%; padding: 8px 10px; border-radius: var(--md-radius-md); border: 1px solid var(--md-outline-variant); background: var(--md-surface-container-high); color: var(--md-on-surface); font-size: 13px; font-family: inherit; outline: none;">
+                      <option value="">-- Sélectionner un ami --</option>
+                      @for (friend of onlineFriends(); track friend.id) {
+                        <option [value]="friend.username">{{ friend.username }}</option>
+                      }
+                    </select>
+                    <span style="font-size: 10px; color: var(--md-secondary);">Note: Inviter un ami forcera le salon en mode privé.</span>
+                  </div>
+                }
+
                 <div class="modal-actions">
                   <button type="button" class="outlined-btn" (click)="showDominosVariantModal.set(false)">Annuler</button>
                   <button type="button" class="primary-btn" (click)="confirmDominosCreate()">Créer le salon</button>
@@ -884,6 +947,9 @@ export class LobbyComponent {
   loginStep = signal<'username' | 'pin-create' | 'pin-login'>('username');
   pinCode = '';
   errorMessage = signal<string>('');
+
+  // Friend direct invitation variable
+  selectedFriendToInvite = signal<string>('');
 
   selectedGame;
   showCreateModal = signal<boolean>(false);
@@ -907,11 +973,43 @@ export class LobbyComponent {
 
   gameName = computed(() => gameLabel(this.selectedGame() ?? ''));
 
-  constructor(private gameService: GameService) {
+  // Friends currently online
+  onlineFriends = computed(() => {
+    const list = this.gameService.friends();
+    return this.gameService.onlineUsers().filter(u => list.includes(u.username) && u.username !== this.username());
+  });
+
+  // Active rooms in waiting state (public rooms + friends' private rooms)
+  activeRooms = computed(() => {
+    const allRooms = this.roomsList();
+    const list = this.gameService.friends();
+    const me = this.username();
+
+    return allRooms.filter(r => {
+      // Must be waiting
+      if (r.status !== 'waiting') return false;
+      // Exclude our own room
+      if (r.creator === me) return false;
+
+      // Public room
+      if (!r.isPrivate) return true;
+
+      // Private room created by a friend
+      if (r.isPrivate && r.creator && list.includes(r.creator)) return true;
+
+      return false;
+    });
+  });
+
+  constructor(public gameService: GameService) {
     this.selectedGame = this.gameService.activeGame;
     this.username = this.gameService.username;
     this.roomsList = this.gameService.roomsList;
     this.tempUsername = this.username();
+  }
+
+  translateGame(game: string): string {
+    return gameLabel(game);
   }
 
   async saveUsername() {
@@ -1012,6 +1110,7 @@ export class LobbyComponent {
 
   openCreateModal() {
     this.isPrivateChoice.set(false);
+    this.selectedFriendToInvite.set('');
     if (this.selectedGame() === 'dominos') {
       this.isLocalDominos.set(false);
       this.dominosVariant.set('classic');
@@ -1052,7 +1151,12 @@ export class LobbyComponent {
   confirmCreateRoom() {
     const game = this.selectedGame();
     if (game) {
-      this.gameService.createRoom(game as any, this.isPrivateChoice());
+      this.gameService.createRoom(
+        game as any,
+        this.isPrivateChoice(),
+        undefined,
+        this.selectedFriendToInvite() || undefined
+      );
       this.closeCreateModal();
     }
   }
@@ -1061,7 +1165,12 @@ export class LobbyComponent {
     if (this.isLocalDominos()) {
       this.gameService.createLocalRoom('dominos', this.localPlayer1Name, this.localPlayer2Name, this.dominosVariant());
     } else {
-      this.gameService.createRoom('dominos', this.isPrivateChoice(), this.dominosVariant());
+      this.gameService.createRoom(
+        'dominos',
+        this.isPrivateChoice(),
+        this.dominosVariant(),
+        this.selectedFriendToInvite() || undefined
+      );
     }
     this.showDominosVariantModal.set(false);
   }
