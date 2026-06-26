@@ -14,6 +14,7 @@ export interface User {
   salt: string | null;
   tokenHash: string | null; // pour la connexion auto sans PIN
   stats: { [gameType: string]: UserStats };
+  friends?: string[];
   createdAt: number;
 }
 
@@ -125,7 +126,7 @@ function registerAttempt(key: string, success: boolean) {
 export function registerUser(
   username: string,
   pin: string | null
-): { success: boolean; token?: string; message?: string; user?: User } {
+): { success: boolean; token?: string; message?: string; user?: User; friends?: string[] } {
   const key = username.trim().toLowerCase();
   const cleanUsername = username.trim();
 
@@ -158,6 +159,7 @@ export function registerUser(
     salt,
     tokenHash,
     stats: {},
+    friends: [],
     createdAt: Date.now()
   };
 
@@ -168,7 +170,7 @@ export function registerUser(
     saveUsers();
   }
 
-  return { success: true, token: token ?? undefined, user: newUser };
+  return { success: true, token: token ?? undefined, user: newUser, friends: newUser.friends };
 }
 
 // Sécuriser un compte existant temporaire en lui ajoutant un PIN
@@ -206,7 +208,7 @@ export function secureTempUser(
 export function loginUser(
   username: string,
   pin: string
-): { success: boolean; token?: string; message?: string; stats?: any } {
+): { success: boolean; token?: string; message?: string; stats?: any; friends?: string[] } {
   const key = username.trim().toLowerCase();
   const user = users[key];
 
@@ -234,14 +236,14 @@ export function loginUser(
   user.tokenHash = crypto.createHash('sha256').update(token).digest('hex');
   saveUsers();
 
-  return { success: true, token, stats: user.stats };
+  return { success: true, token, stats: user.stats, friends: user.friends || [] };
 }
 
 // Connexion automatique par Token
 export function loginWithToken(
   username: string,
   token: string
-): { success: boolean; stats?: any; message?: string } {
+): { success: boolean; stats?: any; friends?: string[]; message?: string } {
   const key = username.trim().toLowerCase();
   const user = users[key];
 
@@ -254,7 +256,7 @@ export function loginWithToken(
     return { success: false, message: 'Session expirée ou invalide.' };
   }
 
-  return { success: true, stats: user.stats };
+  return { success: true, stats: user.stats, friends: user.friends || [] };
 }
 
 // Incrémenter les victoires / défaites d'un jeu
@@ -289,4 +291,21 @@ export function getUserStats(username: string): { [gameType: string]: UserStats 
   const key = username.trim().toLowerCase();
   const user = users[key];
   return user ? user.stats : null;
+}
+
+// Synchroniser la liste des amis
+export function syncUserFriends(
+  username: string,
+  friendsList: string[]
+): { success: boolean; message?: string } {
+  const key = username.trim().toLowerCase();
+  const user = users[key];
+  if (!user) {
+    return { success: false, message: 'Utilisateur introuvable.' };
+  }
+  user.friends = friendsList;
+  if (user.pinHash !== null) {
+    saveUsers();
+  }
+  return { success: true };
 }

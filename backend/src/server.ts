@@ -35,7 +35,8 @@ import {
   secureTempUser,
   checkUserStatus,
   incrementUserStats,
-  getUserStats
+  getUserStats,
+  syncUserFriends
 } from './users';
 
 const app = express();
@@ -216,6 +217,16 @@ io.on('connection', (socket: Socket) => {
   socket.on('getUserStats', (data: { username: string }, callback) => {
     const stats = getUserStats(data.username);
     callback({ success: true, stats });
+  });
+
+  socket.on('syncFriends', (data: { username: string; friends: string[] }, callback) => {
+    const connectedUser = onlineUsers[socket.id];
+    if (!connectedUser || connectedUser.toLowerCase() !== data.username.toLowerCase()) {
+      if (callback) callback({ success: false, message: 'Non autorisé.' });
+      return;
+    }
+    const res = syncUserFriends(data.username, data.friends);
+    if (callback) callback(res);
   });
 
   socket.on('sendChallenge', (data: { targetSocketId: string; gameType: string }) => {

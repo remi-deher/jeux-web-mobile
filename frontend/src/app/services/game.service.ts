@@ -121,6 +121,10 @@ export class GameService {
               if (res.stats) {
                 this.syncStatsFromServer(res.stats);
               }
+              if (res.friends) {
+                this.friends.set(res.friends);
+                localStorage.setItem('friends', JSON.stringify(res.friends));
+              }
             } else {
               console.log('Token login failed, logging out.');
               this.logout();
@@ -157,7 +161,14 @@ export class GameService {
         if (user) {
           if (token) {
             this.socket.emit('loginWithToken', { username: user, token }, (res: any) => {
-              if (!res.success) this.logout();
+              if (res && res.success) {
+                if (res.friends) {
+                  this.friends.set(res.friends);
+                  localStorage.setItem('friends', JSON.stringify(res.friends));
+                }
+              } else {
+                this.logout();
+              }
             });
           } else {
             this.socket.emit('registerUser', { username: user, pin: null });
@@ -453,6 +464,10 @@ export class GameService {
         if (res.success) {
           this.username.set(username.trim());
           localStorage.setItem('username', username.trim());
+          if (res.friends) {
+            this.friends.set(res.friends);
+            localStorage.setItem('friends', JSON.stringify(res.friends));
+          }
           if (pin !== null) {
             this.tempUser.set(false);
             localStorage.setItem('tempUser', 'false');
@@ -478,6 +493,10 @@ export class GameService {
         if (res.success) {
           this.username.set(username.trim());
           localStorage.setItem('username', username.trim());
+          if (res.friends) {
+            this.friends.set(res.friends);
+            localStorage.setItem('friends', JSON.stringify(res.friends));
+          }
           this.tempUser.set(false);
           localStorage.setItem('tempUser', 'false');
           if (res.token) {
@@ -511,6 +530,8 @@ export class GameService {
           if (res.stats) {
             this.syncStatsFromServer(res.stats);
           }
+          // Synchronize local friends to server now that account is secure
+          this.socket.emit('syncFriends', { username: currentUsername, friends: this.friends() });
         }
         resolve(res);
       });
@@ -772,6 +793,11 @@ export class GameService {
       const updated = [...list, trimmed];
       this.friends.set(updated);
       localStorage.setItem('friends', JSON.stringify(updated));
+      
+      // Sync to server if account is secured
+      if (!this.tempUser() && this.username()) {
+        this.socket.emit('syncFriends', { username: this.username(), friends: updated });
+      }
     }
   }
 
@@ -779,6 +805,11 @@ export class GameService {
     const updated = this.friends().filter(f => f !== name);
     this.friends.set(updated);
     localStorage.setItem('friends', JSON.stringify(updated));
+    
+    // Sync to server if account is secured
+    if (!this.tempUser() && this.username()) {
+      this.socket.emit('syncFriends', { username: this.username(), friends: updated });
+    }
   }
 
   sendChallenge(targetSocketId: string, gameType: string) {
