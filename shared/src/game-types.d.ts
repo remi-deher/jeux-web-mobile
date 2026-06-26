@@ -23,7 +23,8 @@ export type GameType =
   | 'tetris'
   | 'memory'
   | 'uno'
-  | 'blackjack';
+  | 'blackjack'
+  | 'airhockey';
 
 export type GameVariant = 'classic' | 'branches' | 'grid';
 

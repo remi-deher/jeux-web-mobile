@@ -38,17 +38,20 @@ export class GameService {
   public livePongState   = signal<any>(null);
   public liveSnakeState  = signal<any>(null);
   public liveTetrisState = signal<any>(null);
+  public liveAirhockeyState = signal<any>(null);
 
   // Raw state objects — written directly from socket callbacks (outside Angular
   // zone), read by canvas RAF loops without triggering change detection.
   public _rawPongState:   any = null;
   public _rawSnakeState:  any = null;
   public _rawTetrisState: any = null;
+  public _rawAirhockeyState: any = null;
 
   // Raw callback registries (outside-zone subscribers for physics/rendering)
   private _pongCallbacks:   Array<(s: any) => void> = [];
   private _snakeCallbacks:  Array<(s: any) => void> = [];
   private _tetrisCallbacks: Array<(s: any) => void> = [];
+  private _airhockeyCallbacks: Array<(s: any) => void> = [];
 
   // Last-seen UI values — detect when a zone re-entry is actually needed
   private _lpScoreP1  = 0; private _lpScoreP2  = 0;
@@ -58,8 +61,12 @@ export class GameService {
   private _lsScoreP1 = 0; private _lsScoreP2  = 0;
   private _ltWinner: number | null = null;
   private _ltScoreP1 = 0; private _ltScoreP2  = 0;
+  private _lahWinner: number | null = null;
+  private _lahScoreP1 = 0; private _lahScoreP2 = 0;
+  private _lahP1Ready = false; private _lahP2Ready = false;
 
   private prevPongVx: number | null = null;
+  private prevAirhockeyVx: number | null = null;
 
   // ── Raw subscription helpers ─────────────────────────────────────────────────
   /** Register a callback that fires on every pong tick OUTSIDE the Angular zone. */
@@ -74,6 +81,10 @@ export class GameService {
   subscribeTetrisRaw(cb: (s: any) => void): () => void {
     this._tetrisCallbacks.push(cb);
     return () => { this._tetrisCallbacks = this._tetrisCallbacks.filter(x => x !== cb); };
+  }
+  subscribeAirhockeyRaw(cb: (s: any) => void): () => void {
+    this._airhockeyCallbacks.push(cb);
+    return () => { this._airhockeyCallbacks = this._airhockeyCallbacks.filter(x => x !== cb); };
   }
 
   /**
@@ -158,13 +169,17 @@ export class GameService {
         this.livePongState.set(null);
         this.liveSnakeState.set(null);
         this.liveTetrisState.set(null);
+        this.liveAirhockeyState.set(null);
         this._rawPongState   = null;
         this._rawSnakeState  = null;
         this._rawTetrisState = null;
+        this._rawAirhockeyState = null;
         this._lpScoreP1 = 0; this._lpScoreP2 = 0; this._lpWinner = null;
         this._lpP1Ready = false; this._lpP2Ready = false;
         this._lsWinner = null; this._lsScoreP1 = 0; this._lsScoreP2 = 0;
         this._ltWinner = null; this._ltScoreP1 = 0; this._ltScoreP2 = 0;
+        this._lahWinner = null; this._lahScoreP1 = 0; this._lahScoreP2 = 0;
+        this._lahP1Ready = false; this._lahP2Ready = false;
       }
       this.currentRoom.set(room);
 
@@ -177,7 +192,7 @@ export class GameService {
       // already reloaded. Prevents infinite reload loops (post-reload roomUpdate
       // also arrives with status 'playing') and handles local games where the room
       // starts directly with status 'playing' (no waiting→playing transition).
-      const REALTIME_GAMES = new Set(['pong', 'snake', 'tetris']);
+      const REALTIME_GAMES = new Set(['pong', 'snake', 'tetris', 'airhockey']);
       if (room?.status === 'playing' && REALTIME_GAMES.has(room.gameType)) {
         if (localStorage.getItem('rt_reloaded') !== room.id) {
           localStorage.setItem('rt_reloaded', room.id);
@@ -285,6 +300,42 @@ export class GameService {
         } else if (prevVx !== null && pongState.ball?.vx !== undefined) {
           const bounced = (prevVx > 0) !== (pongState.ball.vx > 0);
           if (bounced) this.soundService.playSound('click', 'pong');
+        }
+      });
+
+      this.socket.on('airhockeyUpdate', (airhockeyState: any) => {
+        if (this.currentRoom()?.gameType !== 'airhockey') return;
+        this._rawAirhockeyState = airhockeyState;
+
+        const prevLastHit = this._rawAirhockeyState?.lastHit;
+
+        // Call registered physics callbacks
+        this._airhockeyCallbacks.forEach(cb => cb(airhockeyState));
+
+        // Detect UI state changes
+        const scoreChanged =
+          airhockeyState.scoreP1 !== this._lahScoreP1 ||
+          airhockeyState.scoreP2 !== this._lahScoreP2;
+        const uiChanged =
+          scoreChanged ||
+          airhockeyState.winner   !== this._lahWinner  ||
+          !!airhockeyState.p1Ready !== this._lahP1Ready ||
+          !!airhockeyState.p2Ready !== this._lahP2Ready;
+
+        if (uiChanged) {
+          this._lahScoreP1 = airhockeyState.scoreP1 ?? 0;
+          this._lahScoreP2 = airhockeyState.scoreP2 ?? 0;
+          this._lahWinner  = airhockeyState.winner  ?? null;
+          this._lahP1Ready = !!airhockeyState.p1Ready;
+          this._lahP2Ready = !!airhockeyState.p2Ready;
+          this.ngZone.run(() => {
+            this.liveAirhockeyState.set(airhockeyState);
+            if (scoreChanged) {
+              this.soundService.playSound('success', 'airhockey');
+            }
+          });
+        } else if (airhockeyState.lastHit && airhockeyState.lastHit !== prevLastHit) {
+          this.soundService.playSound('click', 'airhockey');
         }
       });
 
@@ -511,6 +562,13 @@ export class GameService {
     const room = this.currentRoom();
     if (room) {
       this.socket.emit('pongMovePaddle', { roomId: room.id, yPercent, paddleIndex });
+    }
+  }
+
+  sendAirhockeyMallet(xPercent: number, yPercent: number, malletIndex?: number) {
+    const room = this.currentRoom();
+    if (room) {
+      this.socket.emit('airhockeyMoveMallet', { roomId: room.id, xPercent, yPercent, malletIndex });
     }
   }
 

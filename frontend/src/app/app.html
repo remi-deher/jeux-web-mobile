@@ -135,6 +135,8 @@
       @defer (on immediate) { <app-uno></app-uno> }
     } @else if (getGameType() === 'blackjack') {
       @defer (on immediate) { <app-blackjack></app-blackjack> }
+    } @else if (getGameType() === 'airhockey') {
+      @defer (on immediate) { <app-airhockey></app-airhockey> }
     }
   </main>
 

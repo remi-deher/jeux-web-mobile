@@ -26,6 +26,7 @@ import { TetrisState, createInitialTetrisState, updateTetrisPhysics, TetrisActio
 import { MemoryState, createInitialMemoryState, flipCard, resolveFlip } from './games/memory';
 import { UnoState, createInitialUnoState, unoPlay, unoDraw, UnoColor } from './games/uno';
 import { BlackjackState, createInitialBlackjackState, placeBet, bjHit, bjStand, bjDouble, nextRound } from './games/blackjack';
+import { AirhockeyState, createInitialAirhockeyState, updateAirhockeyPhysics } from './games/airhockey';
 
 const app = express();
 app.use(cors());
@@ -110,7 +111,7 @@ interface Room {
   gameType: GameType;
   players: Player[];
   status: 'waiting' | 'playing' | 'finished'; // RoomStatus from shared
-  gameState: Connect4State | BattleshipState | TicTacToeState | CheckersState | ChessState | GomokuState | OthelloState | PongState | PenduState | DominosState | SnakeState | TetrisState | MemoryState | UnoState | BlackjackState | null;
+  gameState: Connect4State | BattleshipState | TicTacToeState | CheckersState | ChessState | GomokuState | OthelloState | PongState | PenduState | DominosState | SnakeState | TetrisState | MemoryState | UnoState | BlackjackState | AirhockeyState | null;
   chatMessages: ChatMessage[];
   isPrivate: boolean;
   rematchVotes: string[];
@@ -502,6 +503,27 @@ io.on('connection', (socket: Socket) => {
       state.p1Y = Math.max(state.paddleHeight / 2, Math.min(100 - state.paddleHeight / 2, data.yPercent));
     } else if (paddleIndex === 2) {
       state.p2Y = Math.max(state.paddleHeight / 2, Math.min(100 - state.paddleHeight / 2, data.yPercent));
+    }
+  });
+
+  socket.on('airhockeyMoveMallet', (data: { roomId: string; xPercent: number; yPercent: number; malletIndex?: number }) => {
+    const room = rooms[data.roomId];
+    if (!room || room.gameType !== 'airhockey' || !room.gameState) return;
+
+    const playerIndex = room.players.findIndex(p => p.id === socket.id);
+    if (playerIndex === -1 && data.malletIndex === undefined) return;
+
+    const state = room.gameState as AirhockeyState;
+    const malletIndex = data.malletIndex !== undefined ? data.malletIndex : (playerIndex + 1);
+
+    if (malletIndex === 1) {
+      const radius = state.p1Mallet.radius;
+      state.p1Mallet.x = Math.max(radius, Math.min(50 - radius, data.xPercent));
+      state.p1Mallet.y = Math.max(radius, Math.min(100 - radius, data.yPercent));
+    } else if (malletIndex === 2) {
+      const radius = state.p2Mallet.radius;
+      state.p2Mallet.x = Math.max(50 + radius, Math.min(100 - radius, data.xPercent));
+      state.p2Mallet.y = Math.max(radius, Math.min(100 - radius, data.yPercent));
     }
   });
 
@@ -1097,6 +1119,39 @@ function startPongLoop(roomId: string) {
   }, 1000 / 60); // 60 Hz physics + broadcast
 }
 
+// ── Air Hockey loop (60 Hz) ───────────────────────────────────────────────────
+
+const airhockeyIntervals: { [roomId: string]: NodeJS.Timeout } = {};
+
+function startAirhockeyLoop(roomId: string) {
+  if (airhockeyIntervals[roomId]) return;
+  console.log(`Starting Air Hockey physics tick loop for room ${roomId}`);
+  airhockeyIntervals[roomId] = setInterval(() => {
+    const room = rooms[roomId];
+    if (!room || room.status !== 'playing' || room.gameType !== 'airhockey' || !room.gameState) {
+      clearInterval(airhockeyIntervals[roomId]);
+      delete airhockeyIntervals[roomId];
+      return;
+    }
+
+    // Pause physics if a player is disconnected
+    const anyDisconnected = room.players.some(p => p.disconnected);
+    if (anyDisconnected) return;
+
+    const state = room.gameState as AirhockeyState;
+    updateAirhockeyPhysics(state);
+
+    io.to(roomId).emit('airhockeyUpdate', state);
+
+    if (state.winner !== null) {
+      room.status = 'finished';
+      broadcastRoomUpdate(room);
+      clearInterval(airhockeyIntervals[roomId]);
+      delete airhockeyIntervals[roomId];
+    }
+  }, 1000 / 60); // 60 Hz physics + broadcast
+}
+
 // ── Game factory helpers ──────────────────────────────────────────────────────
 
 function createGameState(
@@ -1120,6 +1175,7 @@ function createGameState(
     case 'memory':     return createInitialMemoryState(playerIds);
     case 'uno':        return createInitialUnoState(playerIds);
     case 'blackjack':  return createInitialBlackjackState(playerIds);
+    case 'airhockey':  return createInitialAirhockeyState();
     default:           return null;
   }
 }
@@ -1128,6 +1184,7 @@ function startGameLoop(gameType: GameType, roomId: string): void {
   if (gameType === 'pong')        startPongLoop(roomId);
   else if (gameType === 'snake')  startSnakeLoop(roomId);
   else if (gameType === 'tetris') startTetrisLoop(roomId);
+  else if (gameType === 'airhockey') startAirhockeyLoop(roomId);
 }
 
 function stopGameLoop(gameType: GameType, roomId: string): void {
@@ -1140,6 +1197,9 @@ function stopGameLoop(gameType: GameType, roomId: string): void {
   } else if (gameType === 'tetris' && tetrisIntervals[roomId]) {
     clearInterval(tetrisIntervals[roomId]);
     delete tetrisIntervals[roomId];
+  } else if (gameType === 'airhockey' && airhockeyIntervals[roomId]) {
+    clearInterval(airhockeyIntervals[roomId]);
+    delete airhockeyIntervals[roomId];
   }
 }
 
