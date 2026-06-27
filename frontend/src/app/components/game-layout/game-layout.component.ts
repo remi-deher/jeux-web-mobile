@@ -486,12 +486,8 @@ import { GameHelpersService } from '../../services/game-helpers.service';
     }
     .icon-btn .material-symbols { font-size: 20px; }
 
-    /* Bouton chat masqué sur mobile (la sidebar n'existe qu'en desktop) */
-    .chat-toggle-btn { display: none; }
-
-    @media (orientation: landscape) and (min-width: 768px) {
-      .chat-toggle-btn { display: inline-flex; }
-    }
+    /* Bouton chat disponible sur tous les écrans en jeu */
+    .chat-toggle-btn { display: inline-flex; }
 
     .room-code {
       background: var(--md-surface-container);
