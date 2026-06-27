@@ -23,7 +23,8 @@ export type GameType =
   | 'tetris'
   | 'memory'
   | 'uno'
-  | 'blackjack';
+  | 'blackjack'
+  | 'airhockey';
 
 export type GameVariant = 'classic' | 'branches' | 'grid';
 
@@ -57,4 +58,6 @@ export interface SharedRoomListEntry {
   playersCount: number;
   status:       RoomStatus;
   variant?:     GameVariant;
+  creator?:     string;
+  isPrivate?:   boolean;
 }

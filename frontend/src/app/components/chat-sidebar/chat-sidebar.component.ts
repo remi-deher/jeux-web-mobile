@@ -2,6 +2,7 @@ import { Component, ElementRef, Input, OnDestroy, ViewChild, computed, effect, s
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { GameService } from '../../services/game.service';
+import { GameHelpersService } from '../../services/game-helpers.service';
 import { GameChatComponent } from './game-chat.component';
 
 @Component({
@@ -511,8 +512,13 @@ import { GameChatComponent } from './game-chat.component';
       background: var(--md-secondary-container);
     }
 
-    /* ---- Mobile (≤ 640 px) ---- */
-    @media (max-width: 640px) {
+    /* Hide FAB globally when desktop-hidden class is applied (e.g. in-game) */
+    .chat-wrapper.desktop-hidden .chat-toggle {
+      display: none !important;
+    }
+
+    /* ---- Mobile (≤ 768 px) ---- */
+    @media (max-width: 768px) {
       /* FAB: stay above the bottom nav bar (≈ 56px) + home indicator */
       .chat-toggle {
         bottom: calc(72px + env(safe-area-inset-bottom, 0px));
@@ -553,11 +559,6 @@ import { GameChatComponent } from './game-chat.component';
       /* When parent toggles visibility off → slide panel out */
       .chat-wrapper.desktop-hidden .chat-panel {
         transform: translateX(100%) !important;
-      }
-
-      /* Also hide the FAB when explicitly hidden (shouldn't matter, but safety) */
-      .chat-wrapper.desktop-hidden .chat-toggle {
-        display: none !important;
       }
     }
 
@@ -805,6 +806,9 @@ export class ChatSidebarComponent implements OnDestroy {
       this.selectedFriendForChat.set(friend);
       this.isOpen = true;
       this.hasUnread = false;
+      if (typeof window !== 'undefined' && window.innerWidth < 1200) {
+        this.gameHelpersService.chatVisible.set(true);
+      }
       setTimeout(() => this.scrollDmToBottom(), 50);
     }
   };
@@ -827,10 +831,22 @@ export class ChatSidebarComponent implements OnDestroy {
     );
   });
 
-  constructor(private gameService: GameService) {
+  constructor(
+    private gameService: GameService,
+    private gameHelpersService: GameHelpersService
+  ) {
     this.username = this.gameService.username;
     this.currentRoom = this.gameService.currentRoom;
     this.friends = this.gameService.friends;
+
+    // Sync isOpen with gameHelpersService.chatVisible signal on mobile/tablet
+    effect(() => {
+      const visible = this.gameHelpersService.chatVisible();
+      if (typeof window !== 'undefined' && window.innerWidth < 1200) {
+        this.isOpen = visible;
+      }
+    });
+
     effect(() => {
       const messages = this.currentMessages();
       if (messages.length > 0 && !this.isOpen) {
@@ -859,6 +875,9 @@ export class ChatSidebarComponent implements OnDestroy {
 
   toggleChat() {
     this.isOpen = !this.isOpen;
+    if (typeof window !== 'undefined' && window.innerWidth < 1200) {
+      this.gameHelpersService.chatVisible.set(this.isOpen);
+    }
     if (this.isOpen) {
       this.hasUnread = false;
       setTimeout(() => this.scrollToBottom(), 50);

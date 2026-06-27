@@ -22,6 +22,7 @@ import { TetrisComponent } from './components/tetris/tetris.component';
 import { MemoryComponent } from './components/memory/memory.component';
 import { UnoComponent } from './components/uno/uno.component';
 import { BlackjackComponent } from './components/blackjack/blackjack.component';
+import { AirhockeyComponent } from './components/airhockey/airhockey.component';
 import { gameLabel } from './constants/game-labels';
 import { PwaService } from './services/pwa.service';
 
@@ -48,7 +49,8 @@ import { PwaService } from './services/pwa.service';
     TetrisComponent,
     MemoryComponent,
     UnoComponent,
-    BlackjackComponent
+    BlackjackComponent,
+    AirhockeyComponent
   ],
   templateUrl: './app.html',
   styleUrl: './app.css'
@@ -57,11 +59,17 @@ export class App {
   title = 'Playbox';
 
   username;
+  tempUser;
   currentRoom;
   incomingChallenges;
+  incomingInvitations;
 
   activeView;
   activeGame;
+
+  // Temporary account security PIN code
+  pinCodeToSecure = '';
+  secureErrorMessage = signal<string>('');
 
   private gameHelpersService = inject(GameHelpersService);
   private pwaService = inject(PwaService);
@@ -116,13 +124,16 @@ export class App {
       { name: 'Memory',         color: '#FF80AB', wins: read('stats_memory_wins'),      losses: read('stats_memory_losses'),      draws: read('stats_memory_draws')      },
       { name: '8 Américain',    color: '#FF6D00', wins: read('stats_uno_wins'),         losses: read('stats_uno_losses'),         draws: read('stats_uno_draws')         },
       { name: 'Blackjack',      color: '#FFD740', wins: read('stats_blackjack_wins'),   losses: read('stats_blackjack_losses'),   draws: read('stats_blackjack_draws')   },
+      { name: 'Air Hockey',     color: '#00E5FF', wins: read('stats_airhockey_wins'),   losses: read('stats_airhockey_losses'),   draws: read('stats_airhockey_draws')   },
     ];
   });
 
   constructor(private gameService: GameService, private router: Router) {
     this.username = this.gameService.username;
+    this.tempUser = this.gameService.tempUser;
     this.currentRoom = this.gameService.currentRoom;
     this.incomingChallenges = this.gameService.incomingChallenges;
+    this.incomingInvitations = this.gameService.incomingInvitations;
     this.activeView = this.gameService.activeView;
     this.activeGame = this.gameService.activeGame;
 
@@ -146,7 +157,7 @@ export class App {
       document.body.classList.toggle('light-theme', this.theme() === 'light');
     });
 
-    // Cache le chat à l'entrée d'un jeu, le restaure en lobby
+    // Cache le chat à l'entrée d'un jeu, le reste en lobby
     effect(() => {
       const inGame = !!this.currentRoom();
       this.gameHelpersService.chatVisible.set(!inGame);
@@ -156,7 +167,8 @@ export class App {
       const active = this.activeGame() || this.currentRoom()?.gameType;
       document.body.classList.remove(
         'theme-connect4', 'theme-battleship', 'theme-chess', 'theme-checkers',
-        'theme-tictactoe', 'theme-gomoku', 'theme-othello', 'theme-pong', 'theme-pendu', 'theme-dominos'
+        'theme-tictactoe', 'theme-gomoku', 'theme-othello', 'theme-pong', 'theme-pendu', 'theme-dominos',
+        'theme-airhockey'
       );
       if (active) document.body.classList.add(`theme-${active}`);
     });
@@ -179,6 +191,15 @@ export class App {
     this.gameService.declineChallenge(challengerSocketId);
   }
 
+  acceptInvitation(roomId: string) {
+    this.gameService.joinRoom(roomId);
+    this.gameService.incomingInvitations.update(list => list.filter(i => i.roomId !== roomId));
+  }
+
+  declineInvitation(roomId: string) {
+    this.gameService.incomingInvitations.update(list => list.filter(i => i.roomId !== roomId));
+  }
+
   /** Utilise la constante centrale GAME_LABELS */
   getGameLabel(gameType: string): string {
     return gameLabel(gameType);
@@ -197,7 +218,7 @@ export class App {
   }
 
   resetUsername() {
-    this.gameService.setUsername('');
+    this.gameService.logout();
   }
 
   openProfileModal() {
@@ -207,12 +228,24 @@ export class App {
 
   closeProfileModal() {
     this.showProfileModal.set(false);
+    this.pinCodeToSecure = '';
+    this.secureErrorMessage.set('');
   }
 
-  saveNewUsername() {
-    if (this.newUsername.trim()) {
-      this.gameService.setUsername(this.newUsername.trim());
+  async secureAccount() {
+    const pin = this.pinCodeToSecure.trim();
+    if (!pin) return;
+    if (pin.length < 4 || pin.length > 6 || !/^\d+$/.test(pin)) {
+      this.secureErrorMessage.set('Le code PIN doit comporter entre 4 et 6 chiffres.');
+      return;
+    }
+    this.secureErrorMessage.set('');
+    const res = await this.gameService.secureTempUser(pin);
+    if (res.success) {
+      this.pinCodeToSecure = '';
       this.closeProfileModal();
+    } else {
+      this.secureErrorMessage.set(res.message || 'Erreur lors de la sécurisation du compte.');
     }
   }
 }

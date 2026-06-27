@@ -18,6 +18,7 @@ export const GAME_LABELS: Record<string, string> = {
   memory:     'Memory',
   uno:        '8 Américain',
   blackjack:  'Blackjack',
+  airhockey:  'Air Hockey',
 };
 
 export function gameLabel(gameType: string): string {
